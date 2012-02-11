@@ -72,6 +72,7 @@ Engine::Engine()
                   << "QHS"
                   << "YJ1st"
                   << "TBdiy"
+                  << "Ghost"
                   << "Test"
 
                   << "StandardCard"
@@ -372,7 +373,7 @@ QString Engine::getVersionName() const{
 }
 
 QString Engine::getMODName() const{
-    return "Qhs_mod";
+    return "FolkExtensionMod";
 }
 
 QStringList Engine::getExtensions() const{

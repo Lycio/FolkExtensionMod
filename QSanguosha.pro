@@ -60,6 +60,7 @@ SOURCES += src/main.cpp \
         src/package/YJ1st-package.cpp \
         src/package/TBdiy-package.cpp \
         src/package/dishacardpackage.cpp \
+        src/package/ghost.cpp \
 	src/scenario/boss-mode-scenario.cpp \
 	src/scenario/couple-scenario.cpp \
 	src/scenario/fancheng-scenario.cpp \
@@ -177,6 +178,7 @@ HEADERS += src/client/aux-skills.h \
         src/package/YJ1st-package.h \
         src/package/TBdiy-package.h \
         src/package/dishacardpackage.h \
+        src/package/ghost.h \
 	src/scenario/boss-mode-scenario.h \
 	src/scenario/couple-scenario.h \
 	src/scenario/fancheng-scenario.h \

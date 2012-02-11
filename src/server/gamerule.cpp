@@ -354,12 +354,11 @@ bool GameRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
                 room->recover(damage.from, recover);
             }
 
-            if(!damage.to->isKongcheng()){
-                while(room->askForRob(damage)){
-                    ServerPlayer *from = room->getTag("RobFrom").value<PlayerStar>();
-                    room->removeTag("RobFrom");
-                    room->moveCardTo(Sanguosha->getCard(room->askForCardChosen(from, damage.to, "h", "rob")), from, Player::Hand, false);
-                }
+
+            while(!damage.to->isKongcheng() && room->askForRob(damage)){
+                ServerPlayer *from = room->getTag("RobFrom").value<PlayerStar>();
+                room->removeTag("RobFrom");
+                room->moveCardTo(Sanguosha->getCard(room->askForCardChosen(from, damage.to, "h", "rob")), from, Player::Hand, false);
             }
 
             break;

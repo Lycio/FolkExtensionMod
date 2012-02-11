@@ -79,6 +79,19 @@ bool Slash::targetFilter(const QList<const Player *> &targets, const Player *to_
         slash_targets ++;
     }
 
+    if(Self->hasSkill("huxiao") && isRed()){
+        slash_targets ++;
+    }
+
+    if(Self->hasSkill("longyin") && isBlack()){
+        distance_limit = false;
+    }
+
+    if(Self->hasSkill("juelu") && Self->isLastHandCard(this)){
+        distance_limit = false;
+        slash_targets =2;
+    }
+
     if(Self->hasSkill("shenji") && Self->getWeapon() == NULL)
         slash_targets = 3;
 

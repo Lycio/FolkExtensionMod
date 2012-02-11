@@ -73,15 +73,6 @@ public:
     virtual void use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const;
 };
 
-class JiehuohCard: public SkillCard{
-    Q_OBJECT
-
-public:
-    Q_INVOKABLE JiehuohCard();
-
-    virtual void use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const;
-};
-
 class ZhangQi:public AOE{
     Q_OBJECT
 

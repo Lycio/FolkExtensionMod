@@ -886,7 +886,7 @@ public:
         return false;
     }
 };
-*/
+
 class YJJiFeng: public TriggerSkill{
 public:
     YJJiFeng():TriggerSkill("jifeng"){
@@ -913,96 +913,7 @@ public:
         }
     }
 };
-
-JiehuohCard::JiehuohCard(){
-    target_fixed = true;
-}
-
-void JiehuohCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const{
-
-}
-
-class JiehuohViewAsSkill: public ViewAsSkill{
-public:
-    JiehuohViewAsSkill(): ViewAsSkill("jiehuoh"){
-    }
-
-    virtual bool isEnabledAtPlay(const Player *player) const{
-        return player->hasFlag("JieHuoCanUse");
-    }
-
-    virtual bool viewFilter(const QList<CardItem *> &selected, const CardItem *to_select) const{
-        if(selected.length() >= 4)
-            return false;
-
-        if(to_select->isEquipped())
-            return false;
-
-        foreach(CardItem *item, selected){
-            if(to_select->getFilteredCard()->getSuit() == item->getFilteredCard()->getSuit())
-                return false;
-        }
-
-        return true;
-    }
-
-    virtual const Card *viewAs(const QList<CardItem *> &cards) const{
-        if(cards.length() != 4)
-            return NULL;
-
-        JiehuohCard *card = new JiehuohCard;
-        card->addSubcards(cards);
-        card->setSkillName(objectName());
-        return card;
-    }
-};
-
-class Jiehuoh: public TriggerSkill{
-public:
-    Jiehuoh():TriggerSkill("jiehuoh"){
-        events  << Death << PhaseChange << CardUsed;
-        frequency = Limited;
-        view_as_skill = new JiehuohViewAsSkill;
-    }
-
-    virtual bool triggerable(const ServerPlayer *target) const{
-        return true; //target->getRoom()->findPlayerBySkillName(objectName());
-    }
-
-    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
-        Room *room = player->getRoom();
-        ServerPlayer *skillowner = room->findPlayerBySkillName(objectName());
-        if(!skillowner)
-            return false;
-
-        static QStringList deadnames;
-        if(event == Death){
-            deadnames.append(player->getGeneralName());
-            return false;
-        }else if(event == PhaseChange && skillowner->getPhase() == Player::Start){
-            if(deadnames.isEmpty())
-                return false;
-            else{
-                room->setPlayerFlag(skillowner, "JieHuoCanUse");
-                return false;
-            }
-        }else if(event == PhaseChange && skillowner->getPhase() == Player::Finish){
-            deadnames.clear();
-        }else if(event == CardUsed && skillowner->getPhase() == Player::Play){
-            CardUseStruct use = data.value<CardUseStruct>();
-            if(use.card->getSkillName() != "jiehuoh")
-                return false;
-            QString choice = room->askForChoice(skillowner, objectName(), deadnames.join("+"));
-            ServerPlayer *target = room->findPlayer(choice, true);
-            room->revivePlayer(target);
-            room->setPlayerProperty(target, "hp", 3);
-            target->drawCards(3);
-            return false;
-        }
-        return false;
-    }
-};
-
+*/
 ZhangQi::ZhangQi(Suit suit, int number)
     :AOE(suit, number)
 {
@@ -1044,42 +955,6 @@ void YuQinGuZong::onEffect(const CardEffectStruct &effect) const{
     else
         room->askForDiscard(effect.to, "yuqinguzong", 4, false, false);
 }
-
-class RedFlag1Skill: public OneCardViewAsSkill{
-public:
-    RedFlag1Skill():OneCardViewAsSkill("red_flag"){
-
-    }
-
-    virtual bool isEnabledAtPlay(const Player *player) const{
-        return Slash::IsAvailable(player);
-    }
-
-    virtual bool isEnabledAtResponse(const Player *player, const QString &pattern) const{
-        return  pattern == "slash";
-    }
-
-    virtual bool viewFilter(const CardItem *to_select) const{
-        return to_select->getFilteredCard()->inherits("Slash");
-    }
-
-    virtual const Card *viewAs(CardItem *card_item) const{
-        const Card *card = card_item->getCard();
-        Card::Suit suit = Card::NoSuit;
-        if(card->getSuit() == Card::Club)
-            suit = Card::Diamond;
-        else if(card->getSuit() == Card::Spade)
-            suit = Card::Heart;
-        Card *slash = new Slash(suit, card->getNumber());
-        slash->addSubcard(card->getId());
-        slash->setSkillName(objectName());
-        return slash;
-    }
-
-    virtual bool useCardSoundEffect() const{
-        return true;
-    }
-};
 
 class RedFlagSkill: public WeaponSkill{
 public:
@@ -1144,11 +1019,6 @@ void JieJian::takeEffect(ServerPlayer *target) const{
 YJ1stPackage::YJ1stPackage()
     :Package("YJ1st")
 {
-    //General *debug1 = new General(this, "debug1", "wei", 10);
-    //debug1->addSkill(new Jiehuoh);
-
-    //addMetaObject<JiehuohCard>();
-
     General *YJchengyu = new General(this, "YJchengyu", "wei", 3);
     YJchengyu->addSkill(new YJZhuanXiang);
     YJchengyu->addSkill(new YJGangDuan);
