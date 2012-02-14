@@ -1011,7 +1011,8 @@ void JieJian::takeEffect(ServerPlayer *target) const{
         const Card *slash = room->askForCard(p, "slash", "@jiejian-slash:"+target->getGeneralName());
         if(slash){
             room->cardEffect(slash, p, target);
-            room->moveCardTo(slash, target, Player::Hand, true);
+            if(target->isAlive())
+                room->moveCardTo(slash, target, Player::Hand, true);
         }
     }
 }

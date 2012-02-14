@@ -315,6 +315,76 @@ void RoomThread::run(){
         }
 
 
+    }else if(room->getMode() == "05_2v3"){
+        ServerPlayer *cbzhaoyun = room->getLord();
+        ServerPlayer *cbzhangfei = cbzhaoyun;
+        foreach(ServerPlayer *p, room->players){
+            if(p->getRole() == "loyalist")
+                cbzhangfei = p;
+        }
+
+        if(cbzhaoyun->getGeneralName() == "cbzhaoyun1"){
+            QList<ServerPlayer *> league = room->players;
+            league.removeOne(cbzhaoyun);
+            league.removeOne(cbzhangfei);
+
+            forever{
+                foreach(ServerPlayer *player, league){
+                    if(player->hasFlag("actioned"))
+                        room->setPlayerFlag(player, "-actioned");
+                }
+
+                int i = 0;
+                foreach(ServerPlayer *player, league){
+                    room->setCurrent(player);
+                    trigger(TurnStart, room->getCurrent());
+
+                    if(!player->hasFlag("actioned"))
+                        room->setPlayerFlag(player, "actioned");
+
+                    if(cbzhaoyun->getGeneralName() == "cbzhaoyun2")
+                        goto cbsecond_phase;
+
+                    if(player->isAlive()){
+                        if(i % 2 == 0){
+                            room->setCurrent(cbzhaoyun);
+                            trigger(TurnStart, room->getCurrent());
+
+                            if(cbzhaoyun->getGeneralName() == "cbzhaoyun2")
+                                goto cbsecond_phase;
+                        }else{
+                            room->setCurrent(cbzhangfei);
+                            trigger(TurnStart, room->getCurrent());
+                        }
+                    }
+                    i++;
+                }
+            }
+
+        }else{
+            cbsecond_phase:
+
+            foreach(ServerPlayer *player, room->players){
+                if(player != cbzhaoyun){
+                    if(player->hasFlag("actioned"))
+                        room->setPlayerFlag(player, "-actioned");
+
+                    if(player->getPhase() != Player::NotActive){
+                        room->setPlayerProperty(player, "phase", "not_active");
+                        trigger(PhaseChange, player);
+                    }
+                }
+            }
+
+            room->setCurrent(cbzhaoyun);
+
+            forever{
+                trigger(TurnStart, room->getCurrent());
+                room->setCurrent(room->getCurrent()->getNext());
+            }
+        }
+
+
     }else{
         if(room->getMode() == "02_1v1")
             room->setCurrent(room->players.at(1));

@@ -16,7 +16,7 @@ GameRule::GameRule(QObject *parent)
             << CardEffected << HpRecover << HpLost << AskForPeachesDone
             << AskForPeaches << Death << Dying << GameOverJudge
             << SlashHit << SlashMissed << SlashEffected << SlashProceed
-            << Predamaged << DamageDone << DamageComplete
+            << DamageDone << DamageComplete
             << StartJudge << FinishJudge << Pindian;
 }
 
@@ -292,7 +292,7 @@ bool GameRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
     case AskForPeaches:{
             DyingStruct dying = data.value<DyingStruct>();
 
-            while(dying.who->getHp() <= 0){
+            while(dying.who->isAlive() && dying.who->getHp() <= 0){
                 const Card *peach = room->askForSinglePeach(player, dying.who);
                 if(peach == NULL)
                     break;
@@ -318,27 +318,22 @@ bool GameRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
             break;
         }
 
-    case Predamaged:{
-            DamageStruct predamage = data.value<DamageStruct>();
-            if(predamage.from){
-                if(room->askForRebound(predamage)){
-                    DamageStruct damage;
-                    damage.card = predamage.card;
-                    damage.chain = predamage.chain;
-                    damage.damage = predamage.damage;
-                    damage.from = predamage.to;
-                    damage.nature = predamage.nature;
-                    damage.to = predamage.from;
-                    room->damage(damage);
+    case DamageDone:{
+            DamageStruct damage = data.value<DamageStruct>();
+
+            if(damage.from && damage.from != damage.to){
+                if(room->askForRebound(damage)){
+                    DamageStruct rebound;
+                    rebound.card = damage.card;
+                    rebound.chain = damage.chain;
+                    rebound.damage = damage.damage;
+                    rebound.from = damage.to;
+                    rebound.nature = damage.nature;
+                    rebound.to = damage.from;
+                    room->damage(rebound);
                     return true;
                 }
             }
-
-            break;
-        }
-
-    case DamageDone:{
-            DamageStruct damage = data.value<DamageStruct>();
 
             room->sendDamageLog(damage);
             room->applyDamage(player, damage);
@@ -861,7 +856,7 @@ BasaraMode::BasaraMode(QObject *parent)
 {
     setObjectName("basara_mode");
 
-    events << CardLost ;//<< Predamaged;
+    events << CardLost << Predamaged;
 
     skill_mark["niepan"] = "@nirvana";
     skill_mark["smallyeyan"] = "@flame";
@@ -1061,4 +1056,108 @@ bool BasaraMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &dat
     }
 
     return false;
+}
+
+ChangbanSlopeMode::ChangbanSlopeMode(QObject *parent)
+    :GameRule(parent)
+{
+    setObjectName("changbanslope_mode");
+
+    events << HpChanged ;
+}
+
+static int TransfigurationCB = 1;
+
+bool ChangbanSlopeMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+    Room *room = player->getRoom();
+
+    switch(event){
+    case GameStart:{
+            if(player->getRole() == "lord" || player->getRole() == "loyalist")
+                room->acquireSkill(player, "cbangercollect", true);
+
+            if(player->isLord()){
+                if(setjmp(env) == TransfigurationCB){
+                    player = room->getLord();
+                    room->transfigure(player, "cbzhaoyun2", true, true);
+                    ServerPlayer *cbzhangfei = player;
+                    foreach(ServerPlayer *p, room->getAlivePlayers()){
+                        if(p->getRole() == "loyalist")
+                            cbzhangfei = p;
+                    }
+                    room->transfigure(cbzhangfei, "cbzhangfei2", true, true);
+                    QList<ServerPlayer *> cbgod;
+                    cbgod << player << cbzhangfei;
+                    foreach(ServerPlayer *p, cbgod){
+                        QList<const Card *> tricks = p->getJudgingArea();
+                        foreach(const Card *trick, tricks)
+                            room->throwCard(trick);
+                    }
+                }else{
+                    player->drawCards(4, false);
+                }
+            }else
+                player->drawCards(4, false);
+
+
+            return false;
+        }
+
+    case HpChanged:{
+            if(player->getGeneralName() == "cbzhaoyun1" && player->getHp() <= 4){
+                longjmp(env, TransfigurationCB);
+            }
+
+            if(player->getGeneralName() == "cbzhangfei1" && player->getHp() <= 5){
+                room->transfigure(player, "cbzhangfei2", true, true);
+            }
+
+            return false;
+        }
+
+    case Death:{
+            if(player->getRoleEnum() == Player::Rebel){
+                changeGeneral(player);
+            }
+            if(player->isLord()){
+                room->gameOver("rebel");
+            }
+
+            return false;
+        }
+
+    default:
+        break;
+    }
+
+    return GameRule::trigger(event, player, data);
+}
+
+void ChangbanSlopeMode::changeGeneral(ServerPlayer *player) const{
+    Room *room = player->getRoom();
+    QStringList generals = room->getTag(player->objectName()).toStringList();
+    if(generals.length() != 0){
+        QString new_general = generals.first();
+        room->removeTag(player->objectName());
+        generals.removeOne(new_general);
+        room->setTag(player->objectName(), QVariant(generals));
+        room->transfigure(player, new_general, true, true);
+        room->revivePlayer(player);
+
+        if(player->getKingdom() != player->getGeneral()->getKingdom())
+            room->setPlayerProperty(player, "kingdom", player->getGeneral()->getKingdom());
+
+        room->broadcastInvoke("revealGeneral",
+                              QString("%1:%2").arg(player->objectName()).arg(new_general),
+                              player);
+
+        if(!player->faceUp())
+            player->turnOver();
+
+        if(player->isChained())
+            room->setPlayerProperty(player, "chained", false);
+
+        player->drawCards(4);
+    }else
+        room->removeTag(player->objectName());
 }

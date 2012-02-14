@@ -73,6 +73,7 @@ Engine::Engine()
                   << "YJ1st"
                   << "TBdiy"
                   << "Ghost"
+                  << "ChangbanSlope"
                   << "Test"
 
                   << "StandardCard"
@@ -112,6 +113,7 @@ Engine::Engine()
     modes["04p"] = tr("4 players");
     modes["04_1v3"] = tr("4 players (Hulao Pass)");
     modes["05p"] = tr("5 players");
+    modes["05_2v3"] = tr("5 players (Changban Slope)");
     modes["06p"] = tr("6 players");
     modes["06pd"] = tr("6 players (2 renegades)");
     modes["06_3v3"] = tr("6 players (3v3)");
@@ -481,6 +483,9 @@ void Engine::getRoles(const QString &mode, char *roles) const{
     }else if(mode == "04_1v3"){
         qstrcpy(roles, "ZFFF");
         return;
+    }else if(mode == "05_2v3"){
+        qstrcpy(roles, "ZCFFF");
+        return;
     }else if(Config.EnableHegemony){
         static const char *table[] = {
             "",
@@ -677,6 +682,9 @@ QList<int> Engine::getRandomCards() const{
         exclude_disaters = Config.value("3v3/ExcludeDisasters", true).toBool();
 
     if(Config.GameMode == "04_1v3")
+        exclude_disaters = true;
+
+    if(Config.GameMode == "05_2v3")
         exclude_disaters = true;
 
     QList<int> list;

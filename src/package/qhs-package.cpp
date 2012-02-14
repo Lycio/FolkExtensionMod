@@ -1544,8 +1544,7 @@ public:
                     Slash *slash = new Slash(Card::NoSuit, 0);
                     ServerPlayer *to = room->askForPlayerChosen(caozhangh, tos, "@xiaozhanh");
                     room->cardEffect(slash, caozhangh, to);
-                }
-                else
+                }else
                     return false;
             }else{
                 room->playSkillEffect(objectName());

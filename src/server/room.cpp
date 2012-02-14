@@ -1143,6 +1143,18 @@ const Card *Room::askForSinglePeach(ServerPlayer *player, ServerPlayer *dying){
 
             if(!has_heart)
                 return NULL;
+        }else if(player->hasSkill("cbyuxue")){
+            bool has_redAnger = false;
+            foreach(int id, player->getPile("Angers")){
+                const Card *card = Sanguosha->getCard(id);
+                if(card->isRed()){
+                    has_redAnger = true;
+                    break;
+                }
+            }
+
+            if(!has_redAnger)
+                return NULL;
         }else
             return NULL;
     }
@@ -1471,6 +1483,21 @@ void Room::prepareForStart(){
             ServerPlayer *player = players.at(i);
             if(player == lord)
                 player->setRole("lord");
+            else
+                player->setRole("rebel");
+            broadcastProperty(player, "role");
+        }
+    }else if(mode == "05_2v3"){
+        int x = qrand() % 5;
+        ServerPlayer *lord = players.at(x);
+        ServerPlayer *loyalist = players.at((x-1) < 0 ? 4 : x-1);
+        int i = 0;
+        for(i=0; i<5; i++){
+            ServerPlayer *player = players.at(i);
+            if(player == lord)
+                player->setRole("lord");
+            else if(player == loyalist)
+                player->setRole("loyalist");
             else
                 player->setRole("rebel");
             broadcastProperty(player, "role");
@@ -1964,6 +1991,50 @@ void Room::run(){
         }
 
         startGame();
+    }else if(mode == "05_2v3"){
+
+        QList<const General *> generals;
+        foreach(const Package *package, Sanguosha->findChildren<const Package *>()){
+            if(package == Sanguosha->findChild<const Package *>("god") ||
+                    package == Sanguosha->findChild<const Package *>("ChangbanSlope") ||
+                    package == Sanguosha->findChild<const Package *>("test") ||
+                    package == Sanguosha->findChild<const Package *>("zombie_mode"))
+                continue;
+            else
+                generals << package->findChildren<const General *>();
+        }
+
+        QStringList names;
+        foreach(const General *general, generals){
+            names << general->objectName();
+        }
+
+        //names.removeOne("yuji");
+
+        foreach(ServerPlayer *player, players){
+            if(player->getRole() == "lord"){
+                setPlayerProperty(player, "general", "cbzhaoyun1");
+                continue;
+            }else if(player->getRole() == "loyalist"){
+                setPlayerProperty(player, "general", "cbzhangfei1");
+                continue;
+            }else{
+                qShuffle(names);
+                QStringList choices = names.mid(0, 6), generals;
+                int i;
+                for(i=0; i<3; i++){
+                    QString name = askForGeneral(player, choices);
+                    generals << name;
+                    names.removeOne(name);
+                    choices.removeOne(name);
+                }
+                setPlayerProperty(player, "general", generals.first());
+                generals.removeOne(generals.first());
+                this->setTag(player->objectName(), QVariant(generals));
+            }
+        }
+
+        startGame();
     }else{
         chooseGenerals();
         startGame();
@@ -2025,6 +2096,15 @@ void Room::adjustSeats(){
         }
     }
 
+    if(mode == "05_2v3"){
+        for(i=0; i<players.length(); i++){
+            if(players.at(i)->getRoleEnum() == Player::Loyalist){
+                players.swap(1, i);
+                break;
+            }
+        }
+    }
+
     for(i=0; i<players.length(); i++)
         players.at(i)->setSeat(i+1);
 
@@ -2046,6 +2126,7 @@ int Room::getCardFromPile(const QString &card_pattern){
                 const Card *card = Sanguosha->getCard(card_id);
                 if(card->isBlack() && (card->inherits("BasicCard") || card->inherits("EquipCard")))
                     return card_id;
+
             }
         }
     }else{
@@ -2294,6 +2375,8 @@ bool Room::hasWelfare(const ServerPlayer *player) const{
         return player->isLord() || player->getRole() == "renegade";
     else if(mode == "04_1v3")
         return false;
+    else if(mode == "05_2v3")
+        return false;
     else if(Config.EnableHegemony)
         return false;
     else
@@ -2396,7 +2479,7 @@ void Room::startGame(){
         }
     }
 
-    if((Config.Enable2ndGeneral) && mode != "02_1v1" && mode != "06_3v3" && mode != "04_1v3" && !Config.EnableBasara){
+    if((Config.Enable2ndGeneral) && mode != "02_1v1" && mode != "06_3v3" && mode != "04_1v3" && mode != "05_2v3" && !Config.EnableBasara){
         foreach(ServerPlayer *player, players)
             broadcastProperty(player, "general2");
     }
@@ -2446,6 +2529,8 @@ void Room::startGame(){
     GameRule *game_rule;
     if(mode == "04_1v3")
         game_rule = new HulaoPassMode(this);
+    else if(mode == "05_2v3")
+        game_rule = new ChangbanSlopeMode(this);
     else if(Config.EnableScene)	//changjing
         game_rule = new SceneRule(this);	//changjing
     else

@@ -144,8 +144,11 @@ int Player::getAttackRange() const{
             return hp;
         else
             return weapon->getRange();
-    }else if(hasSkill("zhengfeng"))
+    }
+    else if(hasSkill("zhengfeng"))
         return hp;
+    else if(hasSkill("CBZhangBa"))
+        return 3;
     else
         return 1;
 }
