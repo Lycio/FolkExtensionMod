@@ -1998,6 +1998,7 @@ void Room::run(){
             if(package == Sanguosha->findChild<const Package *>("god") ||
                     package == Sanguosha->findChild<const Package *>("ChangbanSlope") ||
                     package == Sanguosha->findChild<const Package *>("test") ||
+                    package == Sanguosha->findChild<const Package *>("sp") ||
                     package == Sanguosha->findChild<const Package *>("zombie_mode"))
                 continue;
             else
@@ -2008,8 +2009,6 @@ void Room::run(){
         foreach(const General *general, generals){
             names << general->objectName();
         }
-
-        //names.removeOne("yuji");
 
         foreach(ServerPlayer *player, players){
             if(player->getRole() == "lord"){

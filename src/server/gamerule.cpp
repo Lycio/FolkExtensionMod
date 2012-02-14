@@ -1074,7 +1074,7 @@ bool ChangbanSlopeMode::trigger(TriggerEvent event, ServerPlayer *player, QVaria
     switch(event){
     case GameStart:{
             if(player->getRole() == "lord" || player->getRole() == "loyalist")
-                room->acquireSkill(player, "cbangercollect", true);
+                player->addMark("ChangbanSlope");
 
             if(player->isLord()){
                 if(setjmp(env) == TransfigurationCB){
@@ -1084,6 +1084,10 @@ bool ChangbanSlopeMode::trigger(TriggerEvent event, ServerPlayer *player, QVaria
                     foreach(ServerPlayer *p, room->getAlivePlayers()){
                         if(p->getRole() == "loyalist")
                             cbzhangfei = p;
+                    }
+                    if(cbzhangfei == player){
+                        cbzhangfei = room->findPlayer("cbzhangfei2", true);
+                        room->revivePlayer(cbzhangfei);
                     }
                     room->transfigure(cbzhangfei, "cbzhangfei2", true, true);
                     QList<ServerPlayer *> cbgod;
@@ -1116,11 +1120,32 @@ bool ChangbanSlopeMode::trigger(TriggerEvent event, ServerPlayer *player, QVaria
         }
 
     case Death:{
-            if(player->getRoleEnum() == Player::Rebel){
+            player->bury();
+            if(player->getRoleEnum() == Player::Rebel && !room->getTag(player->objectName()).toStringList().isEmpty()){
                 changeGeneral(player);
             }
+
+            if(player->isDead()){
+                DamageStar damage = data.value<DamageStar>();
+                ServerPlayer *killer = damage ? damage->from : NULL;
+                if(killer && killer->isAlive()){
+                    if(player->getRole() == "rebel" && killer != player){
+                        killer->drawCards(3);
+                    }else if(player->getRole() == "loyalist" && killer->getRole() == "lord"){
+                        killer->throwAllEquips();
+                        killer->throwAllHandCards();
+                    }
+                }
+            }
+
             if(player->isLord()){
                 room->gameOver("rebel");
+            }
+
+            if(player->getGeneralName() == "cbzhangfei2"){
+                ServerPlayer *cbzhaoyun = room->getLord();
+                if(cbzhaoyun->getHp() < 4)
+                    room->setPlayerProperty(cbzhaoyun, "hp", 4);
             }
 
             return false;
