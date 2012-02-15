@@ -16,7 +16,7 @@ GameRule::GameRule(QObject *parent)
             << CardEffected << HpRecover << HpLost << AskForPeachesDone
             << AskForPeaches << Death << Dying << GameOverJudge
             << SlashHit << SlashMissed << SlashEffected << SlashProceed
-            << DamageDone << DamageComplete
+            << Predamaged << DamageDone << DamageComplete
             << StartJudge << FinishJudge << Pindian;
 }
 
@@ -318,7 +318,7 @@ bool GameRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
             break;
         }
 
-    case DamageDone:{
+    case Predamaged:{
             DamageStruct damage = data.value<DamageStruct>();
 
             if(damage.from && damage.from != damage.to){
@@ -334,6 +334,12 @@ bool GameRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
                     return true;
                 }
             }
+
+            break;
+        }
+
+    case DamageDone:{
+            DamageStruct damage = data.value<DamageStruct>();
 
             room->sendDamageLog(damage);
             room->applyDamage(player, damage);
@@ -856,7 +862,7 @@ BasaraMode::BasaraMode(QObject *parent)
 {
     setObjectName("basara_mode");
 
-    events << CardLost << Predamaged;
+    events << CardLost ;//<< Predamaged;
 
     skill_mark["niepan"] = "@nirvana";
     skill_mark["smallyeyan"] = "@flame";
@@ -1073,9 +1079,7 @@ bool ChangbanSlopeMode::trigger(TriggerEvent event, ServerPlayer *player, QVaria
 
     switch(event){
     case GameStart:{
-            if(player->getRole() == "lord" || player->getRole() == "loyalist")
-                player->addMark("ChangbanSlope");
-
+            room->setTag("SkipNormalDeathProcess", true);
             if(player->isLord()){
                 if(setjmp(env) == TransfigurationCB){
                     player = room->getLord();
@@ -1121,8 +1125,16 @@ bool ChangbanSlopeMode::trigger(TriggerEvent event, ServerPlayer *player, QVaria
 
     case Death:{
             player->bury();
-            if(player->getRoleEnum() == Player::Rebel && !room->getTag(player->objectName()).toStringList().isEmpty()){
-                changeGeneral(player);
+
+            if(player->getRoleEnum() == Player::Rebel){
+                if(!room->getTag(player->objectName()).toStringList().isEmpty()){
+                    room->revivePlayer(player);
+                    changeGeneral(player);
+                }else{
+                    QStringList alive_roles = room->aliveRoles(player);
+                    if(!alive_roles.contains("rebel"))
+                        room->gameOver("lord+loyalist");
+                }
             }
 
             if(player->isDead()){
@@ -1151,6 +1163,10 @@ bool ChangbanSlopeMode::trigger(TriggerEvent event, ServerPlayer *player, QVaria
             return false;
         }
 
+    case GameOverJudge:{
+            return true;
+        }
+
     default:
         break;
     }
@@ -1167,7 +1183,6 @@ void ChangbanSlopeMode::changeGeneral(ServerPlayer *player) const{
         generals.removeOne(new_general);
         room->setTag(player->objectName(), QVariant(generals));
         room->transfigure(player, new_general, true, true);
-        room->revivePlayer(player);
 
         if(player->getKingdom() != player->getGeneral()->getKingdom())
             room->setPlayerProperty(player, "kingdom", player->getGeneral()->getKingdom());

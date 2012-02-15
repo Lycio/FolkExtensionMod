@@ -1490,7 +1490,7 @@ void Room::prepareForStart(){
     }else if(mode == "05_2v3"){
         int x = qrand() % 5;
         ServerPlayer *lord = players.at(x);
-        ServerPlayer *loyalist = players.at((x-1) < 0 ? 4 : x-1);
+        ServerPlayer *loyalist = players.at((x + qrand() % 4 + 1) % 5);
         int i = 0;
         for(i=0; i<5; i++){
             ServerPlayer *player = players.at(i);
@@ -1995,21 +1995,23 @@ void Room::run(){
 
         QList<const General *> generals;
         foreach(const Package *package, Sanguosha->findChildren<const Package *>()){
-            if(package == Sanguosha->findChild<const Package *>("god") ||
-                    package == Sanguosha->findChild<const Package *>("ChangbanSlope") ||
-                    package == Sanguosha->findChild<const Package *>("test") ||
-                    package == Sanguosha->findChild<const Package *>("sp") ||
-                    package == Sanguosha->findChild<const Package *>("zombie_mode"))
-                continue;
-            else
+            if(package == Sanguosha->findChild<const Package *>("standard") ||
+                    package == Sanguosha->findChild<const Package *>("wind") ||
+                    package == Sanguosha->findChild<const Package *>("fire") ||
+                    package == Sanguosha->findChild<const Package *>("thicket") ||
+                    package == Sanguosha->findChild<const Package *>("mountain"))
                 generals << package->findChildren<const General *>();
+            else
+                continue;
         }
 
         QStringList names;
         foreach(const General *general, generals){
-            names << general->objectName();
+            if(general->getKingdom() == "wei")
+                names << general->objectName();
         }
 
+        QList<ServerPlayer *> rebels;
         foreach(ServerPlayer *player, players){
             if(player->getRole() == "lord"){
                 setPlayerProperty(player, "general", "cbzhaoyun1");
@@ -2018,6 +2020,7 @@ void Room::run(){
                 setPlayerProperty(player, "general", "cbzhangfei1");
                 continue;
             }else{
+                rebels << player;
                 qShuffle(names);
                 QStringList choices = names.mid(0, 6), generals;
                 int i;
@@ -2027,10 +2030,14 @@ void Room::run(){
                     names.removeOne(name);
                     choices.removeOne(name);
                 }
-                setPlayerProperty(player, "general", generals.first());
-                generals.removeOne(generals.first());
                 this->setTag(player->objectName(), QVariant(generals));
             }
+        }
+        foreach(ServerPlayer *rebel, rebels){
+            QStringList generals = this->getTag(rebel->objectName()).toStringList();
+            setPlayerProperty(rebel, "general", generals.first());
+            generals.removeOne(generals.first());
+            this->setTag(rebel->objectName(), QVariant(generals));
         }
 
         startGame();
