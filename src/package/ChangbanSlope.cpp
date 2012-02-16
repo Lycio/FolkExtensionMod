@@ -60,9 +60,7 @@ public:
     virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
         Room *room = player->getRoom();
         DamageStruct damage = data.value<DamageStruct>();
-        if(!damage.card)
-            return false;
-        if(!damage.card->inherits("Slash") || damage.to->getCards("he").length() <= 0)
+        if(damage.to->getCards("he").length() <= 0)
             return false;
         if(!player->askForSkillInvoke(objectName(), data))
             return false;
@@ -165,44 +163,11 @@ public:
     }
 };
 
-CBYuXue1Card::CBYuXue1Card(){
+CBYuXueCard::CBYuXueCard(){
     target_fixed = true;
 }
 
-void CBYuXue1Card::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const{
-    QList<int> redangers;
-    foreach(int id, source->getPile("Angers")){
-        if(Sanguosha->getCard(id)->isRed())
-            redangers << id;
-    }
-
-    room->fillAG(redangers, source);
-    int card_id = room->askForAG(source, redangers, true, "cbyuxue");
-    source->invoke("clearAG");
-    if(card_id != -1){
-        const Card *redAnger = Sanguosha->getCard(card_id);
-
-        room->throwCard(redAnger);
-        Peach *peach = new Peach(Card::NoSuit, 0);
-        peach->setSkillName("cbyuxue");
-        CardUseStruct usepeach;
-        usepeach.card = peach;
-        usepeach.from = source;
-        usepeach.to << source;
-        room->useCard(usepeach);
-    }else{
-        LogMessage log;
-        log.type = "#CBYuXueLog";
-        log.from = source;
-        room->sendLog(log);
-    }
-}
-
-CBYuXue2Card::CBYuXue2Card(){
-    target_fixed = true;
-}
-
-void CBYuXue2Card::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const{
+void CBYuXueCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const{
     QList<int> angers = source->getPile("Angers");
     ServerPlayer *target = source;
     foreach(ServerPlayer *p, room->getAllPlayers()){
@@ -240,18 +205,7 @@ public:
     }
 
     virtual const Card *viewAs() const{
-        switch(ClientInstance->getStatus()){
-        case Client::Playing:{
-                return new CBYuXue1Card;
-            }
-
-        case Client::Responsing:{
-                return new CBYuXue2Card;
-            }
-
-        default:
-            return NULL;
-        }
+        return new CBYuXueCard;
     }
 
 protected:
@@ -295,6 +249,9 @@ public:
     virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
         Room *room = player->getRoom();
         if(event == PhaseChange && player->getPhase() == Player::Draw && player->getMark("zhangfeidead") > 0){
+            if(player->getPile("Angers").length() >= 5)
+                return false;
+            data = QVariant::fromValue(player);
             if(!player->askForSkillInvoke(objectName(), data))
                 return false;
             QList<int> cards = room->getNCards(3);
@@ -576,8 +533,7 @@ ChangbanSlopePackage::ChangbanSlopePackage()
     cbzhangfei2->addSkill(new CBShiShen);
 
     addMetaObject<CBLongNuCard>();
-    addMetaObject<CBYuXue1Card>();
-    addMetaObject<CBYuXue2Card>();
+    addMetaObject<CBYuXueCard>();
     addMetaObject<CBJuWuCard>();
     addMetaObject<CBChanSheCard>();
     addMetaObject<CBShiShenCard>();

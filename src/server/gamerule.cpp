@@ -1091,6 +1091,8 @@ bool ChangbanSlopeMode::trigger(TriggerEvent event, ServerPlayer *player, QVaria
                     }
                     if(cbzhangfei == player){
                         cbzhangfei = room->findPlayer("cbzhangfei2", true);
+                        if(cbzhangfei == NULL)
+                            cbzhangfei = room->findPlayer("cbzhangfei1", true);
                         room->revivePlayer(cbzhangfei);
                     }
                     room->transfigure(cbzhangfei, "cbzhangfei2", true, true);
@@ -1100,6 +1102,12 @@ bool ChangbanSlopeMode::trigger(TriggerEvent event, ServerPlayer *player, QVaria
                         QList<const Card *> tricks = p->getJudgingArea();
                         foreach(const Card *trick, tricks)
                             room->throwCard(trick);
+
+                        if(!p->faceUp())
+                            p->turnOver();
+
+                        if(p->isChained())
+                            room->setPlayerProperty(p, "chained", false);
                     }
                 }else{
                     player->drawCards(4, false);

@@ -4,7 +4,7 @@ return{
 	["guiguanyu"] = "鬼关羽",
 	["cv:guiguanyu"] = " ",
 	["designer:guiguanyu"] = "杀神附体小组",
-	["title:guiguanyu"] = "",
+	["title:guiguanyu"] = "麦城之恨",
 	["code:guiguanyu"] = "若虚无",
 	
 	["wumo"] = "武魔",
@@ -15,7 +15,7 @@ return{
 	["guizhangfei"] = "鬼张飞",
 	["cv:guizhangfei"] = " ",
 	["designer:guizhangfei"] = "杀神附体小组",
-	["title:guizhangfei"] = "",
+	["title:guizhangfei"] = "急雪兄仇",
 	["code:guizhangfei"] = "若虚无",
 	
 	["longyin"] = "龙吟",
@@ -26,7 +26,7 @@ return{
 	["guilvbu"] = "鬼吕布",
 	["cv:guilvbu"] = " ",
 	["designer:guilvbu"] = "杀神附体小组",
-	["title:guilvbu"] = "",
+	["title:guilvbu"] = "白门厉鬼",
 	["code:guilvbu"] = "若虚无",
 	
 	["sheji"] = "射戟",
@@ -37,7 +37,7 @@ return{
 	["guihuaxiong"] = "鬼华雄",
 	["cv:guihuaxiong"] = " ",
 	["designer:guihuaxiong"] = "杀神附体小组",
-	["title:guihuaxiong"] = "",
+	["title:guihuaxiong"] = "温酒之痛",
 	["code:guihuaxiong"] = "若虚无",
 	
 	["xiaoshou"] = "枭首",
@@ -48,7 +48,7 @@ return{
 	["guisimahui"] = "鬼司马徽",
 	["cv:guisimahui"] = " ",
 	["designer:guisimahui"] = "杀神附体小组",
-	["title:guisimahui"] = "",
+	["title:guisimahui"] = "水镜先生",
 	["code:guisimahui"] = "若虚无",
 	
 	["shouyeghost"] = "授业",
@@ -60,7 +60,7 @@ return{
 	["shamoke"] = "沙摩柯",
 	["cv:shamoke"] = " ",
 	["designer:shamoke"] = "杀神附体小组",
-	["title:shamoke"] = "",
+	["title:shamoke"] = "南蛮大将",
 	["code:shamoke"] = "若虚无",
 	
 	["qinwang"] = "勤王",
@@ -71,7 +71,7 @@ return{
 	["guizhuge"] = "鬼诸葛亮",
 	["cv:guizhuge"] = " ",
 	["designer:guizhuge"] = "杀神附体小组",
-	["title:guizhuge"] = "",
+	["title:guizhuge"] = "五丈原忠魂",
 	["code:guizhuge"] = "若虚无",
 	
 	["zhuangshen"] = "妆神",

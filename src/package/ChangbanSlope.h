@@ -24,20 +24,11 @@ public:
     virtual void use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const;
 };
 
-class CBYuXue1Card: public SkillCard{
+class CBYuXueCard: public SkillCard{
     Q_OBJECT
 
 public:
-    Q_INVOKABLE CBYuXue1Card();
-
-    virtual void use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const;
-};
-
-class CBYuXue2Card: public SkillCard{
-    Q_OBJECT
-
-public:
-    Q_INVOKABLE CBYuXue2Card();
+    Q_INVOKABLE CBYuXueCard();
 
     virtual void use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const;
 };

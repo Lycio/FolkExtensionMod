@@ -7,21 +7,21 @@ return {
 	["designer:cbzhaoyun1"] = "洛神工作室",
 	["cv:cbzhaoyun1"] = "",
 	["title:cbzhaoyun1"] = "长坂坡圣骑",
+	["code:cbzhaoyun1"] = "皇叔",
 	
 	["cbqinggang"] = "青釭",
-	[":cbqinggang"] = "当你使用的【杀】造成伤害后，你可以让目标选择弃掉一张手牌或者让你从其装备区获得一张牌。",
+	[":cbqinggang"] = "当你造成伤害后，你可以让目标选择弃掉一张手牌或者让你从其装备区获得一张牌。",
 	
 	["cbzhaoyun2"] = "神赵云（2）",
 	["designer:cbzhaoyun2"] = "洛神工作室",
 	["cv:cbzhaoyun2"] = "",
 	["title:cbzhaoyun2"] = "不败神话",
+	["code:cbzhaoyun2"] = "皇叔",
 	
 	["cblongnu"] = "龙怒",
 	[":cblongnu"] = "<b>聚气技，</b>出牌阶段，你可以弃两张相同花色的“怒”，若如此做，你使用的下一张【杀】不可被闪避。",
 	["#CBLongNuLog"] = "%from 取消了技能【<font color='yellow'><b>龙怒</b></font>】",
 	["cbyuxue"] = "浴血",
-	["cbyuxue1"] = "浴血",
-	["cbyuxue2"] = "浴血",
 	[":cbyuxue"] = "<b>聚气技，</b>你可以将你的任意红桃或方片花色的“怒”当【桃】使用。",
 	["#CBYuXueLog"] = "%from 取消了技能【<font color='yellow'><b>浴血</b></font>】",
 	["cblongyin"] = "龙吟",
@@ -31,6 +31,7 @@ return {
 	["designer:cbzhangfei1"] = "洛神工作室",
 	["cv:cbzhangfei1"] = "",
 	["title:cbzhangfei1"] = "待战的猛虎",
+	["code:cbzhangfei1"] = "皇叔",
 	
 	["cbzhengjun"] = "整军",
 	[":cbzhengjun"] = "<b>锁定技，</b>回合开始阶段，你弃X张牌（不足则全弃），回合结束阶段，将你的武将牌翻面，并摸X+1张牌。X为你的攻击范围。",
@@ -41,6 +42,7 @@ return {
 	["designer:cbzhangfei2"] = "洛神工作室",
 	["cv:cbzhangfei2"] = "",
 	["title:cbzhangfei2"] = "虎啸盘蛇",
+	["code:cbzhangfei2"] = "皇叔",
 	
 	["cbbeiliang"] = "备粮",
 	[":cbbeiliang"] = "摸牌阶段，你可以选择放弃摸牌，将手牌补至等同于你体力上限的张数。",

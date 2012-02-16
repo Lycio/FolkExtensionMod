@@ -69,10 +69,11 @@ Engine::Engine()
                   << "BGM"
                   << "Yitian"
                   << "Wisdom"
+                  << "Huangjin"
+                  << "Ghost"
                   << "QHS"
                   << "YJ1st"
                   << "TBdiy"
-                  << "Ghost"
                   << "ChangbanSlope"
                   << "Test"
 
