@@ -58,12 +58,15 @@ sgs.ai_skill_use_func.QuhuCard = function(card, use, self)
 	end
 end
 
-sgs.ai_choicemade_filter.cardUsed.QuhuCard = function(player, carduse)
+local quhu_filter = function(player, carduse)
 	if carduse.card:inherits("QuhuCard") then
 		sgs.ai_quhu_effect = true
 	end
 end
 
+table.insert(sgs.ai_choicemade_filter.cardUsed, quhu_filter)
+
+sgs.ai_cardneed.quhu = sgs.ai_cardneed.bignumber
 sgs.ai_skill_playerchosen.quhu = sgs.ai_skill_playerchosen.damage
 
 sgs.ai_card_intention.QuhuCard = 30
@@ -76,11 +79,13 @@ sgs.ai_skill_use["@@jieming"] = function(self, prompt)
 	local max_x = 0
 	local target
 	for _, friend in ipairs(self.friends) do
-		local x = math.min(friend:getMaxHP(), 5) - friend:getHandcardNum()
+		if friend:isAlive() then 
+			local x = math.min(friend:getMaxHP(), 5) - friend:getHandcardNum()
 
-		if x > max_x then
-			max_x = x
-			target = friend
+			if x > max_x then
+				max_x = x
+				target = friend
+			end
 		end
 	end
 
@@ -197,6 +202,10 @@ sgs.ai_view_as.kanpo = function(card, player, card_place)
 end
 
 sgs.ai_skill_invoke.bazhen = sgs.ai_skill_invoke.eight_diagram
+
+function sgs.ai_armor_value.bazhen(card)
+	if not card then return 4 end
+end
 
 sgs.wolong_suit_value = 
 {
@@ -324,7 +333,7 @@ sgs.ai_skill_use_func.TianyiCard=function(card,use,self)
 	end
 	if shouldUse then
 		for _, enemy in ipairs(self.enemies) do
-			if not (enemy:hasSkill("kongcheng") and enemy:getHandcardNum() == 1) and not enemy:isKongcheng() then
+			if not (enemy:hasSkill("kongcheng") and enemy:getHandcardNum() == 1) and not enemy:isKongcheng() and not enemy:hasSkill("tuntian") then
 				use.card = sgs.Card_Parse("@TianyiCard=" .. cards[1]:getId())
 				if use.to then use.to:append(enemy) end
 				return
@@ -332,6 +341,13 @@ sgs.ai_skill_use_func.TianyiCard=function(card,use,self)
 		end
 	end
 end
+
+function sgs.ai_skill_pindian.tianyi(minusecard, self, requestor)
+	if self:isFriend(requestor) then return end
+	if requestor:getHandcardNum() <= 2 then return minusecard end
+end
+
+sgs.ai_cardneed.tianyi = sgs.ai_cardneed.bignumber
 
 sgs.ai_card_intention.TianyiCard = 30
 

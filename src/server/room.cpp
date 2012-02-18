@@ -2927,16 +2927,16 @@ void Room::activate(ServerPlayer *player, CardUseStruct &card_use){
     thread->trigger(ChoiceMade, player, data);
 }
 
-Card::Suit Room::askForSuit(ServerPlayer *player){
+Card::Suit Room::askForSuit(ServerPlayer *player, const QString& reason){
     AI *ai = player->getAI();
     if(ai)
-        return ai->askForSuit();
+        return ai->askForSuit(reason);
 
     player->invoke("askForSuit");
     getResult("chooseSuitCommand", player);
 
     if(result.isEmpty())
-        return askForSuit(player);
+        return askForSuit(player, reason);
 
     Card::Suit suit;
     if(result == ".")
@@ -3325,6 +3325,7 @@ void Room::makeCheat(const QString &cheat_str){
     QRegExp damage_rx(":(.+)->(\\w+):([NTFRL])(\\d+)");
     QRegExp killing_rx(":KILL:(.+)->(\\w+)");
     QRegExp revive_rx(":REVIVE:(.+)");
+    QRegExp doscript_rx(":SCRIPT:(.+)");
 
     if(damage_rx.exactMatch(cheat_str))
         makeDamage(damage_rx.capturedTexts());
@@ -3332,6 +3333,14 @@ void Room::makeCheat(const QString &cheat_str){
         makeKilling(killing_rx.capturedTexts());
     }else if(revive_rx.exactMatch(cheat_str)){
         makeReviving(revive_rx.capturedTexts());
+    }else if(doscript_rx.exactMatch(cheat_str)){
+        QString script = doscript_rx.capturedTexts().value(1);
+        if(!script.isEmpty()){
+            QByteArray data = QByteArray::fromBase64(script.toAscii());
+            data = qUncompress(data);
+            script = data;
+            doScript(script);
+        }
     }
 }
 

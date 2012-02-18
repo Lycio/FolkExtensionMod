@@ -30,7 +30,8 @@ sgs.ai_skill_invoke.grab_peach = function(self, data)
 	return self:isEnemy(struct.from) and (struct.to:isEmpty() or self:isEnemy(struct.to:first()))
 end
 
-function SmartAI:useGaleShell(card, use)
+function SmartAI:useCardGaleShell(card, use)
+	use.broken = true
 	for _, enemy in ipairs(self.enemies) do
 		if self.player:distanceTo(enemy) <=1 and not self:hasSkills("jijiu|wusheng|longhun",enemy) then
 			use.card = card
@@ -40,6 +41,10 @@ function SmartAI:useGaleShell(card, use)
 			return
 		end
 	end
+end
+
+sgs.ai_armor_value["gale-shell"] = function()
+	return -10
 end
 
 sgs.ai_card_intention.GaleShell = 80

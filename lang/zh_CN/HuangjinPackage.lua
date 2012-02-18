@@ -155,7 +155,7 @@ return {
 	["designer:xianyuji"] = "杀神附体设计  Alcatraz修正",
 	["designer:xiannanhua"] = "杀神附体设计",
 	
-	["title:zhangliang"] = "人工将军",
+	["title:zhangliang"] = "人公将军",
 	["title:zhangyan"] = "燕山帅",
 	["title:zhangbao"] = "地公将军",
 	["title:zhangmancheng"] = "角阳寇",

@@ -355,9 +355,21 @@ void RoomThread::run(){
                         }else{
                             room->setCurrent(cbzhangfei);
                             trigger(TurnStart, room->getCurrent());
+
+                            if(cbzhaoyun->getGeneralName() == "cbzhaoyun2")
+                                goto cbsecond_phase;
                         }
+
+                        i++;
                     }
-                    i++;
+                }
+
+                if(i == 1){
+                    room->setCurrent(cbzhangfei);
+                    trigger(TurnStart, room->getCurrent());
+
+                    if(cbzhaoyun->getGeneralName() == "cbzhaoyun2")
+                        goto cbsecond_phase;
                 }
             }
 

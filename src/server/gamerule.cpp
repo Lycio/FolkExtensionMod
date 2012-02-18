@@ -359,7 +359,10 @@ bool GameRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
             while(!damage.to->isKongcheng() && room->askForRob(damage)){
                 ServerPlayer *from = room->getTag("RobFrom").value<PlayerStar>();
                 room->removeTag("RobFrom");
-                room->moveCardTo(Sanguosha->getCard(room->askForCardChosen(from, damage.to, "h", "rob")), from, Player::Hand, false);
+                if(!damage.to->isKongcheng())
+                    room->moveCardTo(Sanguosha->getCard(room->askForCardChosen(from, damage.to, "h", "rob")), from, Player::Hand, false);
+                else
+                    break;
             }
 
             break;
@@ -1135,8 +1138,8 @@ bool ChangbanSlopeMode::trigger(TriggerEvent event, ServerPlayer *player, QVaria
             player->bury();
 
             if(player->getRoleEnum() == Player::Rebel){
-                if(!room->getTag(player->objectName()).toStringList().isEmpty()){
-                    room->revivePlayer(player);
+                QStringList generals = room->getTag(player->objectName()).toStringList();
+                if(!generals.isEmpty()){
                     changeGeneral(player);
                 }else{
                     QStringList alive_roles = room->aliveRoles(player);
@@ -1184,6 +1187,7 @@ bool ChangbanSlopeMode::trigger(TriggerEvent event, ServerPlayer *player, QVaria
 
 void ChangbanSlopeMode::changeGeneral(ServerPlayer *player) const{
     Room *room = player->getRoom();
+    room->revivePlayer(player);
     QStringList generals = room->getTag(player->objectName()).toStringList();
     if(generals.length() != 0){
         QString new_general = generals.first();

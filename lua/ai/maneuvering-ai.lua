@@ -26,6 +26,19 @@ sgs.ai_skill_invoke.fan = function(self, data)
 	return not self:isFriend(data:toSlashEffect().to)
 end
 
+function sgs.ai_weapon_value.fan(self, enemy)
+	if enemy and (self:isEquip("Vine", enemy) or self:isEquip("GaleShell", enemy)) then return 3 end
+end
+
+function sgs.ai_armor_value.vine(player, self)
+	for _, enemy in ipairs(self:getEnemies(player)) do
+		if (enemy:canSlash(player) and self:isEquip("Fan",enemy)) or self:hasSkills("huoji|shaoying", enemy) then return -1 end
+		if enemy:objectName() == self.player:objectName() and (self:getCardId("FireSlash", enemy) or self:getCardId("FireAttack",enemy)) then return -1 end
+	end
+	if #(self:getEnemies(player))<3 then return 4 end
+	return 3
+end
+
 function SmartAI:searchForAnaleptic(use,enemy,slash)
 	if not self.toUse then return nil end
 
@@ -158,7 +171,7 @@ function SmartAI:useCardIronChain(card, use)
 	local targets = {}
 	self:sort(self.friends,"defense")
 	for _, friend in ipairs(self.friends) do
-		if friend:isChained() then
+		if friend:isChained() or friend:hasSkill("danlao") then
 			table.insert(targets, friend)
 		end
 	end
@@ -216,7 +229,8 @@ function SmartAI:useCardFireAttack(fire_attack, use)
 
 	self:sort(self.enemies, "defense")
 	for _, enemy in ipairs(self.enemies) do
-		if (self:objectiveLevel(enemy) > 3) and not enemy:isKongcheng() and self:hasTrickEffective(fire_attack, enemy) then
+		if (self:objectiveLevel(enemy) > 3) and not enemy:isKongcheng() and self:hasTrickEffective(fire_attack, enemy) 
+			and self:damageIsEffective(enemy, sgs.DamageStruct_Fire, self.player) then
 
 			local cards = enemy:getHandcards()
 			local success = true
@@ -227,7 +241,7 @@ function SmartAI:useCardFireAttack(fire_attack, use)
 				end
 			end
 
-			if success then
+			if success and not (enemy:isChained() and #(self:getChainedFriends()) > #(self:getChainedEnemies())) then
 				if self:isEquip("Vine", enemy) then
 					table.insert(targets_succ, 1, enemy)
 					break

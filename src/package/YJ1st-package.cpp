@@ -61,7 +61,7 @@ public:
     virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
         Room *room = player->getRoom();
         ServerPlayer *YJmateng = room->findPlayerBySkillName(objectName());
-        if(YJmateng->getPhase() == Player::NotActive)
+        if(YJmateng && YJmateng->getPhase() == Player::NotActive)
             return false;
         if(event == CardLost){
             CardMoveStar move = data.value<CardMoveStar>();
@@ -1071,7 +1071,6 @@ YJ1stCardPackage::YJ1stCardPackage()
           << new YuQinGuZong(Card::Heart, 11)
           << new RedFlag(Card::Heart, 12)
           << new JieJian(Card::Club, 1);
-
 
     foreach(Card *card, cards)
         card->setParent(this);

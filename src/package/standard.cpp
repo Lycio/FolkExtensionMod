@@ -226,7 +226,7 @@ const DelayedTrick *DelayedTrick::CastFrom(const Card *card){
     DelayedTrick *trick = NULL;
     Card::Suit suit = card->getSuit();
     int number = card->getNumber();
-    if(card->isRed()){
+    if(card->isRed() && !card->inherits("Disaster")){
         trick = new Indulgence(suit, number);
         trick->addSubcard(card->getId());
     }else if(card->inherits("DelayedTrick"))

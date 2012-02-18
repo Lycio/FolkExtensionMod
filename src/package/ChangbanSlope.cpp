@@ -64,12 +64,16 @@ public:
             return false;
         if(!player->askForSkillInvoke(objectName(), data))
             return false;
-        if(damage.to->getCards("e").length() == 0)
-            room->askForDiscard(damage.to, objectName(), 1, false, false);
-        else
-            if(!room->askForDiscard(damage.to, objectName(), 1, true, false))
-            room->moveCardTo(Sanguosha->getCard(room->askForCardChosen(player, damage.to, "e", objectName())), player, Player::Hand, true);
-
+        int i;
+        for(i=0; i<damage.damage; i++){
+            if(damage.to->isNude())
+                break;
+            if(damage.to->getCards("e").length() == 0)
+                room->askForDiscard(damage.to, objectName(), 1, false, false);
+            else
+                if(!room->askForDiscard(damage.to, objectName(), 1, true, false))
+                    room->moveCardTo(Sanguosha->getCard(room->askForCardChosen(player, damage.to, "e", objectName())), player, Player::Hand, true);
+        }
         return false;
     }
 };
@@ -89,12 +93,12 @@ void CBLongNuCard::use(Room *room, ServerPlayer *source, const QList<ServerPlaye
         const Card *anger2 = anger1;
         foreach(int id, source->getPile("Angers")){
             const Card *card = Sanguosha->getCard(id);
-            if(card == anger1)
+            if(card->getEffectiveId() == anger1->getEffectiveId())
                 continue;
-            else if(card->getSuitString() == anger1->getSuitString())
+            else if(card->sameColorWith(anger1))
                 anger2 = card;
         }
-        if(anger2 != anger1){
+        if(anger2->getEffectiveId() != anger1->getEffectiveId()){
             room->throwCard(anger1);
             room->throwCard(anger2);
             source->addMark("CBLongNu");
@@ -118,7 +122,7 @@ public:
 
 protected:
     virtual bool isEnabledAtPlay(const Player *player) const{
-        bool has_sameSuit = false;
+        bool has_sameColor = false;
         QList<int> angers = Self->getPile("Angers"), temp;
 
         foreach(int id, angers){
@@ -127,14 +131,14 @@ protected:
             const Card *card = Sanguosha->getCard(id);
             foreach(int tmp, temp){
                 const Card *cardtmp = Sanguosha->getCard(tmp);
-                if(card->getSuitString() == cardtmp->getSuitString()){
-                    has_sameSuit = true;
+                if(card->sameColorWith(cardtmp)){
+                    has_sameColor = true;
                     break;
                 }
             }
         }
 
-        return has_sameSuit;
+        return has_sameColor;
     }
 
     virtual bool isEnabledAtResponse(const Player *player, const QString &pattern) const{
@@ -248,7 +252,7 @@ public:
 
     virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
         Room *room = player->getRoom();
-        if(event == PhaseChange && player->getPhase() == Player::Draw && player->getMark("zhangfeidead") > 0){
+        if(event == PhaseChange && player->getPhase() == Player::Start && player->getMark("zhangfeidead") > 0){
             if(player->getPile("Angers").length() >= 5)
                 return false;
             data = QVariant::fromValue(player);
@@ -319,17 +323,22 @@ bool CBJuWuCard::targetFilter(const QList<const Player *> &targets, const Player
     return to_select->getGeneralName() == "cbzhaoyun1" || to_select->getGeneralName() == "cbzhaoyun2";
 }
 
-void CBJuWuCard::onEffect(const CardEffectStruct &effect) const{
-    effect.to->obtainCard(this);
+void CBJuWuCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const{
+    ServerPlayer *target = targets.first();
+    room->moveCardTo(this, target, Player::Hand, false);
+
+    int old_value = source->getMark("cbjuwu");
+    int new_value = old_value + subcards.length();
+    room->setPlayerMark(source, "cbjuwu", new_value);
 }
 
-class CBJuWu: public ViewAsSkill{
+class CBJuWuViewAsSkill: public ViewAsSkill{
 public:
-    CBJuWu():ViewAsSkill("cbjuwu"){
+    CBJuWuViewAsSkill():ViewAsSkill("cbjuwu"){
     }
 
     virtual bool viewFilter(const QList<CardItem *> &selected, const CardItem *to_select) const{
-        if(selected.length() >= Self->getHp())
+        if(selected.length() + Self->getMark("cbjuwu") >= Self->getHp())
             return false;
         else
             return !to_select->isEquipped();
@@ -344,13 +353,23 @@ public:
         card->addSubcards(cards);
         return card;
     }
+};
 
-protected:
-    virtual bool isEnabledAtPlay(const Player *player) const{
-        return !player->hasUsed("CBJuWuCard");
+class CBJuWu: public PhaseChangeSkill{
+public:
+    CBJuWu():PhaseChangeSkill("cbjuwu"){
+        view_as_skill = new CBJuWuViewAsSkill;
     }
 
-    virtual bool isEnabledAtResponse(const Player *player, const QString &pattern) const{
+    virtual bool triggerable(const ServerPlayer *target) const{
+        return PhaseChangeSkill::triggerable(target)
+                && target->getPhase() == Player::NotActive
+                && target->hasUsed("CBJuWuCard");
+    }
+
+    virtual bool onPhaseChange(ServerPlayer *target) const{
+        target->getRoom()->setPlayerMark(target, "cbjuwu", 0);
+
         return false;
     }
 };
@@ -451,12 +470,12 @@ void CBShiShenCard::use(Room *room, ServerPlayer *source, const QList<ServerPlay
         const Card *anger2 = anger1;
         foreach(int id, source->getPile("Angers")){
             const Card *card = Sanguosha->getCard(id);
-            if(card == anger1)
+            if(card->getEffectiveId() == anger1->getEffectiveId())
                 continue;
             else if(card->sameColorWith(anger1))
                 anger2 = card;
         }
-        if(anger2 != anger1){
+        if(anger2->getEffectiveId() != anger1->getEffectiveId()){
             room->throwCard(anger1);
             room->throwCard(anger2);
             room->loseHp(target, 1);

@@ -318,10 +318,7 @@ void JiaoLiao::onUse(Room *room, const CardUseStruct &card_use) const{
 }
 /*
 void JiaoLiao::onUninstall(ServerPlayer *player) const{
-    if(player->isAlive() && player->getMark("JiaoLiaoCanGet") == 1){
-        player->obtainCard(this);
-        player->removeMark("JiaoLiaoCanGet");
-    }
+    player->removeMark("SkippedPlaying");
 }
 */
 // Single Trick

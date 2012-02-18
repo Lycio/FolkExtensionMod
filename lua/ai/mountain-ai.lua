@@ -4,7 +4,7 @@ local function card_for_qiaobian(self, who, return_prompt)
 		local judges = who:getCards("j")
 		if not judges:isEmpty() then
 			for _, judge in sgs.qlist(judges) do
-				card = judge
+				card = judge -- Fixme: card = DelayedTrick::CastFrom(judge)
 				for _, enemy in ipairs(self.enemies) do
 					if not enemy:containsTrick(card:objectName()) and not self:trickProhibit(card, enemy) then
 						target = enemy
@@ -16,7 +16,7 @@ local function card_for_qiaobian(self, who, return_prompt)
 		end
 
 		local equips = who:getCards("e")
-		if not target and not equips:isEmpty() then
+		if not target and not equips:isEmpty() and self:hasSkills(sgs.lose_equip_skill, who) then
 			for _, equip in sgs.qlist(equips) do
 				if equip:inherits("OffensiveHorse") then card = equip break
 				elseif equip:inherits("DefensiveHorse") then card = equip break
@@ -38,7 +38,7 @@ local function card_for_qiaobian(self, who, return_prompt)
 	else
 		if not who:hasEquip() or (who:getCards("e"):length() == 1 and who:getArmor() and who:getArmor():inherits("GaleShell")) then return end
 		local card_id = self:askForCardChosen(who, "e", "snatch")
-		if card_id > 0 and who:hasEquip(sgs.Sanguosha:getCard(card_id)) then card = sgs.Sanguosha:getCard(card_id) end
+		if card_id >= 0 and who:hasEquip(sgs.Sanguosha:getCard(card_id)) then card = sgs.Sanguosha:getCard(card_id) end
 		local targets = {}
 		if card then
 			for _, friend in ipairs(self.friends) do
@@ -113,7 +113,7 @@ sgs.ai_skill_use["@qiaobian"] = function(self, prompt)
 		self:sort(self.enemies, "hp")
 		local has_armor = true
 		local judge
-		for _, friend in ipairs(self.friends_noself) do
+		for _, friend in ipairs(self.friends) do
 			if not friend:getCards("j"):isEmpty() and card_for_qiaobian(self, friend, ".") then
 				return "@QiaobianCard=" .. card:getEffectiveId() .."->".. friend:objectName()
 			end
@@ -240,6 +240,11 @@ sgs.ai_skill_cardask["@xiangle-discard"] = function(self, data)
 		end
 	else return "."
 	end
+end
+
+function sgs.ai_slash_prohibit.xiangle(self, to)
+	if self:isFriend(to) then return false end
+	return self:getCardsNum("Slash")+self:getCardsNum("Analpetic")+math.max(self:getCardsNum("Jink")-1,0) < 2
 end
 
 sgs.ai_skill_invoke.fangquan = function(self, data)
@@ -408,6 +413,18 @@ sgs.ai_skill_choice.zhiba_pindian = function(self, choices)
 	end
 end
 
+function sgs.ai_skill_pindian.zhiba(minusecard, self, requestor, maxcard)
+	local cards, maxcard = sgs.QList2Table(self.player:getHandcards())
+	local function compare_func(a, b)
+		return a:getNumber() > b:getNumber()
+	end
+	table.sort(cards, compare_func)
+	for _, card in ipairs(cards) do
+		if self:getUseValue(card) < 6 then maxcard = card break end
+	end
+	return maxcard or cards[1]
+end
+
 local zhijian_skill={}
 zhijian_skill.name="zhijian"
 table.insert(sgs.ai_skills, zhijian_skill)
@@ -460,6 +477,8 @@ end
 
 sgs.ai_card_intention.ZhijianCard = -80
 
+sgs.ai_cardneed.zhijian = sgs.ai_cardneed.equip
+
 sgs.ai_skill_invoke.guzheng = function(self, data)
 	local player = self.room:getCurrent()
 	return (self:isFriend(player) and not self:hasSkills(sgs.need_kongcheng, player)) or data:toInt() >= 3
@@ -488,4 +507,69 @@ sgs.ai_skill_invoke.beige = function(self, data)
 	return self:isFriend(damage.to) and not self:isFriend(damage.from)
 end
 
+function sgs.ai_slash_prohibit.duanchang(self, to)
+	if self:isFriend(to) and self:isWeak(to) then return true end
+	return #self.enemies>1 and self:isWeak(to) and (self.player:isLord() or not self:isWeak())
+end
+
 sgs.ai_chaofeng.caiwenji = -5
+
+function sgs.ai_skill_choice.huashen(self, choices)
+	local str = choices
+	choices = str:split("+")
+	if self.player:getHp() < 1 then return "buqu" end
+	if str:match("guixin2") then return "guixin2" end
+	if self.player:getPhase() == sgs.Player_NotActive then
+		if str:match("guixin") and (not self:isWeak() or self:getAllPeachNum() > 0) then return "guixin" end
+		for _, askill in ipairs(sgs.masochism_skill:split("|")) do
+			if str:match(askill) and (not self:isWeak() or self:getAllPeachNum() > 0) then return askill end
+		end
+		if self:isWeak() then
+			if str:match("wuhun") then return "wuhun" end
+			for _, askill in ipairs(("wuhun|duanchang|jijiu|longhun|jiushi|jiuchi|buyi|huilei|dushi|juejing"):split("|")) do
+				if str:match(askill) then return askill end
+			end
+		end
+		if self.player:isKongcheng() then
+			if str:match("kongcheng") then return "kongcheng" end
+		end
+		for _, askill in ipairs(("yizhong|bazhen|wuyan|weimu|kanpo|liuli|qingguo|longdan|xiangle|jiang|" ..
+		"danlao|qianxun|juxiang|huoshou|zhichi|jilei|feiying|yicong|wusheng|wushuang|tianxiang|leiji|" ..
+		"xuanfeng|luoying|guhuo|guidao|guicai|lianying|xiaoji|hongyan|tiandu|guzheng|xingshang|weidi"):split("|")) do
+			if str:match(askill) then return askill end
+		end
+	else
+		assert(self.player:getPhase() == sgs.Player_Start)
+		if self.player:getHp() < 1 then return "buqu" end
+		if (self.player:getHandcardNum() < 20 and not self:isWeak()) or self.player:isSkipped(sgs.Player_Play) then
+			if str:match("keji") then return "keji" end
+		end
+		if self.player:getHandcardNum() > 10 then
+			for _, askill in ipairs(("shuangxiong|tianyi|xianzhen|paoxiao|huoji|luanji|qixi|duanliang|guose"):split("|")) do
+				if str:match(askill) then return askill end
+			end
+		end
+		if self:isWeak() then
+			for _, askill in ipairs(("qingnang|jieyin|zaiqi|longhun|kuanggu|caizhaoji_hujia|jushou|buqu"):split("|")) do
+				if str:match(askill) then return askill end
+			end
+		end
+		for _, askill in ipairs(("tuxi|dimeng|haoshi|guanxing|zhiheng|rende|qiaobian|fangquan|" ..
+		"lijian|quhu|fanjian|tieji|liegong|wushuang|shelie|luoshen|yongsi|yingzi|juejing|" ..
+		"gongxin|mingce|ganlu|tiaoxin|xuanhuo|guhuo|roulin|qiangxi|mengjin|lieren|pojun|" ..
+		"jiushi|luoyi|jiuchi|longhun|wusheng|wushen|longdan|shensu|lianhuan|yinghun|jujian|" ..
+		"zhijian|xinzhan|guidao|guicai|lianpo|mashu|yicong|jizhi|lianying|xuanfeng|xiaoji|" ..
+		"qicai|wansha|biyue|hongyan|kurou|qinyin|zonghuo|shaoying|gongmou"):split("|")) do
+			if str:match(askill) then return askill end
+		end
+	end
+	for index = #choices, 1, -1 do
+		if ("qixing|kuangfeng|dawu|kuangbao|wuqian|wumou|shenfen|renjie|tuntian|benghuai|wuling|liqian|lianli|tongxin|shenjun|xunzhi|dongcha")
+		:match(choices[index]) then
+			table.remove(choices,index)
+		end
+	end
+	if #choices > 0 then
+		return choices[math.random(1,#choices)]
+	end
+end

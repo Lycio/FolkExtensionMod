@@ -125,15 +125,17 @@ sgs.ai_skill_use["@@yinghun"] = function(self, prompt)
 
 	if #self.friends > 1 then
 		for _, friend in ipairs(self.friends_noself) do
-			if self:hasSkills(sgs.lose_equip_skill, friend) and friend:getEquips():length()>x/2 then
+			if self:hasSkills(sgs.lose_equip_skill, friend) and friend:getEquips():length() > x/2 then
 				self.yinghun = friend
 				self.yinghunchoice = "d1tx"
 				break
 			end
 		end
-		self:sort(self.friends, "chaofeng")
-		self.yinghun = self.friends_noself[1]
-		self.yinghunchoice = "dxt1"
+		self:sort(self.friends_noself, "chaofeng")
+		for _, afriend in ipairs(self.friends_noself) do
+			if not afriend:isNude() then self.yinghun = afriend end
+		end
+		if self.yinghun and not self.yinghunchoice then self.yinghunchoice = "dxt1" end
 	else
 		self:sort(self.enemies, "handcard")
 		for index = #self.enemies, 1, -1 do
@@ -249,10 +251,7 @@ sgs.ai_card_intention.DimengCard = function(card, from, to, source)
 	end
 	table.sort(to, compare_func)
 	if to[1]:getHandcardNum() < to[2]:getHandcardNum() then
-		sgs.refreshLoyalty(from, sgs.ai_card_intention.general(to[2], (to[1]:getHandcardNum()-to[2]:getHandcardNum())*20-40))
-		if to[1]:isLord() then
-			sgs.ai_anti_lord[from:objectName()] = (sgs.ai_anti_lord[from:objectName()] or 0) + 1
-		end
+		sgs.updateIntention(from, to[1], (to[2]:getHandcardNum()-to[1]:getHandcardNum())*20+40)
 	end
 end
 
@@ -262,6 +261,10 @@ sgs.ai_use_priority.DimengCard = 2.3
 sgs.dynamic_value.control_card.DimengCard = true
 
 sgs.ai_chaofeng.lusu = 4
+
+function sgs.ai_trick_prohibit.weimu(card)
+	return card:isBlack()
+end
 
 luanwu_skill={}
 luanwu_skill.name="luanwu"
@@ -360,6 +363,9 @@ sgs.ai_view_as.jiuchi = function(card, player, card_place)
 		end
 	end
 end
+
+sgs.ai_skill_cardask["@roulin1-jink-1"] = sgs.ai_skill_cardask["@wushuang-jink-1"]
+sgs.ai_skill_cardask["@roulin2-jink-1"] = sgs.ai_skill_cardask["@wushuang-jink-1"]
 
 sgs.ai_skill_invoke.baonue = sgs.ai_skill_invoke.songwei
 

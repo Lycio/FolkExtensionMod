@@ -50,8 +50,37 @@ sgs.ai_skill_playerchosen.wuhun = function(self, targets)
 	return targetlist[1]
 end
 
-sgs.ai_chaofeng.shenguanyu = -6
+function sgs.ai_slash_prohibit.wuhun(self, to)
+	if self:isEnemy(to) and self:isWeak(to) and not (to:isLord() and self.player:getRole() == "rebel") then
+		local mark = 0
+		local marks = {}
+		for _, player in sgs.qlist(self.room:getAlivePlayers()) do
+			local mymark = player:getMark("@nightmare")
+			if player:objectName() == self.player:objectName() then
+				mymark = mymark + 1
+				if self.player:hasFlag("drank") then mymark = mymark + 1 end
+			end
+			if mymark > mark then mark = mymark end
+			marks[player:objectName()] = mymark
+		end
+		if mark > 0 then
+			for _,friend in ipairs(self.friends) do
+				if marks[friend:objectName()] == mark and (not self:isWeak(friend) or friend:isLord()) and
+					not (#self.enemies==1 and #self.friends + #self.enemies == self.room:alivePlayerCount()) then return true end
+			end
+			if self.player:getRole()~="rebel" and marks[self.room:getLord():objectName()] == mark and
+				not (#self.enemies==1 and #self.friends + #self.enemies == self.room:alivePlayerCount()) then
+				local all_loyal = true
+				for _, aplayer in sgs.qlist(self.room:getOtherPlayers(to)) do
+					if aplayer:getRole() ~= "loyalist" and not aplayer:isLord() then all_loyal = false break end
+				end
+				if not all_loyal then return true end
+			end
+		end
+	end
+end
 
+sgs.ai_chaofeng.shenguanyu = -6
 
 sgs.ai_skill_invoke.shelie = true
 
@@ -192,6 +221,7 @@ sgs.ai_skill_use_func.MediumYeyanCard=function(card,use,self)
 	cards = sgs.QList2Table(cards)
 	self:sortByUseValue(cards, true)
 	local need_cards = {}
+	local to = {}
 	local spade, club, heart, diamond
 	for _, card in ipairs(cards) do
 		if card:getSuit() == sgs.Card_Spade and not spade then spade = true table.insert(need_cards, card:getId())
@@ -205,17 +235,29 @@ sgs.ai_skill_use_func.MediumYeyanCard=function(card,use,self)
 	self:sort(self.enemies, "hp")
 	for _, enemy in ipairs(self.enemies) do
 		if enemy:getArmor() and enemy:getArmor():objectName() == "vine" then
-			if use.to then use.to:append(enemy) end
+			--if use.to then use.to:append(enemy) end
+			table.insert(to, enemy)
 			break
 		end
 	end
 	for _, enemy in ipairs(self.enemies) do
 		if enemy:isChained() then
-			if use.to then use.to:append(enemy) end
-			if use.to:length() == 2 then break end
+			--[[if use.to then
+				use.to:append(enemy)
+				if use.to:length() == 2 then break end
+			end]]
+			table.insert(to, enemy)
+			if #to == 2 then break end
 		end
 	end
-	use.card = sgs.Card_Parse("@MediumYeyanCard=" .. table.concat(need_cards, "+"))
+	if #to > 0 then
+		use.card = sgs.Card_Parse("@MediumYeyanCard=" .. table.concat(need_cards, "+"))
+		if use.to then
+			for _, ato in ipairs(to) do
+				use.to:append(ato)
+			end
+		end
+	end
 end
 
 sgs.ai_use_value.MediumYeyanCard = 5.6
@@ -249,7 +291,7 @@ sgs.ai_skill_use_func.SmallYeyanCard=function(card,use,self)
 			num = num + 1
 		end
 	end
-	use.card = card
+	if num > 0 then use.card = card end
 end
 
 sgs.ai_card_intention.SmallYeyanCard = 80
@@ -436,7 +478,7 @@ sgs.ai_skill_invoke.jilve=function(self,data)
 	if sgs.lastevent == sgs.AskForRetrial or sgs.lastevent == sgs.StartJudge then
 		local judge = data:toJudge()
 		if not self:needRetrial(judge) then return false end
-		return (use or judge.who == self.player) and self:getRetrialCardId(sgs.QList2Table(self.player:getHandcards()),judge) ~= -1
+		return (use or judge.who == self.player) and self:getRetrialCardId(sgs.QList2Table(self.player:getHandcards()), judge) ~= -1
 	elseif sgs.lastevent == sgs.Damage then
 		return use and self:askForUseCard("@@fangzhu","@fangzhu")~="."
 	else
