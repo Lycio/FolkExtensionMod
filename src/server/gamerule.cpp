@@ -35,11 +35,7 @@ void GameRule::onPhaseChange(ServerPlayer *player) const{
             player->setMark("SlashCount", 0);
 
             while(room->askForSuddenStrike(player)){
-                ServerPlayer *from = room->getTag("SuddenStrikeFrom").value<PlayerStar>();
-                room->removeTag("SuddenStrikeFrom");
-                if(!room->askForCard(player, "jink", "@sudden_strike-jink:"+from->getGeneralName())){
-                    room->loseHp(player, 1);
-                }
+                continue;
             }
 
             break;
@@ -323,15 +319,14 @@ bool GameRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
 
             if(damage.from && damage.from != damage.to){
                 if(room->askForRebound(damage)){
-                    DamageStruct rebound;
-                    rebound.card = damage.card;
-                    rebound.chain = damage.chain;
-                    rebound.damage = damage.damage;
-                    rebound.from = damage.to;
-                    rebound.nature = damage.nature;
-                    rebound.to = damage.from;
-                    room->damage(rebound);
-                    return true;
+                    room->setTag("ReboundStruct", QVariant::fromValue(damage));
+
+                    bool reboundEffected = room->getTag("ReboundEffected").toBool();
+                    room->removeTag("ReboundEffected");
+                    if(reboundEffected){
+                        return true;
+                    }else
+                        return false;
                 }
             }
 
@@ -357,12 +352,7 @@ bool GameRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
 
 
             while(!damage.to->isKongcheng() && room->askForRob(damage)){
-                ServerPlayer *from = room->getTag("RobFrom").value<PlayerStar>();
-                room->removeTag("RobFrom");
-                if(!damage.to->isKongcheng())
-                    room->moveCardTo(Sanguosha->getCard(room->askForCardChosen(from, damage.to, "h", "rob")), from, Player::Hand, false);
-                else
-                    break;
+                continue;
             }
 
             break;
@@ -414,10 +404,12 @@ bool GameRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
                     return true;
 
                 if(effect.card->inherits("Slash") || effect.card->inherits("Duel")){
+                    room->setTag("CoverCard", QVariant::fromValue(effect.card));
                     while(room->askForCover(effect)){
                         ServerPlayer *from = room->getTag("CoverFrom").value<PlayerStar>();
                         room->removeTag("CoverFrom");
-                        effect.to = from;
+                        if(from)
+                            effect.to = from;
                     }
                 }
                 effect.card->onEffect(effect);
@@ -1140,7 +1132,38 @@ bool ChangbanSlopeMode::trigger(TriggerEvent event, ServerPlayer *player, QVaria
             if(player->getRoleEnum() == Player::Rebel){
                 QStringList generals = room->getTag(player->objectName()).toStringList();
                 if(!generals.isEmpty()){
+                    bool chained = player->isChained();
+                    if(chained){
+                        DamageStar damage = data.value<DamageStar>();
+                        if(damage != NULL && damage->nature != DamageStruct::Normal){
+                            room->setPlayerProperty(player, "chained", false);
+
+                            QList<ServerPlayer *> chained_players = room->getOtherPlayers(player);
+                            foreach(ServerPlayer *chained_player, chained_players){
+                                if(chained_player->isChained()){
+                                    room->getThread()->delay();
+                                    room->setPlayerProperty(chained_player, "chained", false);
+
+                                    LogMessage log;
+                                    log.type = "#IronChainDamage";
+                                    log.from = chained_player;
+                                    room->sendLog(log);
+
+                                    DamageStruct chain_damage;
+                                    chain_damage.from = damage->from;
+                                    chain_damage.damage = damage->damage;
+                                    chain_damage.nature = damage->nature;
+                                    chain_damage.card = damage->card;
+                                    chain_damage.to = chained_player;
+                                    chain_damage.chain = true;
+
+                                    room->damage(chain_damage);
+                                }
+                            }
+                        }
+                    }
                     changeGeneral(player);
+                    return false;
                 }else{
                     QStringList alive_roles = room->aliveRoles(player);
                     if(!alive_roles.contains("rebel"))
@@ -1187,29 +1210,24 @@ bool ChangbanSlopeMode::trigger(TriggerEvent event, ServerPlayer *player, QVaria
 
 void ChangbanSlopeMode::changeGeneral(ServerPlayer *player) const{
     Room *room = player->getRoom();
-    room->revivePlayer(player);
     QStringList generals = room->getTag(player->objectName()).toStringList();
-    if(generals.length() != 0){
-        QString new_general = generals.first();
-        room->removeTag(player->objectName());
-        generals.removeOne(new_general);
-        room->setTag(player->objectName(), QVariant(generals));
-        room->transfigure(player, new_general, true, true);
+    QString new_general = generals.takeFirst();
+    room->setTag(player->objectName(), QVariant(generals));
+    room->transfigure(player, new_general, true, true);
+    room->revivePlayer(player);
 
-        if(player->getKingdom() != player->getGeneral()->getKingdom())
-            room->setPlayerProperty(player, "kingdom", player->getGeneral()->getKingdom());
+    if(player->getKingdom() != player->getGeneral()->getKingdom())
+        room->setPlayerProperty(player, "kingdom", player->getGeneral()->getKingdom());
 
-        room->broadcastInvoke("revealGeneral",
-                              QString("%1:%2").arg(player->objectName()).arg(new_general),
-                              player);
+    room->broadcastInvoke("revealGeneral",
+                          QString("%1:%2").arg(player->objectName()).arg(new_general),
+                          player);
 
-        if(!player->faceUp())
-            player->turnOver();
+    if(!player->faceUp())
+        player->turnOver();
 
-        if(player->isChained())
-            room->setPlayerProperty(player, "chained", false);
+    if(player->isChained())
+        room->setPlayerProperty(player, "chained", false);
 
-        player->drawCards(4);
-    }else
-        room->removeTag(player->objectName());
+    player->drawCards(4);
 }

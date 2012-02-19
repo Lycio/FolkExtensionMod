@@ -10,6 +10,7 @@ class Recorder;
 #include "socket.h"
 
 #include <QMutex>
+#include <QDateTime>
 
 class ServerPlayer : public Player
 {
@@ -99,6 +100,8 @@ public:
     void gainAnExtraTurn();
 
     void copyFrom(ServerPlayer* sp);
+    void startNetworkDelayTest();
+    qint64 endNetworkDelayTest();
 
 private:
     ClientSocket *socket;
@@ -111,6 +114,7 @@ private:
     QList<Phase> phases;
     ServerPlayer *next;
     QStringList selected; // 3v3 mode use only
+    QDateTime test_time;
 
 private slots:
     void getMessage(char *message);

@@ -69,7 +69,6 @@ public:
 
     virtual bool targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const;
     virtual void onUse(Room *room, const CardUseStruct &card_use) const;
-    //virtual void onUninstall(ServerPlayer *player) const;
 };
 
 class SuddenStrike: public SingleTargetTrick{
@@ -77,7 +76,8 @@ class SuddenStrike: public SingleTargetTrick{
 
 public:
     Q_INVOKABLE SuddenStrike(Card::Suit suit, int number);
-    virtual void use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const;
+    virtual void onEffect(const CardEffectStruct &effect) const;
+    //virtual void use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const;
     virtual bool isAvailable(const Player *player) const;
 };
 
@@ -86,7 +86,8 @@ class Cover: public SingleTargetTrick{
 
 public:
     Q_INVOKABLE Cover(Card::Suit suit, int number);
-    virtual void use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const;
+    virtual void onEffect(const CardEffectStruct &effect) const;
+    //virtual void use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const;
     virtual bool isAvailable(const Player *player) const;
 };
 
@@ -95,7 +96,8 @@ class Rebound: public SingleTargetTrick{
 
 public:
     Q_INVOKABLE Rebound(Card::Suit suit, int number);
-    virtual void use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const;
+    virtual void onEffect(const CardEffectStruct &effect) const;
+    //virtual void use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const;
     virtual bool isAvailable(const Player *player) const;
 };
 
@@ -104,7 +106,8 @@ class Rob: public SingleTargetTrick{
 
 public:
     Q_INVOKABLE Rob(Card::Suit suit, int number);
-    virtual void use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const;
+    virtual void onEffect(const CardEffectStruct &effect) const;
+    //virtual void use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const;
     virtual bool isAvailable(const Player *player) const;
 };
 
@@ -114,6 +117,8 @@ class IrresistibleForce:public AOE{
 public:
     Q_INVOKABLE IrresistibleForce(Card::Suit suit, int number);
     virtual void onEffect(const CardEffectStruct &effect) const;
+    virtual bool isCancelable(const CardEffectStruct &effect) const;
+    virtual bool isAvailable(const Player *player) const;
 };
 
 class Plague: public Disaster{

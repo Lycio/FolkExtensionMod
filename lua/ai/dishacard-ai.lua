@@ -25,6 +25,41 @@ sgs.weapon_range.QixingBlade = 2
 sgs.weapon_range.JiaSuo = 1
 sgs.weapon_range.LuofengBow = 1
 
+function SmartAI:slashIsEffective(slash, to)
+	if to:hasSkill("yizhong") and not to:getArmor() then
+		if slash:isBlack() then
+			return false
+		end
+	end
+
+	local natures = {
+		Slash = sgs.DamageStruct_Normal,
+		PunctureSlash = sgs.DamageStruct_Normal,
+		BloodSlash = DamageStruct_Normal,
+		FireSlash = sgs.DamageStruct_Fire,
+		ThunderSlash = sgs.DamageStruct_Thunder,
+	}
+
+	local nature = natures[slash:className()]
+	if self.player:hasSkill("zonghuo") then nature = sgs.DamageStruct_Fire end
+	if not self:damageIsEffective(to, nature) then return false end
+
+	if self.player:hasWeapon("qinggang_sword") or (self.player:hasFlag("xianzhen_success") and self.room:getTag("XianzhenTarget"):toPlayer() == to) then
+		return true
+	end
+
+	local armor = to:getArmor()
+	if armor then
+		if armor:objectName() == "renwang_shield" then
+			return not slash:isBlack()
+		elseif armor:objectName() == "vine" then
+			return nature ~= sgs.DamageStruct_Normal or self.player:hasWeapon("fan")
+		end
+	end
+
+	return true
+end
+
 function SmartAI:askForSinglePeach(dying)
 	local card_str
 
@@ -271,7 +306,7 @@ function SmartAI:askForRebound(damage)
 	card = self:getCardId("Rebound")
 	if card then card = sgs.Card_Parse(card) else return end
 	
-	if damage.from and self.player == damage.to and not self:isFriend(damage.from) then
+	if damage.from and self.player:objectName() ~= damage.to:objectName() and not self:isFriend(damage.from) then
 		return card
 	end
 end
@@ -284,7 +319,7 @@ function SmartAI:askForRob(damage)
 	card = self:getCardId("Rob")
 	if card then card = sgs.Card_Parse(card) else return end
 	
-	if damage.from and self.player ~= damage.to and not self:isFriend(damage.from) then
+	if damage.to and self.player:objectName() ~= damage.to:objectName() and not self:isFriend(damage.to) then
 		return card
 	end
 end
@@ -297,7 +332,7 @@ function SmartAI:askForSuddenStrike(player)
 	card = self:getCardId("SuddenStrike")
 	if card then card = sgs.Card_Parse(card) else return end
 	
-	if self.player ~= player and not self:isFriend(player) then
+	if self.player:objectName() ~= player:objectName() and not self:isFriend(player) then
 		return card
 	end
 end

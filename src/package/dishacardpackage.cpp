@@ -215,13 +215,14 @@ public:
                 }
             }
             return false;
-        }else if(event == PhaseChange && player->getPhase() == Player::Draw){
+        }else if(event == PhaseChange && player->getPhase() == Player::Start){
             if(player->getArmor() && player->getArmor()->inherits("JiaoLiao")){
                 LogMessage log;
                 log.type = "#JiaSuoLog";
                 log.from = player;
                 player->getRoom()->sendLog(log);
                 player->skip(Player::Play);
+                player->setMark("skippedPlaying", 1);
                 return false;
             }
         }
@@ -249,7 +250,7 @@ void JiaSuo::onUse(Room *room, const CardUseStruct &card_use) const{
 class JiaoLiaoSkill: public ArmorSkill{
 public:
     JiaoLiaoSkill():ArmorSkill("jiaoliao"){
-        events << SlashEffected << CardAsked << CardUsed;
+        events << SlashEffected << CardAsked << PhaseChange;
     }
 
     const Card *askForDoubleJink(ServerPlayer *player, const QString &reason) const{
@@ -287,13 +288,10 @@ public:
                     room->provide(NULL);
                 return false;
             }
-        }else if(event == CardUsed){
-            CardUseStruct use = data.value<CardUseStruct>();
-            if(use.card->inherits("Armor") &&
-                    (use.to.contains(use.from) || use.to.isEmpty()) &&
-                    player->getArmor() &&
-                    player->getArmor()->objectName() == "jiaoliao")
-                room->moveCardTo(player->getArmor(), player, Player::Hand, true);
+        }else if(event == PhaseChange && player->getPhase() == Player::Finish && player->getMark("skippedPlaying") == 1){
+            player->setMark("skippedPlaying", 0);
+            room->throwCard(player->getWeapon());
+            room->throwCard(player->getArmor());
             return false;
         }
         return false;
@@ -329,9 +327,12 @@ SuddenStrike::SuddenStrike(Suit suit, int number)
     target_fixed = true;
 }
 
-void SuddenStrike::use(Room *room, ServerPlayer *, const QList<ServerPlayer *> &) const{
-    // does nothing, just throw it
-    room->throwCard(this);
+void SuddenStrike::onEffect(const CardEffectStruct &effect) const{
+    Room *room = effect.from->getRoom();
+    if(!room->askForCard(effect.to, "jink", "@sudden_strike-jink:"+effect.from->getGeneralName()))
+        room->loseHp(effect.to, 1);
+    else
+        return;
 }
 
 bool SuddenStrike::isAvailable(const Player *) const{
@@ -345,9 +346,17 @@ Cover::Cover(Suit suit, int number)
     target_fixed = true;
 }
 
-void Cover::use(Room *room, ServerPlayer *, const QList<ServerPlayer *> &) const{
-    // does nothing, just throw it
-    room->throwCard(this);
+void Cover::onEffect(const CardEffectStruct &effect) const{
+    Room *room = effect.from->getRoom();
+    const Card *cover_card = room->getTag("CoverCard").value<CardStar>();
+    room->removeTag("CoverCard");
+    LogMessage log;
+    log.type = "$CoverLog";
+    log.from = effect.from;
+    log.to << effect.to;
+    log.card_str = cover_card->toString();
+    room->sendLog(log);
+    room->setTag("CoverFrom", QVariant::fromValue(effect.from));
 }
 
 bool Cover::isAvailable(const Player *) const{
@@ -361,9 +370,27 @@ Rebound::Rebound(Suit suit, int number)
     target_fixed = true;
 }
 
-void Rebound::use(Room *room, ServerPlayer *, const QList<ServerPlayer *> &) const{
-    // does nothing, just throw it
-    room->throwCard(this);
+void Rebound::onEffect(const CardEffectStruct &effect) const{
+    Room *room = effect.from->getRoom();
+
+    LogMessage log;
+    log.type = "#ReboundLog";
+    log.from = effect.from;
+    log.to << effect.to;
+    room->sendLog(log);
+
+    DamageStruct damage = room->getTag("ReboundStruct").value<DamageStruct>();
+
+    DamageStruct rebound;
+    rebound.card = damage.card;
+    rebound.chain = damage.chain;
+    rebound.damage = damage.damage;
+    rebound.from = damage.to;
+    rebound.nature = damage.nature;
+    rebound.to = damage.from;
+    room->damage(rebound);
+
+    room->setTag("ReboundEffected", true);
 }
 
 bool Rebound::isAvailable(const Player *) const{
@@ -377,9 +404,12 @@ Rob::Rob(Suit suit, int number)
     target_fixed = true;
 }
 
-void Rob::use(Room *room, ServerPlayer *, const QList<ServerPlayer *> &) const{
-    // does nothing, just throw it
-    room->throwCard(this);
+void Rob::onEffect(const CardEffectStruct &effect) const{
+    Room *room = effect.from->getRoom();
+    if(effect.to->isKongcheng())
+        return;
+
+    room->moveCardTo(Sanguosha->getCard(room->askForCardChosen(effect.from, effect.to, "h", "rob")), effect.from, Player::Hand, false);
 }
 
 bool Rob::isAvailable(const Player *) const{
@@ -391,6 +421,19 @@ IrresistibleForce::IrresistibleForce(Suit suit, int number)
     :AOE(suit, number)
 {
     setObjectName("irresistible_force");
+}
+
+bool IrresistibleForce::isAvailable(const Player *player) const{
+    foreach(const Player *p, player->getSiblings()){
+        if(p->getEquips().length() != 0 && p->isAlive())
+            return true;
+    }
+
+    return false;
+}
+
+bool IrresistibleForce::isCancelable(const CardEffectStruct &effect) const{
+    return effect.to->getEquips().length() != 0;
 }
 
 void IrresistibleForce::onEffect(const CardEffectStruct &effect) const{

@@ -286,12 +286,13 @@ public:
         if(event == PhaseChange){
             int x = player->getAttackRange();
             if(player->getPhase() == Player::Start){
-                if(player->getCards("he").length() < x)
+                if(player->getCards("he").length() <= x)
                     player->throwAllCards();
                 else
                     room->askForDiscard(player, objectName(), x, false, true);
             }else if(player->getPhase() == Player::Finish){
                 player->drawCards(x + 1);
+                player->turnOver();
             }
         }
         return false;

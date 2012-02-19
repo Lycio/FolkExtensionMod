@@ -101,7 +101,7 @@ public:
             return false;
 
         if(zhangyan->inMyAttackRange(effect.from))
-            if(zhangyan->askForSkillInvoke(objectName())){
+            if(zhangyan->askForSkillInvoke(objectName(), data)){
                 const Card *slash = room->askForCard(zhangyan, "slash", "@feiyan-slash:" + effect.from->objectName());
                 if(slash){
                     room->playSkillEffect(objectName());
@@ -681,7 +681,7 @@ public:
 
         if(damage.card && damage.card->inherits("Slash") && damage.to->isAlive()){
             Room *room = mayuanyi->getRoom();
-            if(room->askForSkillInvoke(mayuanyi, objectName())){
+            if(room->askForSkillInvoke(mayuanyi, objectName(), data)){
                 room->playSkillEffect(objectName());
 
                 JudgeStruct judge;

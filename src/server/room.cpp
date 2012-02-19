@@ -70,6 +70,8 @@ void Room::initCallbacks(){
     callbacks["trustCommand"] = &Room::trustCommand;
     callbacks["kickCommand"] = &Room::kickCommand;
     callbacks["surrenderCommand"] = &Room::surrenderCommand;
+
+    callbacks["networkDelayTestCommand"] = &Room::networkDelayTestCommand;
 }
 
 QString Room::createLuaState(){
@@ -702,22 +704,12 @@ trust:
             CardUseStruct use;
             use.card = card;
             use.from = player;
+            use.to << to;
             useCard(use);
-
-            setTag("CoverFrom", QVariant::fromValue(player));
-
-            LogMessage log;
-            log.type = "$CoverLog";
-            log.from = player;
-            log.to << to;
-            log.card_str = effect.card->toString();
-            sendLog(log);
 
             QVariant decisionData = QVariant::fromValue(use);
             thread->trigger(ChoiceMade, player, decisionData);
-
-            Cover *cover = new Cover(Card::NoSuit, 0);
-            return !askForNullification(cover, player, to, true);
+            return true;
         }else if(continable)
             goto trust;
     }
@@ -772,19 +764,12 @@ trust:
         CardUseStruct use;
         use.card = card;
         use.from = to;
+        use.to << from;
         useCard(use);
-
-        LogMessage log;
-        log.type = "#ReboundLog";
-        log.from = to;
-        log.to << from;
-        sendLog(log);
 
         QVariant decisionData = QVariant::fromValue(use);
         thread->trigger(ChoiceMade, to, decisionData);
-
-        Rebound *rebound = new Rebound(Card::NoSuit, 0);
-        return !askForNullification(rebound, to, from, true);
+        return true;
     }else if(continable)
         goto trust;
 
@@ -842,13 +827,9 @@ trust:
             use.to << to;
             useCard(use);
 
-            setTag("RobFrom", QVariant::fromValue(player));
-
             QVariant decisionData = QVariant::fromValue(use);
             thread->trigger(ChoiceMade, player, decisionData);
-
-            Rob *rob = new Rob(Card::NoSuit, 0);
-            return !askForNullification(rob, player, to, true);
+            return true;
         }else if(continable)
             goto trust;
     }
@@ -898,13 +879,9 @@ trust:
             use.to << to;
             useCard(use);
 
-            setTag("SuddenStrikeFrom", QVariant::fromValue(pl));
-
             QVariant decisionData = QVariant::fromValue(use);
             thread->trigger(ChoiceMade, pl, decisionData);
-
-            SuddenStrike *sudden_strike = new SuddenStrike(Card::NoSuit, 0);
-            return !askForNullification(sudden_strike, pl, to, true);
+            return true;
         }else if(continable)
             goto trust;
     }
@@ -1794,6 +1771,7 @@ void Room::signup(ServerPlayer *player, const QString &screen_name, const QStrin
         QString greetingStr = tr("<font color=#EEB422>Player <b>%1</b> joined the game</font>")
                 .arg(Config.ContestMode ? tr("Contestant") : screen_name);
         speakCommand(player, greetingStr.toUtf8().toBase64());
+        player->startNetworkDelayTest();
 
         // introduce all existing player to the new joined
         foreach(ServerPlayer *p, players){
@@ -2035,8 +2013,7 @@ void Room::run(){
         }
         foreach(ServerPlayer *rebel, rebels){
             QStringList generals = this->getTag(rebel->objectName()).toStringList();
-            setPlayerProperty(rebel, "general", generals.first());
-            generals.removeOne(generals.first());
+            setPlayerProperty(rebel, "general", generals.takeFirst());
             this->setTag(rebel->objectName(), QVariant(generals));
         }
 
@@ -3613,6 +3590,13 @@ void Room::selectRoleCommand(ServerPlayer *player, const QString &arg){
         result = "abstained";
 
     sem->release();
+}
+
+void Room::networkDelayTestCommand(ServerPlayer *player, const QString &){
+    qint64 delay = player->endNetworkDelayTest();
+    QString reportStr = tr("<font color=#EEB422>The network delay of player <b>%1</b> is %2 milliseconds.</font>")
+            .arg(Config.ContestMode ? tr("Contestant") : player->screenName()).arg(QString::number(delay));
+    speakCommand(player, reportStr.toUtf8().toBase64());
 }
 
 bool Room::isVirtual()

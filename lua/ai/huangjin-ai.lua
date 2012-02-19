@@ -16,8 +16,8 @@ sgs.ai_skill_invoke["@zhenhuo"]=function(self,data)
 end
 
 --guishu
-sgs.ai_skill_invoke["@guishu"]=function(self,prompt)
-    local judge = self.player:getTag("Judge"):toJudge()
+sgs.ai_skill_cardask["@guishu-card"]=function(self,prompt)
+	local judge = self.player:getTag("Judge"):toJudge()
 	
 	if self:needRetrial(judge) then
 		local all_cards = self.player:getCards("he")
@@ -45,7 +45,7 @@ end
 
 --jieliang
 sgs.ai_skill_invoke.jieliang = function(self, data)
-	local damage = data:toDamage()
+	local effect = data:toSlashEffect()
 	return self:isEnemy(damage.to) and not damage.to:isWeak()
 end
 
@@ -59,4 +59,23 @@ end
 sgs.ai_skill_invoke.xiuzhen = function(self, data)
 	local damage = data:toDamage()
 	return not self:isFriend(damage.from)
+end
+
+SmartAI.exclude = function(self, players, card)
+	local excluded = {}
+	local limit = self:getDistanceLimit(card)
+	for _, player in sgs.list(players) do
+		if not self.room:isProhibited(self.player, player, card) then
+			local should_insert = true
+			if limit then
+				should_insert = self.player:distanceTo(player) <= limit
+			end
+
+			if card:inherits("Snatch") or card:inherits("Dismantlement") and player:hasSkill("shangshi") then should_insert = false end
+			if should_insert then
+				table.insert(excluded, player)
+			end
+		end
+	end
+	return excluded
 end

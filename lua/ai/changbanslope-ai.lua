@@ -151,7 +151,7 @@ cbjuwu_skill.getTurnUseCard=function(self)
 		return sgs.Card_Parse("@CBJuWuCard=.")
 	end
 	
-	if (self.player:usedTimes("CBJuWuCard") < 1 or self:getOverflow() > 0 or self:getCard("Shit")) then
+	if (self.player:usedTimes("CBJuWuCard") < 1 or self:getOverflow() > 0 or self:getCard("Shit")) and self.player:getMark("cbjuwu") < self.player:getHp() then
 		return sgs.Card_Parse("@CBJuWuCard=.")
 	end	
 end

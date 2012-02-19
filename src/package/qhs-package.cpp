@@ -864,23 +864,11 @@ void CaijianhCard::onEffect(const CardEffectStruct &effect) const{
 
     bool canmove = true;
     if(card->getSuit() == Card::Diamond){
-        if(effect.from->isProhibited(effect.to, indulgence))
+        if(effect.from->isProhibited(effect.to, indulgence) && effect.to->containsTrick("indulgence"))
             canmove = false;
-        else{
-            foreach(const Card *cd, effect.from->getJudgingArea()){
-                if(cd->inherits("Indulgence") || cd->getSuit() == Card::Diamond)
-                    canmove = false;
-            }
-        }
     }else if(card->isBlack()){
-        if(effect.from->isProhibited(effect.to, supplyshortage))
+        if(effect.from->isProhibited(effect.to, supplyshortage) && effect.to->containsTrick("supply_shortage"))
             canmove = false;
-        else{
-            foreach(const Card *cd, effect.from->getJudgingArea()){
-                if(cd->inherits("SupplyShortage") || cd->isBlack())
-                    canmove = false;
-            }
-        }
     }else if(card->getSuit() == Card::Heart)
         canmove = false;
 

@@ -376,7 +376,7 @@ QString Engine::getVersionName() const{
 }
 
 QString Engine::getMODName() const{
-    return "FolkExtensionMod ver 0.4";
+    return "FolkExtensionMod_ver_0.4";
 }
 
 QStringList Engine::getExtensions() const{
