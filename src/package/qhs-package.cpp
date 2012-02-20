@@ -15,7 +15,7 @@
 #include "god.h"
 #include "generaloverview.h"
 #include "standard-equips.h"
-
+/*
 class YinshihBuff: public TriggerSkill{
 public:
     YinshihBuff():TriggerSkill("#yinshih_buff"){
@@ -1646,98 +1646,6 @@ public:
     }
 };
 
-class Jiangjih: public TriggerSkill{
-public:
-    Jiangjih():TriggerSkill("jiangjih"){
-
-        events << CardFinished;
-        frequency = Frequent;
-    }
-
-    virtual bool triggerable(const ServerPlayer *target) const{
-
-        return !target->hasSkill(objectName());
-    }
-
-    virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
-        Room *room = player->getRoom();
-        ServerPlayer *huangshuh = room->findPlayerBySkillName(objectName());
-        if(!huangshuh)
-            return false;
-
-        CardUseStruct use = data.value<CardUseStruct>();
-        if(use.to.length() == 1
-                && use.to.first() == huangshuh
-                && (use.card->inherits("BasicCard") || use.card->isNDTrick())
-                && room->getCardPlace(use.card->getEffectiveId()) == Player::DiscardedPile){
-            if(!huangshuh->askForSkillInvoke(objectName()))
-                return false;
-            room->moveCardTo(use.card, huangshuh, Player::Hand, true);
-            return false;
-        }else
-            return false;
-        return false;
-    }
-};
-
-class Jiujih: public TriggerSkill{
-public:
-    Jiujih():TriggerSkill("jiujih"){
-        events << CardGot << CardGotDone;
-        frequency = Frequent;
-    }
-
-    virtual bool triggerable(const ServerPlayer *target) const{
-
-        return target->hasSkill(objectName());
-    }
-
-    virtual bool trigger(TriggerEvent event, ServerPlayer *huangshuh, QVariant &data) const{
-        Room *room = huangshuh->getRoom();
-        if(event == CardGot && huangshuh->getPhase() == Player::NotActive){
-            CardMoveStar move = data.value<CardMoveStar>();
-            const Card *card = Sanguosha->getCard(move->card_id);
-            if(move->to_place == Player::Judging || move->card_id == -1)
-                return false;
-            if(card->inherits("Slash") || card->inherits("Duel")){
-                huangshuh->tag["InvokeJiuji"] = true;
-                room->setTag("JiuJiCard", QVariant::fromValue(card));
-                return false;
-            }else
-                return false;
-        }else if(event == CardGotDone){
-            if(!huangshuh->tag.value("InvokeJiuji", false).toBool())
-                return false;
-            huangshuh->tag.remove("InvokeJiuji");
-            QList<ServerPlayer *> tos;
-            foreach(ServerPlayer *p, room->getOtherPlayers(huangshuh)){
-                if(!p->isKongcheng())
-                    tos << p;
-            }
-            if(tos.isEmpty())
-                return false;
-            if(!huangshuh->askForSkillInvoke(objectName(), data))
-                return false;
-            const Card *card = room->getTag("JiuJiCard").value<CardStar>();
-            int card_id = card->getEffectiveId();
-            room->showCard(huangshuh, card_id);
-            ServerPlayer *to = room->askForPlayerChosen(huangshuh, tos, objectName());
-            int to_card_id = room->askForCardChosen(huangshuh, to, "h", objectName());
-            room->showCard(to, to_card_id);
-            if(card->sameColorWith(Sanguosha->getCard(to_card_id))){
-                CardUseStruct use;
-                use.from = huangshuh;
-                use.to << to;
-                use.card = card;
-                room->useCard(use, false);
-            }
-            room->removeTag("JiuJiCard");
-            return false;
-        }
-        return false;
-    }
-};
-
 class Shanshouh: public TriggerSkill{
 public:
     Shanshouh():TriggerSkill("shanshouh"){
@@ -2032,10 +1940,104 @@ public:
         return false;
     }
 };
+*/
+
+class Jiangjih: public TriggerSkill{
+public:
+    Jiangjih():TriggerSkill("jiangjih"){
+
+        events << CardFinished;
+        frequency = Frequent;
+    }
+
+    virtual bool triggerable(const ServerPlayer *target) const{
+
+        return !target->hasSkill(objectName());
+    }
+
+    virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
+        Room *room = player->getRoom();
+        ServerPlayer *huangshuh = room->findPlayerBySkillName(objectName());
+        if(!huangshuh)
+            return false;
+
+        CardUseStruct use = data.value<CardUseStruct>();
+        if(use.to.length() == 1
+                && use.to.first() == huangshuh
+                && (use.card->inherits("BasicCard") || use.card->isNDTrick())
+                && room->getCardPlace(use.card->getEffectiveId()) == Player::DiscardedPile){
+            if(!huangshuh->askForSkillInvoke(objectName()))
+                return false;
+            room->moveCardTo(use.card, huangshuh, Player::Hand, true);
+            return false;
+        }else
+            return false;
+        return false;
+    }
+};
+
+class Jiujih: public TriggerSkill{
+public:
+    Jiujih():TriggerSkill("jiujih"){
+        events << CardGot << CardGotDone;
+        frequency = Frequent;
+    }
+
+    virtual bool triggerable(const ServerPlayer *target) const{
+
+        return target->hasSkill(objectName());
+    }
+
+    virtual bool trigger(TriggerEvent event, ServerPlayer *huangshuh, QVariant &data) const{
+        Room *room = huangshuh->getRoom();
+        if(event == CardGot && huangshuh->getPhase() == Player::NotActive){
+            CardMoveStar move = data.value<CardMoveStar>();
+            const Card *card = Sanguosha->getCard(move->card_id);
+            if(move->to_place == Player::Judging || move->card_id == -1)
+                return false;
+            if(card->inherits("Slash") || card->inherits("Duel")){
+                huangshuh->tag["InvokeJiuji"] = true;
+                room->setTag("JiuJiCard", QVariant::fromValue(card));
+                return false;
+            }else
+                return false;
+        }else if(event == CardGotDone){
+            if(!huangshuh->tag.value("InvokeJiuji", false).toBool())
+                return false;
+            huangshuh->tag.remove("InvokeJiuji");
+            QList<ServerPlayer *> tos;
+            foreach(ServerPlayer *p, room->getOtherPlayers(huangshuh)){
+                if(!p->isKongcheng())
+                    tos << p;
+            }
+            if(tos.isEmpty())
+                return false;
+            if(!huangshuh->askForSkillInvoke(objectName(), data))
+                return false;
+            const Card *card = room->getTag("JiuJiCard").value<CardStar>();
+            int card_id = card->getEffectiveId();
+            room->showCard(huangshuh, card_id);
+            ServerPlayer *to = room->askForPlayerChosen(huangshuh, tos, objectName());
+            int to_card_id = room->askForCardChosen(huangshuh, to, "h", objectName());
+            room->showCard(to, to_card_id);
+            if(card->sameColorWith(Sanguosha->getCard(to_card_id))){
+                CardUseStruct use;
+                use.from = huangshuh;
+                use.to << to;
+                use.card = card;
+                room->useCard(use, false);
+            }
+            room->removeTag("JiuJiCard");
+            return false;
+        }
+        return false;
+    }
+};
 
 QHSPackage::QHSPackage()
     :Package("QHS")
 {
+    /*
     General *simahuih = new General(this, "simahuih", "qun", 3);
     simahuih->addSkill(new Yinshih);
     simahuih->addSkill(new YinshihBuff);
@@ -2111,10 +2113,6 @@ QHSPackage::QHSPackage()
     zhangxiuh->addSkill(new Huqiangh);
     zhangxiuh->addSkill(new Junlingh);
 
-    General *huangshuh = new General(this, "huangshuh", "qun", 3);
-    huangshuh->addSkill(new Jiangjih);
-    huangshuh->addSkill(new Jiujih);
-
     General *haozhaoh = new General(this, "haozhaoh", "wei", 4);
     haozhaoh->addSkill(new Shanshouh);
     haozhaoh->addSkill(new Judih);
@@ -2133,6 +2131,11 @@ QHSPackage::QHSPackage()
     addMetaObject<GuijihCard>();
     addMetaObject<JunlinghCard>();
     addMetaObject<CaijianhCard>();
+    */
+
+    General *huangshuh = new General(this, "huangshuh", "qun", 3);
+    huangshuh->addSkill(new Jiangjih);
+    huangshuh->addSkill(new Jiujih);
 }
 
 ADD_PACKAGE(QHS)

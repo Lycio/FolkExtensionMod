@@ -72,7 +72,7 @@ public:
     virtual bool targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const;
     virtual void use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const;
 };
-
+/*
 class ZhangQi:public AOE{
     Q_OBJECT
 
@@ -111,5 +111,5 @@ class YJ1stCardPackage: public Package{
 public:
     YJ1stCardPackage();
 };
-
+*/
 #endif // YJ1stPACKAGE_H

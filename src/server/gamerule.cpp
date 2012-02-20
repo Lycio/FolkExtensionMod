@@ -38,6 +38,11 @@ void GameRule::onPhaseChange(ServerPlayer *player) const{
                 continue;
             }
 
+            if(room->getMode() == "05_2v3")
+                if(player->isLord() || player->getRole() == "loyalist")
+                    if(player->getPile("Angers").length() < 5)
+                        player->addToPile("Angers", room->drawCard(), true);
+
             break;
         }
     case Player::Judge: {
@@ -318,9 +323,8 @@ bool GameRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
             DamageStruct damage = data.value<DamageStruct>();
 
             if(damage.from && damage.from != damage.to){
+                room->setTag("ReboundStruct", QVariant::fromValue(damage));
                 if(room->askForRebound(damage)){
-                    room->setTag("ReboundStruct", QVariant::fromValue(damage));
-
                     bool reboundEffected = room->getTag("ReboundEffected").toBool();
                     room->removeTag("ReboundEffected");
                     if(reboundEffected){
@@ -349,7 +353,6 @@ bool GameRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
                 recover.card = damage.card;
                 room->recover(damage.from, recover);
             }
-
 
             while(!damage.to->isKongcheng() && room->askForRob(damage)){
                 continue;
@@ -1198,7 +1201,14 @@ bool ChangbanSlopeMode::trigger(TriggerEvent event, ServerPlayer *player, QVaria
         }
 
     case GameOverJudge:{
-            return true;
+            if(player->getRole() == "rebel"){
+                QStringList list = room->getTag(player->objectName()).toStringList();
+
+                if(!list.isEmpty())
+                    return false;
+            }
+
+            break;
         }
 
     default:

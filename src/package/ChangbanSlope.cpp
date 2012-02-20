@@ -15,11 +15,11 @@
 #include "god.h"
 #include "generaloverview.h"
 #include "standard-equips.h"
-
+/*
 class CBAngerCollect: public TriggerSkill{
 public:
     CBAngerCollect():TriggerSkill("#cbangercollect"){
-        events << PhaseChange << Death;
+        events << PhaseChange ;
         frequency = Compulsory;
     }
 
@@ -33,24 +33,14 @@ public:
             return false;
 
         if(event == PhaseChange && player->getPhase() == Player::Start){
-            if(player->getPile("Angers").length() >= 5 || player->getMark("zhangfeidead") == 1)
+            if(player->getPile("Angers").length() >= 5)
                 return false;
             player->addToPile("Angers", room->drawCard(), true);
-        }else if(event == Death){
-            if(player->getGeneralName() == "cbzhangfei2"){
-                foreach(ServerPlayer *p, room->getOtherPlayers(player)){
-                    if(p->getGeneralName() == "cbzhaoyun1" || p->getGeneralName() == "cbzhaoyun2"){
-                        room->setPlayerMark(p, "zhangfeidead", 1);
-                        break;
-                    }else
-                        continue;
-                }
-            }
         }
         return false;
     }
 };
-
+*/
 class CBQingGang: public TriggerSkill{
 public:
     CBQingGang():TriggerSkill("cbqinggang"){
@@ -252,8 +242,11 @@ public:
 
     virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
         Room *room = player->getRoom();
-        if(event == PhaseChange && player->getPhase() == Player::Start && player->getMark("zhangfeidead") > 0){
+        if(event == PhaseChange && player->getPhase() == Player::Start){
             if(player->getPile("Angers").length() >= 5)
+                return false;
+            bool cbzhangfeiIsDead = room->findPlayer("cbzhangfei2") == NULL ? true : false;
+            if(!cbzhangfeiIsDead)
                 return false;
             data = QVariant::fromValue(player);
             if(!player->askForSkillInvoke(objectName(), data))
@@ -269,6 +262,7 @@ public:
                 room->moveCardTo(card, player, Player::Hand, true);
             }
             return true;
+
         }
         return false;
     }
@@ -307,6 +301,8 @@ public:
 
     virtual int getDrawNum(ServerPlayer *player, int n) const{
         Room *room = player->getRoom();
+        if(player->getHandcardNum() >= 5)
+            return n;
         if(room->askForSkillInvoke(player, objectName())){
             room->playSkillEffect(objectName());
             int x = player->getMaxHP() - player->getHandcardNum();
@@ -527,12 +523,10 @@ ChangbanSlopePackage::ChangbanSlopePackage()
     :Package("ChangbanSlope")
 {
     General *cbzhaoyun1 = new General(this, "cbzhaoyun1", "god", 8, true, true);
-    cbzhaoyun1->addSkill(new CBAngerCollect);
     cbzhaoyun1->addSkill("longdan");
     cbzhaoyun1->addSkill(new CBQingGang);
 
     General *cbzhaoyun2 = new General(this, "cbzhaoyun2", "god", 4, true, true);
-    cbzhaoyun2->addSkill("#cbangercollect");
     cbzhaoyun2->addSkill("longdan");
     cbzhaoyun2->addSkill("cbqinggang");
     cbzhaoyun2->addSkill(new CBLongNu);
@@ -540,12 +534,10 @@ ChangbanSlopePackage::ChangbanSlopePackage()
     cbzhaoyun2->addSkill(new CBLongYin);
 
     General *cbzhangfei1 = new General(this, "cbzhangfei1", "god", 10, true, true);
-    cbzhangfei1->addSkill("#cbangercollect");
     cbzhangfei1->addSkill(new CBZhengJun);
     cbzhangfei1->addSkill(new Skill("CBZhangBa", Skill::Compulsory));
 
     General *cbzhangfei2 = new General(this, "cbzhangfei2", "god", 5, true, true);
-    cbzhangfei2->addSkill("#cbangercollect");
     cbzhangfei2->addSkill("CBZhangBa");
     cbzhangfei2->addSkill(new CBBeiLiang);
     cbzhangfei2->addSkill(new CBJuWu);

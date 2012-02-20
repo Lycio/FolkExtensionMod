@@ -86,7 +86,7 @@ Engine::Engine()
                   << "Joy"
                   << "Disaster"
                   << "JoyEquip"
-                  << "YJ1stCard"
+                //<< "YJ1stCard"
                   << "DishaCard";
 
     foreach(QString name, package_names)
