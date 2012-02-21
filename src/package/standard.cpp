@@ -442,26 +442,26 @@ StandardPackage::StandardPackage()
 {
     addGenerals();
 
-    patterns["."] = new HandcardPattern;
-    patterns[".S"] = new SuitPattern(Card::Spade);
-    patterns[".C"] = new SuitPattern(Card::Club);
-    patterns[".H"] = new SuitPattern(Card::Heart);
-    patterns[".D"] = new SuitPattern(Card::Diamond);
+    patterns["."] = new ExpPattern(".|.|.|hand");
+    patterns[".S"] = new ExpPattern(".|spade|.|hand");
+    patterns[".C"] = new ExpPattern(".|club|.|hand");
+    patterns[".H"] = new ExpPattern(".|heart|.|hand");
+    patterns[".D"] = new ExpPattern(".|diamond|.|hand");
 
-    patterns[".black"] = new ColorPattern("black");
-    patterns[".red"] = new ColorPattern("red");
+    patterns[".black"] = new ExpPattern(".|.|.|hand|black");
+    patterns[".red"] = new ExpPattern(".|.|.|hand|red");
 
-    patterns[".."] = new AllCardPattern;
-    patterns["..S"] = new AllSuitPattern(Card::Spade);
-    patterns["..C"] = new AllSuitPattern(Card::Club);
-    patterns["..H"] = new AllSuitPattern(Card::Heart);
-    patterns["..D"] = new AllSuitPattern(Card::Diamond);
+    patterns[".."] = new ExpPattern(".");
+    patterns[".S"] = new ExpPattern(".|spade");
+    patterns[".C"] = new ExpPattern(".|club");
+    patterns[".H"] = new ExpPattern(".|heart");
+    patterns[".D"] = new ExpPattern(".|diamond");
 
-    patterns["slash"] = new SlashPattern;
+    patterns["slash"] = new ExpPattern("Slash");
     patterns["jink"] = new ExpPattern("Jink");
-    patterns["peach"] = new ExpPattern("Peach");
+    patterns["peach"] = new  ExpPattern("Peach");
     patterns["nullification"] = new ExpPattern("Nullification");
-    patterns["peach+analeptic"] = new PAPattern;
+    patterns["peach+analeptic"] = new ExpPattern("Peach,Analeptic");
 }
 
 ADD_PACKAGE(Standard)

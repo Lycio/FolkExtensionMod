@@ -257,9 +257,9 @@ public:
         Room *room = player->getRoom();
 
         const Card *first_jink = NULL, *second_jink = NULL;
-        first_jink = room->askForCard(player, "Jink|.|.|.|.", QString("@%1-jink-1").arg(reason));
+        first_jink = room->askForCard(player, "Jink", QString("@%1-jink-1").arg(reason));
         if(first_jink)
-            second_jink = room->askForCard(player, "Jink|.|.|.|.", QString("@%1-jink-2").arg(reason));
+            second_jink = room->askForCard(player, "Jink", QString("@%1-jink-2").arg(reason));
 
         Card *jink = NULL;
         if(first_jink && second_jink){
@@ -282,7 +282,9 @@ public:
             if(asked == "jink"){
                 const Card *doublejink = askForDoubleJink(player, objectName());
                 if(doublejink){
-                    room->setEmotion(player, "jink");
+                    Jink *jink = new Jink(Card::NoSuit, 0);
+                    //room->setEmotion(player, "jink");
+                    room->provide(jink);
                     return true;
                 }else
                     room->provide(NULL);
