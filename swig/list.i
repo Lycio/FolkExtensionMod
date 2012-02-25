@@ -20,6 +20,7 @@ public:
 	}
 }
 
+%template(PhaseList) QList<Player::Phase>;
 %template(SPlayerList) QList<ServerPlayer *>;
 %template(PlayerList)  QList<const Player *>;
 %template(CardList) QList<const Card *>;

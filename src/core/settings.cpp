@@ -52,6 +52,7 @@ void Settings::init(){
     if(!contains("BanPackages")){
         QStringList banlist;
         banlist << "nostalgia" << "yitian" << "wisdom" << "test"
+                << "QHS" << "YJ1st" << "Ghost" << "Huangjin" << "ChangbanSlope" << "TBdiy" << "DishaCard"
                 << "disaster" << "god" << "YJCM" << "yitian_cards"
                 << "sp" << "sp_cards"
                 << "joy" << "joy_equip";

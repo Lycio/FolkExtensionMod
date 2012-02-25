@@ -54,7 +54,7 @@ DiyShenZhiCard::DiyShenZhiCard(){
 }
 
 bool DiyShenZhiCard::targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const{
-    if(to_select == Self)
+    if((to_select == Self) || (to_select->isKongcheng()))
         return false;
     else
         return targets.isEmpty();
@@ -145,7 +145,7 @@ DiyDouDanCard::DiyDouDanCard(){
 }
 
 void DiyDouDanCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &) const{
-    QList<int> cards = room->getNCards(3), left;
+    QList<int> cards = room->getNCards(3);
     room->fillAG(cards, source);
     QString choice = room->askForChoice(source, "diydoudan", "obtain1cd+guan3xing");
     if(choice == "obtain1cd"){

@@ -351,7 +351,6 @@ Cover::Cover(Suit suit, int number)
 void Cover::onEffect(const CardEffectStruct &effect) const{
     Room *room = effect.from->getRoom();
     const Card *cover_card = room->getTag("CoverCard").value<CardStar>();
-    room->removeTag("CoverCard");
     LogMessage log;
     log.type = "$CoverLog";
     log.from = effect.from;

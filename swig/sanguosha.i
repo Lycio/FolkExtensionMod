@@ -256,15 +256,16 @@ public:
 	QList<const Card *> getHandcards() const;
 	QList<const Card *> getCards(const char *flags) const;
 	DummyCard *wholeHandCards() const;
+	bool hasNullification() const;
 	bool hasCover() const;
     bool hasRebound() const;
     bool hasRob() const;
     bool hasSuddenStrike() const;
-	bool hasNullification() const;
 	void kick();
 	bool pindian(ServerPlayer *target, const char *reason, const Card *card1 = NULL);
 	void turnOver();
 	void play();
+    void play(QList<Player::Phase> &set_phases);
 
 	QList<Player::Phase> &getPhases();
 	void skip(Player::Phase phase);
@@ -851,16 +852,16 @@ public:
 
 	// interactive methods
 	void activate(ServerPlayer *player, CardUseStruct &card_use);
-	Card::Suit askForSuit(ServerPlayer *player);
+	Card::Suit askForSuit(ServerPlayer *player, const char *reason);
 	QString askForKingdom(ServerPlayer *player);
 	bool askForSkillInvoke(ServerPlayer *player, const char *skill_name, const QVariant &data = QVariant());
 	QString askForChoice(ServerPlayer *player, const char *skill_name, const char *choices);
 	bool askForDiscard(ServerPlayer *target, const char *reason, int discard_num, bool optional = false, bool include_equip = false);
-	const Card *askForExchange(ServerPlayer *player, const char *reason, int discard_num);
 	bool askForCover(const CardEffectStruct &effect);
     bool askForRebound(const DamageStruct &damage);
     bool askForRob(const DamageStruct &damage);
     bool askForSuddenStrike(ServerPlayer *player);
+	const Card *askForExchange(ServerPlayer *player, const char *reason, int discard_num);
 	bool askForNullification(const TrickCard *trick, ServerPlayer *from, ServerPlayer *to, bool positive);
 	bool isCanceled(const CardEffectStruct &effect);
 	int askForCardChosen(ServerPlayer *player, ServerPlayer *who, const char *flags, const char *reason);
@@ -892,8 +893,23 @@ public:
 
 	void writeToConsole(const char *msg){
 		$self->output(msg);
+		qWarning(msg);
 	}
 };
+
+%{
+
+void Room::doScript(const QString &script){
+	SWIG_NewPointerObj(L, this, SWIGTYPE_p_Room, 0);
+	lua_setglobal(L, "R");
+
+	SWIG_NewPointerObj(L, current, SWIGTYPE_p_ServerPlayer, 0);
+	lua_setglobal(L, "P");
+
+	luaL_dostring(L, script.toAscii());
+}
+
+%}
 
 class QRegExp{
 public:

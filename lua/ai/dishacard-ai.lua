@@ -138,6 +138,11 @@ function SmartAI:useCardJiaoLiao(card, use)
 	end
 end
 
+sgs.ai_skill_cardask["@jiaoliao-jink-1"] = function(self, data, pattern, target)
+	if sgs.ai_skill_cardask.nullfilter(self, data, pattern, target) then return "." end
+	if self:getCardsNum("Jink") < 2 and not (self.player:getHandcardNum() == 1 and self:hasSkills(sgs.need_kongcheng)) then return "." end	
+end
+
 function sgs.ai_weapon_value.YitianJian(self, enemy)
 	return 2 
 end
@@ -306,7 +311,7 @@ function SmartAI:askForRebound(damage)
 	card = self:getCardId("Rebound")
 	if card then card = sgs.Card_Parse(card) else return end
 	
-	if damage.from and self.player:objectName() ~= damage.to:objectName() and not self:isFriend(damage.from) then
+	if damage.from and self.player:objectName() ~= damage.from:objectName() and not self:isFriend(damage.from) then
 		return card
 	end
 end

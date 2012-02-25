@@ -414,6 +414,7 @@ bool GameRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
                         if(from)
                             effect.to = from;
                     }
+                    room->removeTag("CoverCard");
                 }
                 effect.card->onEffect(effect);
             }

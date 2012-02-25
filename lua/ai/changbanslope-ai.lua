@@ -115,9 +115,9 @@ sgs.ai_skill_askforag.cblongyin = function(self, card_ids)
 	local has_redAngers, has_blackAngers = sgs.IntList(), sgs.IntList()
 	for _, id in sgs.qlist(angers) do
 		local cd = sgs.Sanguosha:getCard(id)
-		if cd:isRed() then
+		if cd:isRed() and not (cd:inherits("Peach") and cd:inherits("ExNihilo")) then
 			has_redAngers:append(id)
-		else
+		elseif cd:isBlack() and not cd:inherits("Analeptic") then
 			has_blackAngers:append(id)
 		end
 	end
