@@ -1940,6 +1940,95 @@ public:
         return false;
     }
 };
+
+class BaichuhViewAsSkill:public OneCardViewAsSkill{
+public:
+    BaichuhViewAsSkill():OneCardViewAsSkill("baichuh"){
+
+    }
+
+    virtual bool viewFilter(const CardItem *to_select) const{
+        QList<int> jis = Self->getPile("jis");
+        const Card *ji = Sanguosha->getCard(jis.first());
+        if(to_select->getFilteredCard()->getNumber() < ji->getNumber())
+            return false;
+        else
+            return !to_select->isEquipped();
+    }
+
+    virtual bool isEnabledAtPlay(const Player *player) const{
+        return false;
+    }
+
+    virtual bool isEnabledAtResponse(const Player *player, const QString &pattern) const{
+        QList<int> jis = Self->getPile("jis");
+        if(jis.isEmpty() || player->getPhase() != Player::NotActive)
+            return false;
+        else
+            return pattern == "jink" || pattern == "nullification";
+    }
+
+    virtual const Card *viewAs(CardItem *card_item) const{
+        const Card *card = card_item->getFilteredCard();
+        QString pattern = ClientInstance->getPattern();
+        if(pattern == "jink"){
+            Jink *jink = new Jink(card->getSuit(), card->getNumber());
+            jink->addSubcard(card);
+            jink->setSkillName(objectName());
+            return jink;
+        }else if(pattern == "nullification"){
+            Nullification *nullification = new Nullification(card->getSuit(), card->getNumber());
+            nullification->addSubcard(card);
+            nullification->setSkillName(objectName());
+            return nullification;
+        }else
+            return NULL;
+    }
+};
+
+class Baichuh: public TriggerSkill{
+public:
+    Baichuh():TriggerSkill("baichuh"){
+        events << HpChanged << CardUsed;
+        view_as_skill = new BaichuhViewAsSkill;
+    }
+
+    virtual bool triggerable(const ServerPlayer *target) const{
+        return target->hasSkill(objectName());
+    }
+
+    virtual bool trigger(TriggerEvent event, ServerPlayer *xunyouh, QVariant &data) const{
+        Room *room = xunyouh->getRoom();
+        QList<int> jis = xunyouh->getPile("jis");
+        if(event == HpChanged){
+            if(xunyouh->isDead())
+                return false;
+            if(!xunyouh->askForSkillInvoke(objectName()+"jis", data))
+                return false;
+            JudgeStruct judge;
+            judge.pattern = QRegExp("(.*):(.*):(.*)");
+            judge.reason = objectName();
+            judge.who = xunyouh;
+            room->judge(judge);
+            if(!jis.isEmpty()){
+                ServerPlayer *toGive = room->askForPlayerChosen(xunyouh, room->getAllPlayers(), objectName()+"jis");
+                room->moveCardTo(Sanguosha->getCard(jis.first()), toGive, Player::Hand, true);
+            }
+            xunyouh->addToPile("jis", judge.card->getEffectiveId(), true);
+
+        }else if(event == CardUsed && xunyouh->getPhase() == Player::Play){
+            if(jis.isEmpty())
+                return false;
+            CardUseStruct use = data.value<CardUseStruct>();
+            if(use.card->inherits("BasicCard") || use.card->inherits("SkillCard") || use.card->getNumber() >= Sanguosha->getCard(jis.first())->getNumber())
+                return false;
+            if(!xunyouh->askForSkillInvoke(objectName()+"draw", data))
+                return false;
+            xunyouh->drawCards(1);
+        }
+        return false;
+    }
+};
 */
 
 class Jiangjih: public TriggerSkill{
@@ -2120,6 +2209,9 @@ QHSPackage::QHSPackage()
     //General *liubah = new General(this, "liubah", "shu", 3);
     //liubah->addSkill(new Caiaoh);
     //liubah->addSkill(new Gushangh);
+
+    General *xunyouh = new General(this, "xunyouh", "wei", 3);
+    xunyouh->addSkill(new Baichuh);
 
     skills << new Fangshuhbuff;
 

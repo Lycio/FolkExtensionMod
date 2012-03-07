@@ -62,6 +62,8 @@ public:
     void loseHp(ServerPlayer *victim, int lose = 1);
     void loseMaxHp(ServerPlayer *victim, int lose = 1);
     void applyDamage(ServerPlayer *victim, const DamageStruct &damage);
+    void doWindPile(const DamageStruct &damage);
+    void returnWindPile(ServerPlayer *player);
     void recover(ServerPlayer *player, const RecoverStruct &recover, bool set_emotion = false);
     void playCardEffect(const QString &card_name, bool is_male);
     bool cardEffect(const Card *card, ServerPlayer *from, ServerPlayer *to);

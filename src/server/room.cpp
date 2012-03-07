@@ -263,7 +263,8 @@ void Room::killPlayer(ServerPlayer *victim, DamageStruct *reason){
         log.type = "#Contingency";
     }
 
-    sendLog(log);
+    if(!reason || !reason->card || !reason->card->inherits("PoisonPeach"))
+        sendLog(log);
 
     broadcastProperty(victim, "alive");
 
@@ -2245,10 +2246,33 @@ void Room::applyDamage(ServerPlayer *victim, const DamageStruct &damage){
     switch(damage.nature){
     case DamageStruct::Fire: change_str.append("F"); break;
     case DamageStruct::Thunder: change_str.append("T"); break;
+    case DamageStruct::Wind: change_str.append("W"); break;
     default: break;
     }
 
     broadcastInvoke("hpChange", change_str);
+}
+
+void Room::doWindPile(const DamageStruct &damage){
+    int i;
+    for(i=0; i<damage.damage; i++){
+        if(damage.to->isNude())
+            return;
+        else{
+            int card_id = askForCardChosen(damage.from, damage.to, "he", "wind_damage");
+            damage.to->addToPile("windpile", card_id, getCardPlace(card_id) == Player::Hand ? false : true);
+            damage.to->gainMark("@windpile");
+        }
+    }
+}
+
+void Room::returnWindPile(ServerPlayer *player){
+    int x = player->getPile("windpile").length();
+    player->loseMark("@windpile", x);
+    foreach(int id, player->getPile("windpile")){
+        const Card *cd = Sanguosha->getCard(id);
+        player->obtainCard(cd);
+    }
 }
 
 void Room::recover(ServerPlayer *player, const RecoverStruct &recover, bool set_emotion){
@@ -2348,6 +2372,7 @@ void Room::sendDamageLog(const DamageStruct &data){
     case DamageStruct::Normal: log.arg2 = "normal_nature"; break;
     case DamageStruct::Fire: log.arg2 = "fire_nature"; break;
     case DamageStruct::Thunder: log.arg2 = "thunder_nature"; break;
+    case DamageStruct::Wind: log.arg2 = "wind_nature"; break;
     }
 
     sendLog(log);
@@ -3336,6 +3361,7 @@ void Room::makeDamage(const QStringList &texts){
     case 'N': damage.nature = DamageStruct::Normal; break;
     case 'T': damage.nature = DamageStruct::Thunder; break;
     case 'F': damage.nature = DamageStruct::Fire; break;
+    case 'W': damage.nature = DamageStruct::Wind; break;
     case 'L': loseHp(damage.to, point); return;
     case 'R':{
         RecoverStruct recover;

@@ -478,6 +478,9 @@ void Plague::takeEffect(ServerPlayer *target) const{
     room->moveCardTo(this, next, Player::Judging, true);
 }
 
+//------------------------------------------------------------------------
+
+
 DishaCardPackage::DishaCardPackage()
     :Package("DishaCard")
 {

@@ -866,6 +866,133 @@ public:
     }
 };
 
+class YJZiBao: public DistanceSkill{
+public:
+    YJZiBao():DistanceSkill("yjzibao")
+    {
+    }
+
+    virtual int getCorrect(const Player *from, const Player *to) const{
+        if(from->hasSkill(objectName()) && from->getMark("@yjzibao") == 1)
+            return 1;
+        else if(to->hasSkill(objectName()) && to->getMark("@yjzibao") == 1)
+            return 1;
+        else
+            return 0;
+    }
+};
+
+class YJZiBao_Ask: public TriggerSkill{
+public:
+    YJZiBao_Ask():TriggerSkill("#yjzibao_ask"){
+        events << PhaseChange ;
+    }
+
+    virtual bool triggerable(const ServerPlayer *target) const{
+        return target->hasSkill(objectName());
+    }
+
+   virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+        if(event == PhaseChange){
+            if(player->getPhase() == Player::Start && player->getMark("@yjzibao") == 0){
+                if(!player->askForSkillInvoke(objectName(), data))
+                    return false;
+
+                player->drawCards(3);
+                player->skip(Player::Judge);
+                player->skip(Player::Draw);
+                player->skip(Player::Play);
+                player->skip(Player::Discard);
+
+                player->gainMark("@yjzibao", 1);
+            }else if(player->getPhase() == Player::Judge && player->getMark("@yjzibao") == 1)
+                player->loseMark("@yjzibao", 1);
+        }
+        return false;
+    }
+};
+
+class YJDuoYi: public TriggerSkill{
+public:
+    YJDuoYi():TriggerSkill("yjduoyi"){
+        events << CardUsed ;
+        frequency = Compulsory;
+    }
+
+    virtual bool triggerable(const ServerPlayer *target) const{
+        return !target->hasSkill(objectName());
+    }
+
+   virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+        Room *room = player->getRoom();
+        ServerPlayer *yjliubiao = room->findPlayerBySkillName(objectName());
+        if(!yjliubiao)
+            return false;
+        CardUseStruct use = data.value<CardUseStruct>();
+        if(!((use.card->inherits("Peach") && !use.card->inherits("PoisonPeach")) || use.card->inherits("TrickCard")))
+            return false;
+        if(use.to.contains(yjliubiao)){
+
+        }
+        return false;
+    }
+};
+
+YJ1stPackage::YJ1stPackage()
+    :Package("YJ1st")
+{
+    General *YJchengyu = new General(this, "YJchengyu", "wei", 3);
+    YJchengyu->addSkill(new YJZhuanXiang);
+    YJchengyu->addSkill(new YJGangDuan);
+
+    General *YJyuwenze = new General(this, "YJyuwenze", "wei");
+    YJyuwenze->addSkill(new YJZhengShang);
+
+    General *YJzhangyi = new General(this, "YJzhangyi", "shu");
+    YJzhangyi->addSkill(new YJZhengLve);
+
+    General *YJxingcai = new General(this, "YJxingcai", "shu", 3, false);
+    YJxingcai->addSkill(new YJYangXi);
+    YJxingcai->addSkill(new YJLianRen);
+    YJxingcai->addSkill(new YJLianRenEffect);
+
+    related_skills.insertMulti("yjlianren", "#yjlianren-effect");
+
+    General *YJbulianshi = new General(this, "YJbulianshi", "wu", 3, false);
+    YJbulianshi->addSkill(new YJHuiZe);
+    YJbulianshi->addSkill(new YJShuYi);
+
+    General *YJzhoufang = new General(this, "YJzhoufang", "wu", 3);
+    YJzhoufang->addSkill(new YJTanCha);
+    YJzhoufang->addSkill(new YJZhaXiang);
+
+    General *YJcaiyong = new General(this, "YJcaiyong", "qun", 3);
+    YJcaiyong->addSkill(new YJBianCai);
+    YJcaiyong->addSkill(new YJLingYin);
+
+    General *YJmateng = new General(this, "YJmateng", "qun", 4);
+    YJmateng->addSkill(new YJXiJun);
+    YJmateng->addSkill(new YJYiJu);
+
+    /*
+    General *YJliubiao = new General(this, "YJliubiao", "qun", 3);
+    YJliubiao->addSkill(new YJZiBao);
+    YJliubiao->addSkill(new YJZiBao_Ask);
+
+    related_skills.insertMulti("yjzibao", "#yjzibao_ask");
+    */
+
+    addMetaObject<YJZhuanXiangCard>();
+    addMetaObject<YJHuiZeCard>();
+    addMetaObject<YJTanChaCard>();
+    addMetaObject<YJLingYinCard>();
+    addMetaObject<YJYangXiCard>();
+    addMetaObject<YJZhengLveCard>();
+
+}
+
+ADD_PACKAGE(YJ1st)
+/*
 class YJTianHui: public TriggerSkill{
 public:
     YJTianHui():TriggerSkill("yjtianhui"){
@@ -879,7 +1006,7 @@ public:
    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
         Room *room = player->getRoom();
         if(event == PhaseChange){
-            if(player->getPhase() == Player::Start){
+            if(player->getPhase() == Player::Start && !player->isKongcheng()){
                 if(!player->askForSkillInvoke(objectName(), data))
                     return false;
 
@@ -933,7 +1060,8 @@ public:
     }
 };
 
-/*
+
+
 ZhangQi::ZhangQi(Suit suit, int number)
     :AOE(suit, number)
 {
@@ -1037,54 +1165,6 @@ void JieJian::takeEffect(ServerPlayer *target) const{
     }
 }
 */
-YJ1stPackage::YJ1stPackage()
-    :Package("YJ1st")
-{
-    General *YJchengyu = new General(this, "YJchengyu", "wei", 3);
-    YJchengyu->addSkill(new YJZhuanXiang);
-    YJchengyu->addSkill(new YJGangDuan);
-
-    General *YJyuwenze = new General(this, "YJyuwenze", "wei");
-    YJyuwenze->addSkill(new YJZhengShang);
-
-    General *YJzhangyi = new General(this, "YJzhangyi", "shu");
-    YJzhangyi->addSkill(new YJZhengLve);
-
-    General *YJxingcai = new General(this, "YJxingcai", "shu", 3, false);
-    YJxingcai->addSkill(new YJYangXi);
-    YJxingcai->addSkill(new YJLianRen);
-    YJxingcai->addSkill(new YJLianRenEffect);
-
-    related_skills.insertMulti("lianren", "#lianren-effect");
-
-    General *YJbulianshi = new General(this, "YJbulianshi", "wu", 3, false);
-    YJbulianshi->addSkill(new YJHuiZe);
-    YJbulianshi->addSkill(new YJShuYi);
-
-    General *YJzhoufang = new General(this, "YJzhoufang", "wu", 3);
-    YJzhoufang->addSkill(new YJTanCha);
-    YJzhoufang->addSkill(new YJZhaXiang);
-
-    General *YJcaiyong = new General(this, "YJcaiyong", "qun", 3);
-    YJcaiyong->addSkill(new YJBianCai);
-    YJcaiyong->addSkill(new YJLingYin);
-
-    General *YJmateng = new General(this, "YJmateng", "qun", 4);
-    YJmateng->addSkill(new YJXiJun);
-    YJmateng->addSkill(new YJYiJu);
-
-    General *YJzhonghui = new General(this, "YJzhonghui", "wei", 4);
-    YJzhonghui->addSkill(new YJTianHui);
-    YJzhonghui->addSkill(new YJJiFeng);
-
-    addMetaObject<YJZhuanXiangCard>();
-    addMetaObject<YJHuiZeCard>();
-    addMetaObject<YJTanChaCard>();
-    addMetaObject<YJLingYinCard>();
-    addMetaObject<YJYangXiCard>();
-    addMetaObject<YJZhengLveCard>();
-
-}
 /*
 YJ1stCardPackage::YJ1stCardPackage()
     :Package("YJ1st_Card")
@@ -1102,5 +1182,4 @@ YJ1stCardPackage::YJ1stCardPackage()
     type = CardPack;
 }
 */
-ADD_PACKAGE(YJ1st)
 //ADD_PACKAGE(YJ1stCard)

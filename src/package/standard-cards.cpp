@@ -140,6 +140,15 @@ void Peach::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &t
     else
         foreach(ServerPlayer *tmp, targets)
             room->cardEffect(this, source, tmp);
+
+    if(source->hasFlag("crisp")){
+        LogMessage log;
+        log.type = "#UnsetCrisp";
+        log.from = source;
+        room->sendLog(log);
+
+        room->setPlayerFlag(source, "-crisp");
+    }
 }
 
 void Peach::onEffect(const CardEffectStruct &effect) const{
@@ -154,6 +163,7 @@ void Peach::onEffect(const CardEffectStruct &effect) const{
     RecoverStruct recover;
     recover.card = this;
     recover.who = effect.from;
+    recover.crisp = effect.from->hasFlag("crisp");
 
     room->recover(effect.to, recover);
 }

@@ -63,6 +63,8 @@ SOURCES += src/main.cpp \
         src/package/ghost.cpp \
         src/package/huangjinpackage.cpp \
         src/package/ChangbanSlope.cpp \
+        src/package/chibi-card.cpp \
+        src/package/special3v3-package.cpp \
 	src/scenario/boss-mode-scenario.cpp \
 	src/scenario/couple-scenario.cpp \
 	src/scenario/fancheng-scenario.cpp \
@@ -128,7 +130,7 @@ SOURCES += src/main.cpp \
 	src/lua/lbaselib.c \
 	src/lua/lauxlib.c \
 	src/lua/lapi.c \
-	swig/sanguosha_wrap.cxx
+        swig/sanguosha_wrap.cxx
 
 HEADERS += src/client/aux-skills.h \
 	src/client/client.h \
@@ -183,6 +185,8 @@ HEADERS += src/client/aux-skills.h \
         src/package/ghost.h \
         src/package/huangjinpackage.h \
         src/package/ChangbanSlope.h \
+        src/package/chibi-card.h \
+        src/package/special3v3-package.h \
 	src/scenario/boss-mode-scenario.h \
 	src/scenario/couple-scenario.h \
 	src/scenario/fancheng-scenario.h \
@@ -243,7 +247,7 @@ HEADERS += src/client/aux-skills.h \
 	src/lua/ldebug.h \
 	src/lua/lcode.h \
 	src/lua/lauxlib.h \
-	src/lua/lapi.h
+        src/lua/lapi.h
 	
 FORMS += src/dialog/cardoverview.ui \
 	src/dialog/configdialog.ui \
@@ -290,3 +294,7 @@ OTHER_FILES += \
 	acknowledgement/main.qml \
 	acknowledgement/list.png \
 	acknowledgement/back.png
+
+
+
+

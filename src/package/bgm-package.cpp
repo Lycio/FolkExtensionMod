@@ -152,6 +152,94 @@ public:
     }
 };
 
+class Kuiwei: public TriggerSkill{
+public:
+    Kuiwei(): TriggerSkill("kuiwei"){
+        events << PhaseChange;
+    }
+
+    virtual int getPriority() const{
+        return 3;
+    }
+
+    int getWeaponCount(ServerPlayer *caoren) const{
+        int n = 0;
+        foreach(ServerPlayer *p, caoren->getRoom()->getAlivePlayers()){
+            if(p->getWeapon())
+                n ++;
+        }
+
+        return n;
+    }
+
+    virtual bool trigger(TriggerEvent , ServerPlayer *caoren, QVariant &) const{
+        Room *room = caoren->getRoom();
+
+        if(caoren->getPhase() == Player::Finish){
+            if(!caoren->askForSkillInvoke(objectName()))
+                return false;
+
+            int n = getWeaponCount(caoren);
+            caoren->drawCards(n+2);
+            caoren->turnOver();
+
+            if(caoren->getMark("@kuiwei") == 0)
+                caoren->gainMark("@kuiwei");
+        }
+        else if(caoren->getPhase() == Player::Draw){
+            if(caoren->getMark("@kuiwei") == 0)
+                return false;
+
+            int n = getWeaponCount(caoren);
+            if(n > 0){
+                LogMessage log;
+                log.type = "#KuiweiDiscard";
+                log.from = caoren;
+                log.arg = QString::number(n);
+                room->sendLog(log);
+
+                if(caoren->getCards("he").length() <= n){
+                    caoren->throwAllEquips();
+                    caoren->throwAllHandCards();
+                }
+                else{
+                    room->askForDiscard(caoren, objectName(), n, false, true);
+                }
+            }
+
+            caoren->loseMark("@kuiwei");
+        }
+        return false;
+    }
+};
+
+class Yanzheng: public OneCardViewAsSkill{
+public:
+    Yanzheng():OneCardViewAsSkill("yanzheng"){
+    }
+
+    virtual bool isEnabledAtPlay(const Player *player) const{
+        return false;
+    }
+
+    virtual bool isEnabledAtResponse(const Player *player, const QString &pattern) const{
+        return pattern == "nullification" && player->getHandcardNum() > player->getHp();
+    }
+
+    virtual bool viewFilter(const CardItem *to_select) const{
+        return to_select->isEquipped();
+    }
+
+    virtual const Card *viewAs(CardItem *card_item) const{
+        const Card *first = card_item->getFilteredCard();
+        Card *ncard = new Nullification(first->getSuit(), first->getNumber());
+        ncard->addSubcard(first);
+        ncard->setSkillName(objectName());
+
+        return ncard;
+    }
+};
+
 BGMPackage::BGMPackage():Package("BGM"){
     General *bgm_zhaoyun = new General(this, "bgm_zhaoyun", "qun", 3, true, true);
     bgm_zhaoyun->addSkill("longdan");
@@ -160,6 +248,10 @@ BGMPackage::BGMPackage():Package("BGM"){
     General *bgm_diaochan = new General(this, "bgm_diaochan", "qun", 3, false, true);
     bgm_diaochan->addSkill(new Lihun);
     bgm_diaochan->addSkill("biyue");
+
+    General *bgm_caoren = new General(this, "bgm_caoren", "wei");
+    bgm_caoren->addSkill(new Kuiwei);
+    bgm_caoren->addSkill(new Yanzheng);
 
     addMetaObject<LihunCard>();
 }

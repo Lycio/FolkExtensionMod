@@ -45,7 +45,7 @@ DyingStruct::DyingStruct()
 }
 
 RecoverStruct::RecoverStruct()
-    :recover(1), who(NULL), card(NULL)
+    :recover(1), who(NULL), card(NULL), crisp(false)
 {
 
 }

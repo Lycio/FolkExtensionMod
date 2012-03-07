@@ -66,6 +66,7 @@ Engine::Engine()
                   << "God"
                   << "SP"
                   << "YJCM"
+                  << "Special3v3"
                   << "BGM"
                   << "Yitian"
                   << "Wisdom"
@@ -86,7 +87,7 @@ Engine::Engine()
                   << "Joy"
                   << "Disaster"
                   << "JoyEquip"
-                //<< "YJ1stCard"
+                  << "ChibiCard"
                   << "DishaCard";
 
     foreach(QString name, package_names)
@@ -376,14 +377,14 @@ QString Engine::getVersionName() const{
 }
 
 QString Engine::getMODName() const{
-    return "FolkExtensionMod_ver_0.43";
+    return "FolkExtensionMod_ver_0.45";
 }
 
 QStringList Engine::getExtensions() const{
     QStringList extensions;
     QList<const Package *> packages = findChildren<const Package *>();
     foreach(const Package *package, packages){
-        if(package->inherits("Scenario"))
+        if(package->inherits("Scenario")||package->objectName()=="Special3v3")
             continue;
 
         extensions << package->objectName();

@@ -651,7 +651,8 @@ int Player::getSlashCount() const{
             + history.value("ThunderSlash", 0)
             + history.value("PunctureSlash", 0)
             + history.value("BloodSlash", 0)
-            + history.value("FireSlash", 0);
+            + history.value("FireSlash", 0)
+            + history.value("WindSlash", 0);
 }
 
 void Player::clearHistory(){

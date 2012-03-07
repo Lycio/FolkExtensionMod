@@ -522,7 +522,7 @@ void Client::startGame(const QString &){
 }
 
 void Client::hpChange(const QString &change_str){
-    QRegExp rx("(.+):(-?\\d+)([FT]*)");
+    QRegExp rx("(.+):(-?\\d+)([FTIP]*)");
 
     if(!rx.exactMatch(change_str))
         return;
@@ -537,6 +537,8 @@ void Client::hpChange(const QString &change_str){
         nature = DamageStruct::Fire;
     else if(nature_str == "T")
         nature = DamageStruct::Thunder;
+    else if(nature_str == "W")
+        nature = DamageStruct::Wind;
     else
         nature = DamageStruct::Normal;
 

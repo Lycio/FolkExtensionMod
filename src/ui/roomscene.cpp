@@ -2381,6 +2381,8 @@ void RoomScene::changeHp(const QString &who, int delta, DamageStruct::Nature nat
             doAnimation("fire", QStringList() << who);
         else if(nature == DamageStruct::Thunder)
             doAnimation("lightning", QStringList() << who);
+        else if(nature == DamageStruct::Wind)
+            doAnimation("typhoon", QStringList() << who);
 
     }else if(delta > 0){
         QString type = "#Recover";
@@ -3969,7 +3971,7 @@ void RoomScene::reLayout(QMatrix matrix)
 
     alignTo(reverse_button,pos,"xlyb");
     pos.rx()+=reverse_button->width();
-    pos.rx()+=skip*2;
+    pos.rx()+=skip;
 
 
     if(free_discard)
@@ -3982,7 +3984,7 @@ void RoomScene::reLayout(QMatrix matrix)
     pos = QPoint(dashboard->boundingRect().width()-dashboard->getRightPosition(),0);
 
     pos.rx()-= padding_left;
-    pos.ry()+=padding_top;
+    pos.ry()+= padding_top;
 
     alignTo(discard_button,pos,"xryb");
     pos.rx()-=discard_button->width();
@@ -3993,8 +3995,8 @@ void RoomScene::reLayout(QMatrix matrix)
     pos.rx()-=skip;
 
     alignTo(ok_button,pos,"xryb");
-    pos.rx()-=ok_button->width();
-    pos.rx()-=skip;
+    pos.rx()+=ok_button->width();
+    pos.rx()+=skip;
     //ok_button->move(-10,-10);
 
 

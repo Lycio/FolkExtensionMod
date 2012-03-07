@@ -34,6 +34,9 @@ void GameRule::onPhaseChange(ServerPlayer *player) const{
     case Player::Start: {
             player->setMark("SlashCount", 0);
 
+            if(!player->getPile("windpile").isEmpty())
+                room->returnWindPile(player);
+
             while(room->askForSuddenStrike(player)){
                 continue;
             }
@@ -122,6 +125,13 @@ void GameRule::onPhaseChange(ServerPlayer *player) const{
                 room->sendLog(log);
 
                 room->setPlayerFlag(player, "-drank");
+            }else if(player->hasFlag("crisp")){
+                LogMessage log;
+                log.type = "#UnsetCrispEndOfTurn";
+                log.from = player;
+                room->sendLog(log);
+
+                room->setPlayerFlag(player, "-crisp");
             }
 
             player->clearFlags();
@@ -212,6 +222,15 @@ bool GameRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
     case HpRecover:{
             RecoverStruct recover_struct = data.value<RecoverStruct>();
             int recover = recover_struct.recover;
+
+            if(recover_struct.crisp){
+                LogMessage log;
+                log.type = "#CrispBuff";
+                log.from = recover_struct.who;
+                room->sendLog(log);
+
+                recover ++;
+            }
 
             int new_hp = qMin(player->getHp() + recover, player->getMaxHP());
             room->setPlayerProperty(player, "hp", new_hp);
@@ -333,6 +352,9 @@ bool GameRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
                         return false;
                 }
             }
+
+            if(damage.nature == DamageStruct::Wind && !damage.to->isNude())
+                room->doWindPile(damage);
 
             break;
         }

@@ -18,7 +18,8 @@ struct DamageStruct{
     enum Nature{
         Normal, // normal slash, duel and most damage caused by skill
         Fire,  // fire slash, fire attack and few damage skill (Yeyan, etc)
-        Thunder // lightning, thunder slash, and few damage skill (Leiji, etc)
+        Thunder, // lightning, thunder slash, and few damage skill (Leiji, etc)
+        Wind  // poison slash, plague, and few damage skill
     };
 
     ServerPlayer *from;
@@ -86,6 +87,8 @@ struct RecoverStruct{
     int recover;
     ServerPlayer *who;
     const Card *card;
+
+    bool crisp;
 };
 
 struct PindianStruct{
