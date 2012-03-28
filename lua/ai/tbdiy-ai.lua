@@ -137,7 +137,7 @@ sgs.ai_skill_choice.diydoudan = function(self, choices)
 	if (self.player:getHp() <= 1 and (self:getCardsNum("Peach") < 1 or self:getCardsNum("Analeptic") < 1)) and (has_Peach or has_Analeptic) then return "obtain1cd" end
 	return "guan3xing"
 end
-]]
+
 sgs.ai_skill_askforag.diydoudan = function(self, card_ids)
 	local has_Jink, has_Nullification, has_Peach, has_Analeptic, has_Slash = false, false, false, false, false
 	local jinkid, nullificationid, peachid, analepitcid, slashid
@@ -179,7 +179,7 @@ sgs.ai_skill_askforag.diydoudan = function(self, card_ids)
 	
 	return self.diydoudan
 end
-
+]]
 --mingzhi
 sgs.ai_skill_invoke.diymingzhi = true
 

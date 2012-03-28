@@ -64,6 +64,14 @@ function SmartAI:slashIsEffective(slash, to)
 	return true
 end
 
+local function hasExplicitRebel(room)
+	for _, player in sgs.qlist(room:getAllPlayers()) do
+		if sgs.isRolePredictable() and  sgs.evaluatePlayerRole(player) == "rebel" then return true end
+		if sgs.compareRoleEvaluation(player, "rebel", "loyalist") == "rebel" then return true end
+	end
+	return false
+end
+
 function SmartAI:useCardSlash(card, use)
 	if not self:slashIsAvailable() then return end
 	local basicnum = 0
@@ -205,86 +213,7 @@ function SmartAI:useCardSlash(card, use)
 		end
 	end
 end
---[[
-function SmartAI:useCardDuel(duel, use)
-	if self.player:hasSkill("wuyan") then return end
-	self:sort(self.enemies,"handcard")
-	local enemies = self:exclude(self.enemies, duel)
-	local friends = self:exclude(self.friends_noself, duel)
-	local target 
-	local n1 = self:getCardsNum("Slash")
-	if self.player:hasSkill("wushuang") then n1 = n1 * 2 end
-	local huatuo = self.room:findPlayerBySkillName("jijiu")
-	for _, friend in ipairs(friends) do
-		if friend:hasSkill("jieming") and self.player:hasSkill("rende") and (huatuo and self:isFriend(huatuo))then
-			use.card = duel
-			if use.to then
-				use.to:append(friend)
-			end
-			return
-		end
-	end
-	local ptarget = self:getPriorTarget()
-	if ptarget then
-		local target = ptarget
-		local n2 = target:getHandcardNum()
-		if target:hasSkill("wushuang") then n2 = n2*2 end
-		local useduel
-		if target and self:objectiveLevel(target) > 3 and self:hasTrickEffective(duel, target) then
-			if n1 >= n2 then
-				useduel = true
-			elseif n2 > n1*2 + 1 then
-				useduel = false
-			elseif n1 > 0 then
-				local percard = 0.35
-				if target:hasSkill("paoxiao") or target:hasWeapon("crossbow") then percard = 0.2 end
-				local poss = percard ^ n1 * (factorial(n1)/factorial(n2)/factorial(n1-n2))
-				if math.random() > poss then useduel = true end
-			end
-			if useduel then
-				use.card = duel
-				if use.to then
-					use.to:append(target)
-					self:speak("duel", self.player:getGeneral():isFemale())
-				end
-				return
-			end
-		end
-	end
-	local n2 
-	for _, enemy in ipairs(enemies) do
-		if enemy:hasSkill("heiyan") then break end
-		n2 = enemy:getHandcardNum()
-		if self:objectiveLevel(enemy) > 3 then
-			if enemy:hasSkill("wushuang") then n2 = n2*2 end
-			target = enemy
-			break
-		end
-	end
-	
-	local useduel
-	if target and self:objectiveLevel(target) > 3 and self:hasTrickEffective(duel, target) then
-		if n1 >= n2 then
-			useduel = true
-		elseif n2 > n1*2 + 1 then
-			useduel = false
-		elseif n1 > 0 then
-			local percard = 0.35
-			if target:hasSkill("paoxiao") or target:hasWeapon("crossbow") then percard = 0.2 end
-			local poss = percard ^ n1 * (factorial(n1)/factorial(n2)/factorial(n1-n2))
-			if math.random() > poss then useduel = true end
-		end
-		if useduel then
-			use.card = duel
-			if use.to then
-				use.to:append(target)
-				self:speak("duel", self.player:getGeneral():isFemale())
-			end
-			return
-		end
-	end
-end
-]]
+
 function SmartAI:askForSinglePeach(dying)
 	local card_str
 
@@ -617,146 +546,6 @@ function sgs.getDefense(player)
 		defense = defense + 0.3
 	end
 	return defense
-end
-
-function SmartAI:filterEvent(event, player, data)
-	if not sgs.recorder then
-		sgs.recorder = self
-	end
-	sgs.lastevent = event
-	sgs.lasteventdata = eventdata
-	if event == sgs.ChoiceMade and self == sgs.recorder then
-		local carduse = data:toCardUse()
-		if carduse and carduse:isValid() then
-			for _, aflag in ipairs(sgs.ai_global_flags) do
-				sgs[aflag] = nil
-			end
-			for _, callback in ipairs(sgs.ai_choicemade_filter.cardUsed) do
-				if callback and type(callback) == "function" then
-					callback(player, carduse)
-				end
-			end
-		elseif data:toString() then
-			promptlist = data:toString():split(":")
-			local callbacktable = sgs.ai_choicemade_filter[promptlist[1]]
-			if callbacktable and type(callbacktable) == "table" then
-				local index = 2
-				if promptlist[1] == "cardResponsed" then index = 3 end
-				local callback = callbacktable[promptlist[index]] or callbacktable.general
-				if callback and type(callback) == "function" then
-					callback(player, promptlist)
-				end
-			end
-		end
-	elseif event == sgs.CardUsed then
-		self:updatePlayers()
-	elseif event == sgs.CardEffect then
-		self:updatePlayers()
-	elseif event == sgs.Death then
-		self:updatePlayers()
-	end
-
-	if (event == sgs.PhaseChange) or (event == sgs.GameStart) then
-		self:updatePlayers()
-	end
-
-	if self ~= sgs.recorder then return end
-	
-	if event == sgs.CardEffect then
-		local struct = data:toCardEffect()
-		local card = struct.card
-		local from = struct.from
-		local to = struct.to
-		if card:inherits("Collateral") then sgs.ai_collateral = true end
-		if card:inherits("Dismantlment") or card:inherits("Snatch") or card:getSkillName() == "qixi" or card:getSkillName() == "jixi" then
-			sgs.ai_snat_disma_effect = true
-			sgs.ai_snat_dism_from = struct.from
-			if to:getCards("j"):isEmpty() and
-				not (to:getArmor() and (to:getArmor():inherits("GaleShell") or to:getArmor():inherits("SilverLion") or to:getArmor():inherits("JiaoLiao"))) then
-				sgs.updateIntention(from, to, 80)
-			end
-		end
-		if card:inherits("Slash") and to:hasSkill("leiji") and 
-			(getCardsNum("Jink", to)>0 or (to:getArmor() and to:getArmor():objectName() == "eight_diagram"))
-			and (to:getHandcardNum()>2 or from:getState() == "robot") then
-			sgs.ai_leiji_effect = true
-		end
-	elseif event == sgs.Damaged then
-		local damage = data:toDamage()
-		local card = damage.card
-		local from = damage.from
-		local to   = damage.to
-		local source = self.room:getCurrent()
-		
-		if not damage.card then
-			local intention
-			if sgs.ai_quhu_effect then
-				sgs.quhu_effect = false
-				local xunyu = self.room:findPlayerBySkillName("quhu")
-				intention = 80
-				from = xunyu
-			else
-				intention = 100 
-			end
-			
-			if from then sgs.updateIntention(from, to, intention) end
-		end
-	elseif event == sgs.CardUsed then
-		local struct = data:toCardUse()
-		local card = struct.card
-		local to = struct.to
-		to = sgs.QList2Table(to)
-		local from  = struct.from
-		local source =  self.room:getCurrent()
-		local str
-		str = card:className() .. card:toString() .. ":"
-		local toname = {}
-		for _, ato in ipairs(to) do
-			table.insert(toname, ato:getGeneralName())
-		end
-		if from then str = str .. from:getGeneralName() .. "->" .. table.concat(toname, "+") end
-		if source then str = str .. "#" .. source:getGeneralName() end
-		sgs.laststr = str
-		--self.room:writeToConsole(str)
-
-		local callback = sgs.ai_card_intention[card:className()]
-		if callback then
-			if type(callback) == "function" then
-				callback(card, from, to, source)
-			elseif type(callback) == "number" then
-				sgs.updateIntentions(from, to, callback, card)
-			end
-		end
-	elseif event == sgs.CardLost then
-		local move = data:toCardMove()
-		local from = move.from
-		local place = move.from_place
-		local card = sgs.Sanguosha:getCard(move.card_id)
-		if sgs.ai_snat_disma_effect then
-			sgs.ai_snat_disma_effect = false
-			local intention = 70
-			if place == sgs.Player_Judging then
-				if not card:inherits("Disaster") then intention = -intention else intention = 0 end
-			elseif place == sgs.Player_Equip then
-				if player:getLostHp() > 1 and card:inherits("SilverLion") then intention = -intention end
-				if self:hasSkills(sgs.lose_equip_skill, player) or card:inherits("GaleShell") or card:inherits("JiaoLiao") or card:inherits("JiaSuo") then intention = 0 end
-			end
-			sgs.updateIntention(sgs.ai_snat_dism_from, from, intention)
-		end
-	elseif event == sgs.StartJudge then
-		local judge = data:toJudge()
-		local reason = judge.reason
-		if reason == "beige" then
-			local caiwenji = self.room:findPlayerBySkillName("beige")
-			local intention = sgs.ai_card_intention.general(player, -60)
-			if player:objectName() == caiwenji:objectName() then intention = 0 end
-			sgs.refreshLoyalty(caiwenji, intention)
-		end
-	elseif event == sgs.PhaseChange and player:isLord() and player:getPhase()== sgs.Player_Finish then
-		sgs.turncount = sgs.turncount + 1
-	elseif event == sgs.GameStart then
-		sgs.turncount = 0
-	end
 end
 
 function SmartAI:askForDiscard(reason, discard_num, optional, include_equip)

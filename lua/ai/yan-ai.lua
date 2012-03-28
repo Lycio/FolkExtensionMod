@@ -233,8 +233,8 @@ yancangshan_skill.getTurnUseCard = function(self)
 	return skillcard
 end
 
-sgs.ai_view_as.cbyuxue = function(card, player, card_place)
-	local shans = self.player:getPile("shanpile")
+sgs.ai_view_as.yancangshan = function(card, player, card_place)
+	local shans = player:getPile("shanpile")
 	if shans:isEmpty() then return nil end
 	
 	local card = sgs.Sanguosha:getCard(shans:first())
