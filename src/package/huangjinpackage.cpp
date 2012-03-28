@@ -139,7 +139,7 @@ public:
         Room *room = zhangbao->getRoom();
         SlashEffectStruct effect = data.value<SlashEffectStruct>();
 
-        if(!zhangbao->askForSkillInvoke(objectName()))
+        if(!zhangbao->askForSkillInvoke(objectName(), data))
             return false;
 
         room->playSkillEffect(objectName());
@@ -465,15 +465,14 @@ public:
     }
 
     virtual bool triggerable(const ServerPlayer *target) const{
-        return true;
+        return target->hasSkill(objectName());
     }
 
     virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
         Room *room = player->getRoom();
         DamageStruct damage = data.value<DamageStruct>();
         if(damage.to->isWounded()
-           && damage.from->hasSkill(objectName())
-           && damage.from->askForSkillInvoke(objectName()))
+           && damage.from->askForSkillInvoke(objectName(), data))
         {
             room->playSkillEffect(objectName());
 

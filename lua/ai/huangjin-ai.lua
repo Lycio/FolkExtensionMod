@@ -5,14 +5,20 @@ sgs.ai_skill_invoke.shishi = true
 
 --feiyan
 sgs.ai_skill_invoke.feiyan = function(self,data)
-	local effect = data:toEffect()
+	local effect = data:toCardEffect()
 	return self:isEnemy(effect.from)
 end
 
 --zhenhuo
-sgs.ai_skill_invoke["@zhenhuo"]=function(self,data)
-	local effect = data:toEffect()
-	return self:isEnemy(effect.to)
+sgs.ai_skill_invoke.zhenhuo = function(self,data)
+	local effect = data:toSlashEffect()
+	local invoke = false
+	for _,enemy in ipairs(self.enemies) do
+		if effect.to:canSlash(enemy) then
+			inokve = true
+		end
+	end
+	return invoke
 end
 
 --guishu

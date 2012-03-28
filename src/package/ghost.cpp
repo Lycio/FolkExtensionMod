@@ -70,7 +70,7 @@ public:
     virtual bool trigger(TriggerEvent, ServerPlayer *player, QVariant &data) const{
         SlashEffectStruct effect = data.value<SlashEffectStruct>();
 
-        if(effect.to->hasSkill("tuodao") && effect.to->getPhase() == Player::NotActive)
+        if(effect.to->hasSkill("tuodao") && !effect.to->isKongcheng())
             effect.to->getRoom()->askForUseCard(effect.to, "slash", "@askforslash");
 
         return false;
@@ -80,7 +80,7 @@ public:
 class Xiaoshou:public MasochismSkill{
 public:
     Xiaoshou():MasochismSkill("xiaoshou"){
-
+        default_choice = "obtain";
     }
 
     virtual void onDamaged(ServerPlayer *guihuaxiong, const DamageStruct &damage) const{
@@ -141,8 +141,6 @@ public:
         return shouyeghost_card;
     }
 };
-
-
 
 JiehuohCard::JiehuohCard(){
     target_fixed = true;

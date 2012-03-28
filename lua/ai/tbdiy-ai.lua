@@ -179,3 +179,9 @@ sgs.ai_skill_askforag.diydoudan = function(self, card_ids)
 	
 	return self.diydoudan
 end
+
+--mingzhi
+sgs.ai_skill_invoke.diymingzhi = true
+
+--chishen
+sgs.ai_skill_invoke.diychishen = true
