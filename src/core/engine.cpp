@@ -74,7 +74,6 @@ Engine::Engine()
                   << "Disaster"
                   << "JoyEquip"
                   << "DishaCard"
-                  //<< "ChibiCard"
                   << "QHSEquip";
 
     foreach(QString name, package_names)
@@ -384,7 +383,7 @@ QStringList Engine::getExtensions() const{
     QStringList extensions;
     QList<const Package *> packages = findChildren<const Package *>();
     foreach(const Package *package, packages){
-        if(package->inherits("Scenario")||package->objectName()=="Special3v3")
+        if(package->inherits("Scenario") || package->objectName()=="Special3v3")
             continue;
 
         extensions << package->objectName();

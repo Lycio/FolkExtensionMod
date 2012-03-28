@@ -1798,6 +1798,17 @@ void Room::run(){
                 continue;
         }
 
+        // remove hidden generals
+        QMutableListIterator<const General *> itor(generals);
+        while(itor.hasNext()){
+            itor.next();
+
+            if(itor.value()->isHidden())
+                itor.remove();
+        }
+
+        generals.removeOne(Sanguosha->getGeneral("yuji"));
+
         QStringList kingdoms;
         kingdoms << "wei" << "shu" << "wu" << "qun";
         QString kingdom = kingdoms.at(qrand() % 4);
