@@ -554,7 +554,7 @@ public:
             if(!handang || !dying.savers.contains(handang) || !room->askForSkillInvoke(handang, objectName(), data))
                 return false;
 
-            const Card *slash = room->askForCard(handang, "slash", "jiefan-slash:" + dying.who->objectName(), data);
+            const Card *slash = room->askForCard(handang, "slash", "jiefan-slash:" + room->getCurrent()->objectName(), data);
             room->setTag("JiefanTarget", data);
             if(slash){
                 CardUseStruct use;

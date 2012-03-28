@@ -56,7 +56,7 @@ void Settings::init(){
                 << "sp" << "sp_cards" << "BGM"
                 << "joy" << "joy_equip"
                 << "QHS" << "YJ1st" << "ghost" << "huangjin"  << "TBdiy" << "Yan"
-                << "ChangbanSlope" << "DishaCard" ;
+                << "ChangbanSlope" << "DishaCard" << "QHSEquip";
 
         setValue("BanPackages", banlist);
     }

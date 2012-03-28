@@ -486,6 +486,9 @@ void Engine::getRoles(const QString &mode, char *roles) const{
     }else if(mode == "04_1v3"){
         qstrcpy(roles, "ZFFF");
         return;
+    }else if(mode == "05_2v3"){
+        qstrcpy(roles, "ZCFFF");
+        return;
     }
 
     if(modes.contains(mode)){
