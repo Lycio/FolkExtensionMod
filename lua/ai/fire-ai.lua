@@ -68,24 +68,29 @@ table.insert(sgs.ai_choicemade_filter.cardUsed, quhu_filter)
 
 sgs.ai_cardneed.quhu = sgs.ai_cardneed.bignumber
 sgs.ai_skill_playerchosen.quhu = sgs.ai_skill_playerchosen.damage
+sgs.ai_playerchosen_intention.quhu = 80
 
 sgs.ai_card_intention.QuhuCard = 30
 
 sgs.dynamic_value.control_card.QuhuCard = true
 
 sgs.ai_skill_use["@@jieming"] = function(self, prompt)
-	self:sort(self.friends)
+	local friends = {}
+	for _,player in ipairs(self.friends) do
+		if not player:hasSkill("manjuan") then
+			table.insert(friends, player)
+		end
+	end
+	self:sort(friends)
 	
 	local max_x = 0
 	local target
-	for _, friend in ipairs(self.friends) do
-		if friend:isAlive() then 
-			local x = math.min(friend:getMaxHP(), 5) - friend:getHandcardNum()
+	for _, friend in ipairs(friends) do
+		local x = math.min(friend:getMaxHP(), 5) - friend:getHandcardNum()
 
-			if x > max_x then
-				max_x = x
-				target = friend
-			end
+		if x > max_x then
+			max_x = x
+			target = friend
 		end
 	end
 
@@ -171,7 +176,7 @@ huoji_skill.getTurnUseCard=function(self)
 	self:sortByUseValue(cards,true)
 
 	for _,acard in ipairs(cards)  do
-		if (acard:isRed()) and not acard:inherits("Peach") then--and (self:getUseValue(acard)<sgs.ai_use_value.FireAttack) then
+		if (acard:isRed()) and not acard:inherits("Peach") and (self:getDynamicUsePriority(acard)<sgs.ai_use_value.FireAttack or self:getOverflow() > 0) then
 			card = acard
 			break
 		end

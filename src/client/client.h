@@ -97,6 +97,7 @@ public:
     void revivePlayer(const QString &player_name);
     void warn(const QString &);
     void setMark(const QString &mark_str);
+    void doFilter(const QString &);
     void showCard(const QString &show_str);
     void doGuanxing(const QString &guanxing_str);
     void doGongxin(const QString &gongxin_str);
@@ -109,6 +110,7 @@ public:
     void acquireSkill(const QString &acquire_str);
     void animate(const QString &animate_str);
     void jilei(const QString &jilei_str);
+    void cardLock(const QString &card_str);
     void judgeResult(const QString &result_str);
     void setScreenName(const QString &set_str);
     void setFixedDistance(const QString &set_str);
@@ -142,6 +144,8 @@ public:
     void askForCardChosen(const QString &ask_str);
     void askForPlayerChosen(const QString &ask_str);
     void askForGeneral(const QString &generals);
+
+    // Disha
     void askForCover(const QString &ask_str);
     void askForRebound(const QString &ask_str);
     void askForSuddenStrike(const QString &ask_str);
@@ -180,6 +184,7 @@ public slots:
     void choosePlayer(const Player *player);
     void trust();
     void requestCard(int card_id);
+    void changeGeneral(QString name);
     void addRobot();
     void fillRobots();
     void arrange(const QStringList &order);
@@ -226,7 +231,7 @@ signals:
     void player_removed(const QString &player_name);
     void generals_got(const QStringList &generals);
     void seats_arranged(const QList<const ClientPlayer*> &seats);
-    void hp_changed(const QString &who, int delta, DamageStruct::Nature nature);
+    void hp_changed(const QString &who, int delta, DamageStruct::Nature nature, bool losthp);
     void status_changed(Client::Status new_status);
     void avatars_hiden();
     void pile_cleared();
@@ -258,6 +263,7 @@ signals:
 
     void skill_attached(const QString &skill_name, bool from_left);
     void skill_detached(const QString &skill_name);
+    void do_filter();
 
     void ag_filled(const QList<int> &card_ids);
     void ag_taken(const ClientPlayer *taker, int card_id);

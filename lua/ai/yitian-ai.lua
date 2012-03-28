@@ -7,6 +7,7 @@ sgs.ai_skill_invoke.yitian_lost = function(self, data)
 end
 
 sgs.ai_skill_playerchosen.yitian_lost = sgs.ai_skill_playerchosen.damage
+sgs.ai_playerchosen_intention.yitian_lost = 80
 
 sgs.ai_skill_invoke.yitian_sword = function(self, targets)
 	local slash=self:getCard("Slash")
@@ -25,7 +26,7 @@ local function findPlayerForModifyKingdom(self, players)
 	local isGood = self:isFriend(lord)
 
 	for _, player in sgs.qlist(players) do
-		if player:getRole() == "loyalist" then
+		if  sgs.evaluateRoleTrends(player) == "loyalist" then
 			local sameKingdom = player:getKingdom() == lord:getKingdom()
 			if isGood ~= sameKingdom then
 				return player
@@ -42,7 +43,7 @@ end
 local function chooseKingdomForPlayer(self, to_modify)
 	local lord = self.room:getLord()
 	local isGood = self:isFriend(lord)
-	if to_modify:getRole() == "loyalist" or to_modify:getRole() == "renegade" then
+	if  sgs.evaluateRoleTrends(to_modify) == "loyalist" or sgs.evaluateRoleTrends(to_modify) == "renegade" then
 		if isGood then
 			return lord:getKingdom()
 		else
@@ -256,7 +257,7 @@ sgs.ai_skill_choice.wuling = function(self, choices)
 	return choices_table[math.random(1, #choices_table)]
 end
 
-sgs.ai_skill_use["@lianli"] = function(self, prompt)
+sgs.ai_skill_use["@@lianli"] = function(self, prompt)
 	self:sort(self.friends)
 	
 	for _, friend in ipairs(self.friends) do
@@ -292,7 +293,10 @@ end
 
 sgs.ai_choicemade_filter.cardResponsed["@lianli-jink"] = function(player, promptlist)
 	if promptlist[#promptlist] ~= "_nil_" then
-		sgs.updateIntention(player, sgs.lianlisource, -80)
+		-- sgs.updateIntention(player, sgs.lianlisource, -80)
+		local xiahoujuan = player:getRoom():findPlayerBySkillName("lianli")
+		assert(xiahoujuan)
+		sgs.updateIntention(player, xiahoujuan, -80)
 		sgs.lianlisource = nil
 	end
 end
@@ -374,7 +378,7 @@ function guihan_skill.getTurnUseCard(self)
 	if self.room:alivePlayerCount() == 2 or self.role == "renegade" then return end
 	local rene = 0
 	for _, aplayer in sgs.qlist(self.room:getAlivePlayers()) do
-		if aplayer:getRole() == "renegade" then rene = rene + 1 end
+		if sgs.evaluateRoleTrends(aplayer) == "renegade" then rene = rene + 1 end
 	end
 	if #self.friends + #self.enemies + rene < self.room:alivePlayerCount() then return end
 	local cards = sgs.QList2Table(self.player:getHandcards())

@@ -235,7 +235,7 @@ public:
     }
 
     virtual bool isEnabledAtResponse(const Player *player, const QString &pattern) const{
-        return  pattern == "@guicai";
+        return pattern == "@guicai";
     }
 
     virtual bool viewFilter(const CardItem *to_select) const{
@@ -269,10 +269,8 @@ public:
 
         QStringList prompt_list;
         prompt_list << "@guicai-card" << judge->who->objectName()
-                << "" << judge->reason << judge->card->getEffectIdString();
+                << objectName() << judge->reason << judge->card->getEffectIdString();
         QString prompt = prompt_list.join(":");
-
-        player->tag["Judge"] = data;
         const Card *card = room->askForCard(player, "@guicai", prompt, data);
 
         if(card){
@@ -367,6 +365,7 @@ public:
                 judge.good = true;
                 judge.reason = objectName();
                 judge.who = zhenji;
+                judge.time_consuming = true;
 
                 room->judge(judge);
                 if(judge.isBad())
@@ -420,7 +419,7 @@ public:
     }
 
     virtual bool viewFilter(const QList<CardItem *> &selected, const CardItem *to_select) const{
-        if((ServerInfo.GameMode == "04_1v3" || ServerInfo.GameMode == "05_2v3")
+        if(ServerInfo.GameMode == "04_1v3"
            && selected.length() + Self->getMark("rende") >= 2)
            return false;
         else
@@ -497,7 +496,7 @@ public:
         if(!room->askForSkillInvoke(liubei, objectName()))
             return false;
 
-        room->playSkillEffect(objectName());
+        room->playSkillEffect(objectName(), getEffectIndex(liubei, NULL));
 
         QVariant tohelp = QVariant::fromValue((PlayerStar)liubei);
         foreach(ServerPlayer *liege, lieges){
@@ -509,6 +508,14 @@ public:
         }
 
         return false;
+    }
+
+    virtual int getEffectIndex(const ServerPlayer *player, const Card *) const{
+        int r = 1 + qrand() % 2;
+        if(player->getGeneralName() == "liushan" || player->getGeneral2Name() == "liushan")
+            r += 2;
+
+        return r;
     }
 };
 
@@ -772,6 +779,7 @@ public:
                     log.type = "#JiuyuanExtraRecover";
                     log.from = sunquan;
                     log.to << effect.from;
+                    log.arg = objectName();
                     room->sendLog(log);
 
                     RecoverStruct recover;
@@ -961,7 +969,7 @@ public:
     }
 
     virtual bool isEnabledAtResponse(const Player *player, const QString &pattern) const{
-        return  pattern == "@liuli";
+        return pattern == "@@liuli";
     }
 
     virtual bool viewFilter(const CardItem *) const{
@@ -1125,6 +1133,10 @@ public:
 
         return lijian_card;
     }
+
+    virtual int getEffectIndex(const ServerPlayer *, const Card *) const{
+        return 0;
+    }
 };
 
 class Biyue: public PhaseChangeSkill{
@@ -1192,32 +1204,6 @@ public:
         peach->addSubcard(first->getId());
         peach->setSkillName(objectName());
         return peach;
-    }
-};
-
-class Tuoqiao: public GameStartSkill{
-public:
-    Tuoqiao():GameStartSkill("tuoqiao"){
-        frequency = Limited;
-        default_choice = "SP-Diaochan";
-    }
-
-    virtual bool triggerable(const ServerPlayer *target) const{
-        if(Sanguosha->getBanPackages().contains("sp") && Sanguosha->getBanPackages().contains("BGM")) return false;
-        return GameStartSkill::triggerable(target) && target->getGeneralName() == "diaochan";
-    }
-
-    virtual void onGameStart(ServerPlayer *player) const{
-        if(player->askForSkillInvoke(objectName())){
-            Room *room = player->getRoom();
-            QString choice;
-            if(Sanguosha->getBanPackages().contains("sp")) choice = "BGM-Diaochan";
-            else if(Sanguosha->getBanPackages().contains("BGM")) choice = "SP-Diaochan";
-            else
-                choice = room->askForChoice(player, objectName(), "SP-Diaochan+BGM-Diaochan");
-            if(choice == "SP-Diaochan") choice = "sp_diaochan"; else choice = "bgm_diaochan";
-            room->transfigure(player, choice, true, false, "diaochan");
-        }
     }
 };
 
@@ -1295,7 +1281,6 @@ void StandardPackage::addGenerals(){
 
     zhaoyun = new General(this, "zhaoyun", "shu");
     zhaoyun->addSkill(new Longdan);
-    zhaoyun->addSkill(new SPConvertSkill("huantong", "zhaoyun", "bgm_zhaoyun", true));
 
     machao = new General(this, "machao", "shu");
     machao->addSkill(new Tieji);
@@ -1351,7 +1336,7 @@ void StandardPackage::addGenerals(){
     diaochan = new General(this, "diaochan", "qun", 3, false);
     diaochan->addSkill(new Lijian);
     diaochan->addSkill(new Biyue);
-    diaochan->addSkill(new Tuoqiao);
+    diaochan->addSkill(new SPConvertSkill("tuoqiao", "diaochan", "sp_diaochan"));
 
     // for skill cards
     addMetaObject<ZhihengCard>();
@@ -1365,7 +1350,6 @@ void StandardPackage::addGenerals(){
     addMetaObject<QingnangCard>();
     addMetaObject<LiuliCard>();
     addMetaObject<JijiangCard>();
-    addMetaObject<CheatCard>();
 }
 
 class Zhiba: public Zhiheng{
@@ -1416,6 +1400,9 @@ TestPackage::TestPackage()
     new General(this, "sujiangf", "god", 5, false, true);
 
     new General(this, "anjiang", "god", 4,true, true, true);
+
+    addMetaObject<CheatCard>();
+    addMetaObject<ChangeCard>();
 }
 
 ADD_PACKAGE(Test)

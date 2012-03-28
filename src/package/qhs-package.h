@@ -4,6 +4,7 @@
 #include "package.h"
 #include "card.h"
 #include "skill.h"
+#include "standard.h"
 
 class QHSPackage: public Package{
     Q_OBJECT
@@ -11,6 +12,26 @@ class QHSPackage: public Package{
 public:
     QHSPackage();
 };
+
+class DubohCard: public SkillCard{
+    Q_OBJECT
+
+public:
+    Q_INVOKABLE DubohCard();
+
+    virtual bool targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const;
+    virtual void use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const;
+};
+
+class Tianlangh:public Weapon{
+    Q_OBJECT
+
+public:
+    Q_INVOKABLE Tianlangh(Card::Suit suit, int number);
+
+    virtual void onMove(const CardMoveStruct &move) const;
+};
+
 /*
 class FenbeihCard: public SkillCard{
     Q_OBJECT
@@ -92,4 +113,12 @@ public:
     virtual void onEffect(const CardEffectStruct &effect) const;
 };
 */
+
+class QHSEquipPackage: public Package{
+    Q_OBJECT
+
+public:
+    QHSEquipPackage();
+};
+
 #endif // QHSPACKAGE_H

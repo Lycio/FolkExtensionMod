@@ -6,8 +6,8 @@ return {
 	["cbzhaoyun1"] = "神赵云（1）",
 	["designer:cbzhaoyun1"] = "洛神工作室",
 	["cv:cbzhaoyun1"] = "",
-	["title:cbzhaoyun1"] = "长坂坡圣骑",
-	["code:cbzhaoyun1"] = "皇叔",
+	["#cbzhaoyun1"] = "长坂坡圣骑",
+	["illustrator:cbzhaoyun1"] = "洛神工作室",
 	
 	["cbqinggang"] = "青釭",
 	[":cbqinggang"] = "你每造成1点伤害，你可以让目标选择弃掉一张手牌或者让你从其装备区获得一张牌。",
@@ -15,8 +15,8 @@ return {
 	["cbzhaoyun2"] = "神赵云（2）",
 	["designer:cbzhaoyun2"] = "洛神工作室",
 	["cv:cbzhaoyun2"] = "",
-	["title:cbzhaoyun2"] = "不败神话",
-	["code:cbzhaoyun2"] = "皇叔",
+	["#cbzhaoyun2"] = "不败神话",
+	["illustrator:cbzhaoyun2"] = "洛神工作室",
 	
 	["cblongnu"] = "龙怒",
 	[":cblongnu"] = "<b>聚气技，</b>出牌阶段，你可以弃两张相同颜色的“怒”，若如此做，你使用的下一张【杀】不可被闪避。\
@@ -33,8 +33,8 @@ return {
 	["cbzhangfei1"] = "神张飞（1）",
 	["designer:cbzhangfei1"] = "洛神工作室",
 	["cv:cbzhangfei1"] = "",
-	["title:cbzhangfei1"] = "待战的猛虎",
-	["code:cbzhangfei1"] = "皇叔",
+	["#cbzhangfei1"] = "待战的猛虎",
+	["illustrator:cbzhangfei1"] = "洛神工作室",
 	
 	["cbzhengjun"] = "整军",
 	[":cbzhengjun"] = "<b>锁定技，</b>回合开始阶段，你弃X张牌（不足则全弃），回合结束阶段，你须将你的武将牌翻面并摸X+1张牌。X为你的攻击范围。",
@@ -44,8 +44,8 @@ return {
 	["cbzhangfei2"] = "神张飞（2）",
 	["designer:cbzhangfei2"] = "洛神工作室",
 	["cv:cbzhangfei2"] = "",
-	["title:cbzhangfei2"] = "虎啸盘蛇",
-	["code:cbzhangfei2"] = "皇叔",
+	["#cbzhangfei2"] = "虎啸盘蛇",
+	["illustrator:cbzhangfei2"] = "洛神工作室",
 	
 	["cbbeiliang"] = "备粮",
 	[":cbbeiliang"] = "摸牌阶段，你可以选择放弃摸牌，将手牌补至等同于你体力上限的张数。",

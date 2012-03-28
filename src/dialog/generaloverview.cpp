@@ -49,17 +49,17 @@ void GeneralOverview::fillGenerals(const QList<const General *> &generals){
         max_hp = QString::number(general->getMaxHp());
         package = Sanguosha->translate(general->getPackage());
 
-        QString title = Sanguosha->translate("title:" + general->objectName());
-        QTableWidgetItem *title_item;
-        if(!title.startsWith("title:"))
-            title_item = new QTableWidgetItem(title);
+        QString nickname = Sanguosha->translate("#" + general->objectName());
+        QTableWidgetItem *nickname_item;
+        if(!nickname.startsWith("#"))
+            nickname_item = new QTableWidgetItem(nickname);
         else
-            title_item = new QTableWidgetItem(Sanguosha->translate("Notitle"));
-        title_item->setData(Qt::UserRole, general->objectName());
-        title_item->setTextAlignment(Qt::AlignCenter);
+            nickname_item = new QTableWidgetItem(Sanguosha->translate("UnknowNick"));
+        nickname_item->setData(Qt::UserRole, general->objectName());
+        nickname_item->setTextAlignment(Qt::AlignCenter);
 
         if(general->isHidden())
-            title_item->setBackgroundColor(Qt::gray);
+            nickname_item->setBackgroundColor(Qt::gray);
 
         QTableWidgetItem *name_item = new QTableWidgetItem(name);
         name_item->setTextAlignment(Qt::AlignCenter);
@@ -84,7 +84,7 @@ void GeneralOverview::fillGenerals(const QList<const General *> &generals){
         QTableWidgetItem *package_item = new QTableWidgetItem(package);
         package_item->setTextAlignment(Qt::AlignCenter);
 
-        ui->tableWidget->setItem(i, 0, title_item);
+        ui->tableWidget->setItem(i, 0, nickname_item);
         ui->tableWidget->setItem(i, 1, name_item);
         ui->tableWidget->setItem(i, 2, kingdom_item);
         ui->tableWidget->setItem(i, 3, gender_item);
@@ -93,11 +93,11 @@ void GeneralOverview::fillGenerals(const QList<const General *> &generals){
     }
 
     ui->tableWidget->setColumnWidth(0, 80);
-    ui->tableWidget->setColumnWidth(1, 70);
+    ui->tableWidget->setColumnWidth(1, 80);
     ui->tableWidget->setColumnWidth(2, 40);
     ui->tableWidget->setColumnWidth(3, 50);
     ui->tableWidget->setColumnWidth(4, 60);
-    ui->tableWidget->setColumnWidth(5, 73);
+    ui->tableWidget->setColumnWidth(5, 60);
 
     ui->tableWidget->setCurrentItem(ui->tableWidget->item(0,0));
 }
@@ -178,6 +178,13 @@ void GeneralOverview::on_tableWidget_itemSelectionChanged()
     const General *general = Sanguosha->getGeneral(general_name);
     ui->generalPhoto->setPixmap(QPixmap(general->getPixmapPath("card")));
     QList<const Skill *> skills = general->getVisibleSkillList();
+
+    foreach(QString skill_name, general->getRelatedSkillNames()){
+        const Skill *skill = Sanguosha->getSkill(skill_name);
+        if(skill)
+            skills << skill;
+    }
+
     ui->skillTextEdit->clear();
 
     resetButtons();
@@ -191,6 +198,13 @@ void GeneralOverview::on_tableWidget_itemSelectionChanged()
         QStringList origin_generals = general->objectName().split("_");
         if(origin_generals.length()>1)
             last_word = Sanguosha->translate(("~") +  origin_generals.at(1));
+    }
+
+    if(last_word.startsWith("~") && general->objectName().endsWith("f")){
+        QString origin_general = general->objectName();
+        origin_general.chop(1);
+        if(Sanguosha->getGeneral(origin_general))
+            last_word = Sanguosha->translate(("~") + origin_general);
     }
 
     if(!last_word.startsWith("~")){
@@ -229,11 +243,11 @@ void GeneralOverview::on_tableWidget_itemSelectionChanged()
     else
         ui->cvLineEdit->setText(tr("Official"));
 
-    QString code_text = Sanguosha->translate("code:" + general->objectName());
-    if(!code_text.startsWith("code:"))
-        ui->codeLineEdit->setText(code_text);
+    QString illustrator_text = Sanguosha->translate("illustrator:" + general->objectName());
+    if(!illustrator_text.startsWith("illustrator:"))
+        ui->illustratorLineEdit->setText(illustrator_text);
     else
-        ui->codeLineEdit->setText(tr("QSanguoshaTeam"));
+        ui->illustratorLineEdit->setText(Sanguosha->translate("DefaultIllustrator"));
 
     button_layout->addStretch();
     ui->skillTextEdit->append(general->getSkillDescription());
@@ -246,5 +260,20 @@ void GeneralOverview::playEffect()
         QString source = button->objectName();
         if(!source.isEmpty())
             Sanguosha->playEffect(source);
+    }
+}
+
+#include "clientstruct.h"
+#include "client.h"
+void GeneralOverview::on_tableWidget_itemDoubleClicked(QTableWidgetItem* item)
+{
+    if(!ServerInfo.FreeChoose)
+        return;
+    if(Self){
+        int row = ui->tableWidget->currentRow();
+        if(row >= 0){
+            QString general_name = ui->tableWidget->item(row, 0)->data(Qt::UserRole).toString();
+            ClientInstance->changeGeneral(general_name);
+        }
     }
 }

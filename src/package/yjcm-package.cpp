@@ -142,7 +142,7 @@ public:
         return analeptic;
     }
 
-    virtual int getEffectIndex(ServerPlayer *, const Card *) const{
+    virtual int getEffectIndex(const ServerPlayer *, const Card *) const{
         return qrand() % 2 + 1;
     }
 
@@ -201,6 +201,7 @@ public:
                 log.from = effect.from;
                 log.to << effect.to;
                 log.arg = effect.card->objectName();
+                log.arg2 = objectName();
 
                 room->sendLog(log);
 
@@ -215,6 +216,7 @@ public:
                 log.from = effect.to;
                 log.to << effect.from;
                 log.arg = effect.card->objectName();
+                log.arg2 = objectName();
 
                 room->sendLog(log);
 
@@ -317,6 +319,7 @@ public:
                 log.from = player;
                 log.to << recover.who;
                 log.arg = QString::number(recover.recover);
+                log.arg2 = objectName();
 
                 room->sendLog(log);
 
@@ -405,6 +408,7 @@ public:
             log.type = "#HuileiThrow";
             log.from = player;
             log.to << killer;
+            log.arg = objectName();
             room->sendLog(log);
 
             killer->throwAllHandCards();
@@ -744,6 +748,7 @@ public:
                 LogMessage log;
                 log.type = "#ZhichiAvoid";
                 log.from = player;
+                log.arg = objectName();
                 room->sendLog(log);
 
                 return true;
@@ -834,30 +839,30 @@ public:
 
     virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
         Room *room = player->getRoom();
-        ServerPlayer *wuguotai = room->findPlayerBySkillName(objectName());
+        QList<ServerPlayer *> wuguots = room->findPlayersBySkillName(objectName());
+        foreach(ServerPlayer *wuguotai, wuguots){
+            if(player->getHp() < 1 && wuguotai->askForSkillInvoke(objectName(), data)){
+                const Card *card = NULL;
+                if(player == wuguotai)
+                    card = room->askForCardShow(player, wuguotai, objectName());
+                else{
+                    int card_id = room->askForCardChosen(wuguotai, player, "h", "buyi");
+                    card = Sanguosha->getCard(card_id);
+                }
 
-        if(wuguotai && wuguotai->askForSkillInvoke(objectName(), data)){
-            const Card *card = NULL;
-            if(player == wuguotai)
-                card = room->askForCardShow(player, wuguotai, objectName());
-            else{
-                int card_id = room->askForCardChosen(wuguotai, player, "h", "buyi");
-                card = Sanguosha->getCard(card_id);
-            }
+                room->showCard(player, card->getEffectiveId());
 
-            room->showCard(player, card->getEffectiveId());
+                if(card->getTypeId() != Card::Basic){
+                    room->throwCard(card);
 
-            if(card->getTypeId() != Card::Basic){
-                room->throwCard(card);
+                    room->playSkillEffect(objectName());
 
-                room->playSkillEffect(objectName());
-
-                RecoverStruct recover;
-                recover.who = wuguotai;
-                room->recover(player, recover);
+                    RecoverStruct recover;
+                    recover.who = wuguotai;
+                    room->recover(player, recover);
+                }
             }
         }
-
         return false;
     }
 };
@@ -932,7 +937,6 @@ YJCMPackage::YJCMPackage():Package("YJCM"){
     General *xushu = new General(this, "xushu", "shu", 3);
     xushu->addSkill(new Wuyan);
     xushu->addSkill(new Jujian);
-    //xushu->addSkill(new SPConvertSkill("bianshen", "xushu", "diyxushu", true));
 
     General *masu = new General(this, "masu", "shu", 3);
     masu->addSkill(new Xinzhan);

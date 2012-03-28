@@ -20,10 +20,11 @@ public:
 	}
 }
 
-%template(PhaseList) QList<Player::Phase>;
 %template(SPlayerList) QList<ServerPlayer *>;
 %template(PlayerList)  QList<const Player *>;
 %template(CardList) QList<const Card *>;
 %template(IntList) QList<int>;
 %template(SkillList) QList<const Skill *>;
 %template(ItemList) QList<CardItem *>;
+%template(DelayedTrickList) QList<const DelayedTrick *>;
+%template(PhaseList) QList<Player::Phase>;

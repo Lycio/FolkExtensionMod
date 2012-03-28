@@ -41,10 +41,6 @@ public:
     virtual bool askForSkillInvoke(const QString &skill_name, const QVariant &data) = 0;
     virtual QString askForChoice(const QString &skill_name, const QString &choices) = 0;
     virtual QList<int> askForDiscard(const QString &reason, int discard_num, bool optional, bool include_equip) = 0;
-    virtual const Card *askForCover(const CardEffectStruct &effect) = 0;
-    virtual const Card *askForRebound(const DamageStruct &damage) = 0;
-    virtual const Card *askForRob(const DamageStruct &damage) = 0;
-    virtual const Card *askForSuddenStrike(ServerPlayer *player) = 0;
     virtual const Card *askForNullification(const TrickCard *trick, ServerPlayer *from, ServerPlayer *to, bool positive) = 0;
     virtual int askForCardChosen(ServerPlayer *who, const QString &flags, const QString &reason)  = 0;
     virtual const Card *askForCard(const QString &pattern, const QString &prompt, const QVariant &data)  = 0;
@@ -58,6 +54,12 @@ public:
     virtual void askForGuanxing(const QList<int> &cards, QList<int> &up, QList<int> &bottom, bool up_only) = 0;
     virtual void filterEvent(TriggerEvent event, ServerPlayer *player, const QVariant &data);
 
+    // Disha
+    virtual const Card *askForCover(const CardEffectStruct &effect) = 0;
+    virtual const Card *askForRebound(const DamageStruct &damage) = 0;
+    virtual const Card *askForRob(const DamageStruct &damage) = 0;
+    virtual const Card *askForSuddenStrike(ServerPlayer *player) = 0;
+
 protected:
     Room *room;
     ServerPlayer *self;
@@ -70,15 +72,11 @@ public:
     TrustAI(ServerPlayer *player);
 
     virtual void activate(CardUseStruct &card_use) ;
-    virtual Card::Suit askForSuit(const QString& reason) ;
+    virtual Card::Suit askForSuit(const QString&) ;
     virtual QString askForKingdom() ;
     virtual bool askForSkillInvoke(const QString &skill_name, const QVariant &data) ;
     virtual QString askForChoice(const QString &skill_name, const QString &choices);
     virtual QList<int> askForDiscard(const QString &reason, int discard_num, bool optional, bool include_equip) ;
-    virtual const Card *askForCover(const CardEffectStruct &effect);
-    virtual const Card *askForRebound(const DamageStruct &damage);
-    virtual const Card *askForRob(const DamageStruct &damage);
-    virtual const Card *askForSuddenStrike(ServerPlayer *player);
     virtual const Card *askForNullification(const TrickCard *trick, ServerPlayer *from, ServerPlayer *to, bool positive);
     virtual int askForCardChosen(ServerPlayer *who, const QString &flags, const QString &reason) ;
     virtual const Card *askForCard(const QString &pattern, const QString &prompt, const QVariant &data);
@@ -92,6 +90,12 @@ public:
     virtual void askForGuanxing(const QList<int> &cards, QList<int> &up, QList<int> &bottom, bool up_only);
 
     virtual bool useCard(const Card *card);
+
+    // Disha
+    virtual const Card *askForCover(const CardEffectStruct &effect);
+    virtual const Card *askForRebound(const DamageStruct &damage);
+    virtual const Card *askForRob(const DamageStruct &damage);
+    virtual const Card *askForSuddenStrike(ServerPlayer *player);
 
 private:
     ResponseSkill *response_skill;
@@ -108,10 +112,6 @@ public:
     virtual void activate(CardUseStruct &card_use);
     virtual QString askForUseCard(const QString &pattern, const QString &prompt);
     virtual QList<int> askForDiscard(const QString &reason, int discard_num, bool optional, bool include_equip);
-    virtual const Card *askForCover(const CardEffectStruct &effect);
-    virtual const Card *askForRebound(const DamageStruct &damage);
-    virtual const Card *askForRob(const DamageStruct &damage);
-    virtual const Card *askForSuddenStrike(ServerPlayer *player);
     virtual const Card *askForNullification(const TrickCard *trick, ServerPlayer *from, ServerPlayer *to, bool positive);
     virtual QString askForChoice(const QString &skill_name, const QString &choices);
     virtual int askForCardChosen(ServerPlayer *who, const QString &flags, const QString &reason);
@@ -120,7 +120,7 @@ public:
     virtual int askForAG(const QList<int> &card_ids, bool refusable, const QString &reason);
     virtual const Card *askForSinglePeach(ServerPlayer *dying);
     virtual const Card *askForPindian(ServerPlayer *requestor, const QString &reason);
-    virtual Card::Suit askForSuit(const QString& reason);
+    virtual Card::Suit askForSuit(const QString &reason);
 
     virtual ServerPlayer *askForYiji(const QList<int> &cards, int &card_id);
     virtual void askForGuanxing(const QList<int> &cards, QList<int> &up, QList<int> &bottom, bool up_only);
@@ -128,6 +128,12 @@ public:
     virtual void filterEvent(TriggerEvent event, ServerPlayer *player, const QVariant &data);
 
     LuaFunction callback;
+
+    // Disha
+    virtual const Card *askForCover(const CardEffectStruct &effect);
+    virtual const Card *askForRebound(const DamageStruct &damage);
+    virtual const Card *askForRob(const DamageStruct &damage);
+    virtual const Card *askForSuddenStrike(ServerPlayer *player);
 
 private:
     void pushCallback(lua_State *L, const char *function_name);

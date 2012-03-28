@@ -40,6 +40,13 @@ QString PoisonPeach::getSubtype() const{
     return "disgusting_card";
 }
 
+QString PoisonPeach::getEffectPath(bool is_male) const{
+    if(is_male)
+        return "audio/card/male/poison_peach.ogg";
+    else
+        return "audio/card/female/poison_peach.ogg";
+}
+
 void PoisonPeach::onEffect(const CardEffectStruct &effect) const{
     Room *room = effect.to->getRoom();
 
@@ -331,9 +338,12 @@ SuddenStrike::SuddenStrike(Suit suit, int number)
 
 void SuddenStrike::onEffect(const CardEffectStruct &effect) const{
     Room *room = effect.from->getRoom();
-    if(!room->askForCard(effect.to, "jink", "@sudden_strike-jink:"+effect.from->getGeneralName()))
+    if(!room->askForCard(effect.to, "jink", "@sudden_strike-jink:"+effect.from->getGeneralName())){
         room->loseHp(effect.to, 1);
-    else
+        if(effect.from->hasSkill("yanbaoshang"))
+            if(effect.from->askForSkillInvoke("yanbaoshang"))
+                effect.from->drawCards(1);
+    }else
         return;
 }
 

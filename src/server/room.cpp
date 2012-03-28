@@ -12,7 +12,6 @@
 #include "roomthread1v1.h"
 #include "server.h"
 #include "generalselector.h"
-#include "dishacardpackage.h"
 
 #include <QStringList>
 #include <QMessageBox>
@@ -27,8 +26,8 @@
 Room::Room(QObject *parent, const QString &mode)
     :QThread(parent), mode(mode), current(NULL), reply_player(NULL), pile1(Sanguosha->getRandomCards()),
       draw_pile(&pile1), discard_pile(&pile2),
-      game_started(false), game_finished(false),
-      L(NULL), thread(NULL), thread_3v3(NULL), sem(new QSemaphore),  has_provided(false), provided(NULL), _virtual(false)
+      game_started(false), game_finished(false), L(NULL),
+      thread(NULL), thread_3v3(NULL), sem(new QSemaphore), provided(NULL), has_provided(false), _virtual(false)
 {
     player_count = Sanguosha->getPlayerCount(mode);
     scenario = Sanguosha->getScenario(mode);
@@ -165,10 +164,6 @@ void Room::outputEventStack(){
 }
 
 void Room::enterDying(ServerPlayer *player, DamageStruct *reason){
-    DyingStruct dying;
-    dying.who = player;
-    dying.damage = reason;
-
     player->setFlags("dying");
 
     QString sos_filename;
@@ -179,6 +174,34 @@ void Room::enterDying(ServerPlayer *player, DamageStruct *reason){
         sos_filename = QString("female-sos%1").arg(r);
     }
     broadcastInvoke("playAudio", sos_filename);
+
+    QList<ServerPlayer *> savers;
+    ServerPlayer *current = getCurrent();
+    if(current->hasSkill("wansha") && current->isAlive()){
+        playSkillEffect("wansha");
+
+        savers << current;
+
+        LogMessage log;
+        log.from = current;
+        log.arg = "wansha";
+        if(current != player){
+            savers << player;
+            log.type = "#WanshaTwo";
+            log.to << player;
+        }else{
+            log.type = "#WanshaOne";
+        }
+
+        sendLog(log);
+
+    }else
+        savers = getAllPlayers();
+
+    DyingStruct dying;
+    dying.who = player;
+    dying.damage = reason;
+    dying.savers = savers;
 
     QVariant dying_data = QVariant::fromValue(dying);
     thread->trigger(Dying, player, dying_data);
@@ -263,17 +286,16 @@ void Room::killPlayer(ServerPlayer *victim, DamageStruct *reason){
         log.type = "#Contingency";
     }
 
-    if(!reason || !reason->card || !reason->card->inherits("PoisonPeach"))
-        sendLog(log);
+    sendLog(log);
 
     broadcastProperty(victim, "alive");
 
     QVariant data = QVariant::fromValue(reason);
     thread->trigger(GameOverJudge, victim, data);
 
-
-    broadcastInvoke("killPlayer", victim->objectName());
     broadcastProperty(victim, "role");
+    thread->delay(300);
+    broadcastInvoke("killPlayer", victim->objectName());
 
     thread->trigger(Death, victim, data);
     victim->loseAllSkills();
@@ -414,7 +436,7 @@ void Room::gameOver(const QString &winner){
             id.replace("_mini_","");
             int stage = Config.value("MiniSceneStage",1).toInt();
             int current = id.toInt();
-            if((stage == current) && stage<20)
+            if((stage == current) && stage<21)
             {
                 Config.setValue("MiniSceneStage",current+1);
                 id = QString::number(stage+1).rightJustified(2,'0');
@@ -485,6 +507,12 @@ void Room::detachSkillFromPlayer(ServerPlayer *player, const QString &skill_name
         foreach(const Skill *skill, Sanguosha->getRelatedSkills(skill_name))
             detachSkillFromPlayer(player, skill->objectName());
     }
+
+    LogMessage log;
+    log.type = "#LoseSkill";
+    log.from = player;
+    log.arg = skill_name;
+    sendLog(log);
 }
 
 bool Room::obtainable(const Card *card, ServerPlayer *player){
@@ -663,236 +691,11 @@ trust:
     return false;
 }
 
-bool Room::askForCover(const CardEffectStruct &effect){
-    QString card_name = effect.card->objectName();
-    ServerPlayer *from = effect.from;
-    ServerPlayer *to = effect.to;
-    QList<ServerPlayer *> players = getOtherPlayers(from);
-    foreach(ServerPlayer *player, players){
-        if(player == to)
-            continue;
-        if(!player->hasCover())
-            continue;
-
-trust:
-        AI *ai = player->getAI();
-        const Card *card = NULL;
-        if(ai){
-            card = ai->askForCover(effect);
-            if(card)
-                thread->delay(Config.AIDelay);
-        }else{
-            QString ask_str = QString("%1:%2->%3").arg(card_name)
-                    .arg(from->getGeneralName())
-                    .arg(to->getGeneralName());
-
-            player->invoke("askForCover", ask_str);
-            getResult("responseCardCommand", player, false);
-
-            if(result.isEmpty())
-                goto trust;
-
-            if(result != ".")
-                card = Card::Parse(result);
-        }
-
-        if(card == NULL)
-            continue;
-
-        bool continable = false;
-        card = card->validateInResposing(player, &continable);
-        if(card){
-            CardUseStruct use;
-            use.card = card;
-            use.from = player;
-            use.to << to;
-            useCard(use);
-
-            QVariant decisionData = QVariant::fromValue(use);
-            thread->trigger(ChoiceMade, player, decisionData);
-            return true;
-        }else if(continable)
-            goto trust;
-    }
-
-    return false;
-}
-
-bool Room::askForRebound(const DamageStruct &damage){
-    QString card_name;
-    if(damage.card)
-        card_name = damage.card->objectName();
-    else
-        card_name = "no_card";
-
-    if(!damage.from)
-        return false;
-
-    ServerPlayer *from = damage.from;
-    ServerPlayer *to = damage.to;
-
-    if(!to->hasRebound())
-        return false;
-
-trust:
-    AI *ai = to->getAI();
-    const Card *card = NULL;
-    if(ai){
-        card = ai->askForRebound(damage);
-        if(card)
-            thread->delay(Config.AIDelay);
-    }else{
-        QString ask_str = QString("%1:%2->%3").arg(card_name)
-                .arg(from->getGeneralName())
-                .arg(to->getGeneralName());
-
-        to->invoke("askForRebound", ask_str);
-        getResult("responseCardCommand", to, false);
-
-        if(result.isEmpty())
-            goto trust;
-
-        if(result != ".")
-            card = Card::Parse(result);
-    }
-
-    if(card == NULL)
-        return false;
-
-    bool continable = false;
-    card = card->validateInResposing(to, &continable);
-    if(card){
-        CardUseStruct use;
-        use.card = card;
-        use.from = to;
-        use.to << from;
-        useCard(use);
-
-        QVariant decisionData = QVariant::fromValue(use);
-        thread->trigger(ChoiceMade, to, decisionData);
-        return true;
-    }else if(continable)
-        goto trust;
-
-    return false;
-}
-
-bool Room::askForRob(const DamageStruct &damage){
-    QString card_name;
-    if(damage.card)
-        card_name = damage.card->objectName();
-    else
-        card_name = "no_card";
-
-    if(!damage.to)
-        return false;
-
-    ServerPlayer *from = damage.from;
-    ServerPlayer *to = damage.to;
-    QList<ServerPlayer *> players = getOtherPlayers(to);
-    foreach(ServerPlayer *player, players){
-        if(!player->hasRob())
-            continue;
-
-trust:
-        AI *ai = player->getAI();
-        const Card *card = NULL;
-        if(ai){
-            card = ai->askForRob(damage);
-            if(card)
-                thread->delay(Config.AIDelay);
-        }else{
-            QString ask_str = QString("%1:%2->%3").arg(card_name)
-                    .arg(from ? from->getGeneralName() : ".")
-                    .arg(to->getGeneralName());
-
-            player->invoke("askForRob", ask_str);
-            getResult("responseCardCommand", player, false);
-
-            if(result.isEmpty())
-                goto trust;
-
-            if(result != ".")
-                card = Card::Parse(result);
-        }
-
-        if(card == NULL)
-            continue;
-
-        bool continable = false;
-        card = card->validateInResposing(player, &continable);
-        if(card){
-            CardUseStruct use;
-            use.card = card;
-            use.from = player;
-            use.to << to;
-            useCard(use);
-
-            QVariant decisionData = QVariant::fromValue(use);
-            thread->trigger(ChoiceMade, player, decisionData);
-            return true;
-        }else if(continable)
-            goto trust;
-    }
-
-    return false;
-}
-
-bool Room::askForSuddenStrike(ServerPlayer *player){
-    QString card_name = "no_card";
-    ServerPlayer *to = player;
-    QList<ServerPlayer *> players = getOtherPlayers(to);
-    foreach(ServerPlayer *pl, players){
-        if(!pl->hasSuddenStrike())
-            continue;
-
-trust:
-        AI *ai = pl->getAI();
-        const Card *card = NULL;
-        if(ai){
-            card = ai->askForSuddenStrike(player);
-            if(card)
-                thread->delay(Config.AIDelay);
-        }else{
-            QString ask_str = QString("%1:%2->%3").arg(card_name)
-                    .arg(pl->getGeneralName())
-                    .arg(to->getGeneralName());
-
-            pl->invoke("askForSuddenStrike", ask_str);
-            getResult("responseCardCommand", pl, false);
-
-            if(result.isEmpty())
-                goto trust;
-
-            if(result != ".")
-                card = Card::Parse(result);
-        }
-
-        if(card == NULL)
-            continue;
-
-        bool continable = false;
-        card = card->validateInResposing(pl, &continable);
-        if(card){
-            CardUseStruct use;
-            use.card = card;
-            use.from = pl;
-            use.to << to;
-            useCard(use);
-
-            QVariant decisionData = QVariant::fromValue(use);
-            thread->trigger(ChoiceMade, pl, decisionData);
-            return true;
-        }else if(continable)
-            goto trust;
-    }
-
-    return false;
-}
-
 int Room::askForCardChosen(ServerPlayer *player, ServerPlayer *who, const QString &flags, const QString &reason){
-    if(flags == "h" && player != who && !who->hasFlag("dongchaee"))
-        return who->getRandomHandCardId();
+    if(!who->hasFlag("dongchaee") && who != player){
+        if(flags == "h" || (flags == "he" && !who->hasEquip()))
+            return who->getRandomHandCardId();
+    }
 
     int card_id;
 
@@ -933,9 +736,9 @@ const Card *Room::askForCard(ServerPlayer *player, const QString &pattern, const
     QVariant asked = pattern;
     thread->trigger(CardAsked, player, asked);
     if(has_provided){
-            card = provided;
-            provided = NULL;
-            has_provided = false;
+        card = provided;
+        provided = NULL;
+        has_provided = false;
     }else if(pattern.startsWith("@") || !player->isNude()){
         AI *ai = player->getAI();
         if(ai){
@@ -1008,6 +811,7 @@ bool Room::askForUseCard(ServerPlayer *player, const QString &pattern, const QSt
     AI *ai = player->getAI();
     if(ai){
         answer = ai->askForUseCard(pattern, prompt);
+
         if(answer != ".")
             thread->delay(Config.AIDelay);
     }else{
@@ -1121,18 +925,6 @@ const Card *Room::askForSinglePeach(ServerPlayer *player, ServerPlayer *dying){
 
             if(!has_heart)
                 return NULL;
-        }else if(player->hasSkill("cbyuxue")){
-            bool has_redAnger = false;
-            foreach(int id, player->getPile("Angers")){
-                const Card *card = Sanguosha->getCard(id);
-                if(card->isRed()){
-                    has_redAnger = true;
-                    break;
-                }
-            }
-
-            if(!has_redAnger)
-                return NULL;
         }else
             return NULL;
     }
@@ -1185,6 +977,11 @@ void Room::setPlayerProperty(ServerPlayer *player, const char *property_name, co
 void Room::setPlayerMark(ServerPlayer *player, const QString &mark, int value){
     player->setMark(mark, value);
     broadcastInvoke("setMark", QString("%1.%2=%3").arg(player->objectName()).arg(mark).arg(value));
+}
+
+void Room::setPlayerCardLock(ServerPlayer *player, const QString &name){
+    player->setCardLocked(name);
+    player->invoke("cardLock", name);
 }
 
 ServerPlayer *Room::addSocket(ClientSocket *socket){
@@ -1254,6 +1051,14 @@ void Room::swapPile(){
     }
 }
 
+QList<int> Room::getDiscardPile(){
+    return *discard_pile;
+}
+
+QList<int> Room::getDrawPile(){
+    return *draw_pile;
+}
+
 ServerPlayer *Room::findPlayer(const QString &general_name, bool include_dead) const{
     const QList<ServerPlayer *> &list = include_dead ? players : alive_players;
 
@@ -1273,6 +1078,15 @@ ServerPlayer *Room::findPlayer(const QString &general_name, bool include_dead) c
     }
 
     return NULL;
+}
+
+QList<ServerPlayer *>Room::findPlayersBySkillName(const QString &skill_name, bool include_dead) const{
+    QList<ServerPlayer *> list;
+    foreach(ServerPlayer *player, include_dead ? players : alive_players){
+        if(player->hasSkill(skill_name))
+            list << player;
+    }
+    return list;
 }
 
 ServerPlayer *Room::findPlayerBySkillName(const QString &skill_name, bool include_dead) const{
@@ -1590,7 +1404,7 @@ void Room::reportDisconnection(){
 
         bool someone_is_online = false;
         foreach(ServerPlayer *player, players){
-            if(player->getState() == "online"){
+            if(player->getState() == "online" || player->getState() == "trust"){
                 someone_is_online = true;
                 break;
             }
@@ -1670,10 +1484,10 @@ void Room::processRequest(const QString &request){
 
         (this->*callback)(player, args.at(1));
 
-        //#ifndef QT_NO_DEBUG
+        #ifndef QT_NO_DEBUG
         // output client command only in debug version
         emit room_message(player->reportHeader() + request);
-        //#endif
+        #endif
 
     }else
         emit room_message(tr("%1: %2 is not invokable").arg(player->reportHeader()).arg(command));
@@ -1984,9 +1798,13 @@ void Room::run(){
                 continue;
         }
 
+        QStringList kingdoms;
+        kingdoms << "wei" << "shu" << "wu" << "qun";
+        QString kingdom = kingdoms.at(qrand() % 4);
+
         QStringList names;
         foreach(const General *general, generals){
-            if(general->getKingdom() == "wei")
+            if(general->getKingdom() == kingdom)
                 names << general->objectName();
         }
 
@@ -2110,7 +1928,6 @@ int Room::getCardFromPile(const QString &card_pattern){
                 const Card *card = Sanguosha->getCard(card_id);
                 if(card->isBlack() && (card->inherits("BasicCard") || card->inherits("EquipCard")))
                     return card_id;
-
             }
         }
     }else{
@@ -2229,10 +2046,18 @@ void Room::loseHp(ServerPlayer *victim, int lose){
 }
 
 void Room::loseMaxHp(ServerPlayer *victim, int lose){
+    int hp = victim->getHp();
     victim->setMaxHP(qMax(victim->getMaxHP() - lose, 0));
 
     broadcastProperty(victim, "maxhp");
     broadcastProperty(victim, "hp");
+
+    LogMessage log;
+    log.type = hp - victim->getHp() == 0 ? "#LoseMaxHp" : "#LostMaxHpPlus";
+    log.from = victim;
+    log.arg = QString::number(lose);
+    log.arg2 = QString::number(hp - victim->getHp());
+    sendLog(log);
 
     if(victim->getMaxHP() == 0)
         killPlayer(victim);
@@ -2246,33 +2071,10 @@ void Room::applyDamage(ServerPlayer *victim, const DamageStruct &damage){
     switch(damage.nature){
     case DamageStruct::Fire: change_str.append("F"); break;
     case DamageStruct::Thunder: change_str.append("T"); break;
-    case DamageStruct::Wind: change_str.append("W"); break;
     default: break;
     }
 
     broadcastInvoke("hpChange", change_str);
-}
-
-void Room::doWindPile(const DamageStruct &damage){
-    int i;
-    for(i=0; i<damage.damage; i++){
-        if(damage.to->isNude())
-            return;
-        else{
-            int card_id = askForCardChosen(damage.from, damage.to, "he", "wind_damage");
-            damage.to->addToPile("windpile", card_id, getCardPlace(card_id) == Player::Hand ? false : true);
-            damage.to->gainMark("@windpile");
-        }
-    }
-}
-
-void Room::returnWindPile(ServerPlayer *player){
-    int x = player->getPile("windpile").length();
-    player->loseMark("@windpile", x);
-    foreach(int id, player->getPile("windpile")){
-        const Card *cd = Sanguosha->getCard(id);
-        player->obtainCard(cd);
-    }
 }
 
 void Room::recover(ServerPlayer *player, const RecoverStruct &recover, bool set_emotion){
@@ -2285,11 +2087,6 @@ void Room::recover(ServerPlayer *player, const RecoverStruct &recover, bool set_
     if(set_emotion){
         setEmotion(player, "recover");
     }
-}
-
-void Room::playCardEffect(const QString &card_name, bool is_male){
-    QString gender = is_male ? "M" : "F";
-    broadcastInvoke("playCardEffect", QString("%1:%2").arg(card_name).arg(gender));
 }
 
 bool Room::cardEffect(const Card *card, ServerPlayer *from, ServerPlayer *to){
@@ -2372,7 +2169,6 @@ void Room::sendDamageLog(const DamageStruct &data){
     case DamageStruct::Normal: log.arg2 = "normal_nature"; break;
     case DamageStruct::Fire: log.arg2 = "fire_nature"; break;
     case DamageStruct::Thunder: log.arg2 = "thunder_nature"; break;
-    case DamageStruct::Wind: log.arg2 = "wind_nature"; break;
     }
 
     sendLog(log);
@@ -2382,8 +2178,6 @@ bool Room::hasWelfare(const ServerPlayer *player) const{
     if(mode == "06_3v3")
         return player->isLord() || player->getRole() == "renegade";
     else if(mode == "04_1v3")
-        return false;
-    else if(mode == "05_2v3")
         return false;
     else if(Config.EnableHegemony)
         return false;
@@ -2487,7 +2281,7 @@ void Room::startGame(){
         }
     }
 
-    if((Config.Enable2ndGeneral) && mode != "02_1v1" && mode != "06_3v3" && mode != "04_1v3" && mode != "05_2v3" && !Config.EnableBasara){
+    if((Config.Enable2ndGeneral) && mode != "02_1v1" && mode != "06_3v3" && mode != "04_1v3" && !Config.EnableBasara){
         foreach(ServerPlayer *player, players)
             broadcastProperty(player, "general2");
     }
@@ -2537,8 +2331,6 @@ void Room::startGame(){
     GameRule *game_rule;
     if(mode == "04_1v3")
         game_rule = new HulaoPassMode(this);
-    else if(mode == "05_2v3")
-        game_rule = new ChangbanSlopeMode(this);
     else if(Config.EnableScene)	//changjing
         game_rule = new SceneRule(this);	//changjing
     else
@@ -2576,6 +2368,11 @@ void Room::drawCards(ServerPlayer *player, int n){
         int card_id = drawCard();
         card_ids << card_id;
         const Card *card = Sanguosha->getCard(card_id);
+
+        QVariant data = QVariant::fromValue(card_id);
+        if(thread->trigger(CardDrawing, player, data))
+            continue;
+
         player->drawCard(card);
 
         cards_str << QString::number(card_id);
@@ -2583,6 +2380,8 @@ void Room::drawCards(ServerPlayer *player, int n){
         // update place_map & owner_map
         setCardMapping(card_id, player, Player::Hand);
     }
+    if(cards_str.isEmpty())
+        return;
 
     player->invoke("drawCards", cards_str.join("+"));
 
@@ -2894,12 +2693,21 @@ void Room::setEmotion(ServerPlayer *target, const QString &emotion){
                     QString("%1:%2").arg(target->objectName()).arg(emotion.isEmpty() ? "." : emotion));
 }
 
+#include <QElapsedTimer>
+
 void Room::activate(ServerPlayer *player, CardUseStruct &card_use){
     AI *ai = player->getAI();
     if(ai){
-        thread->delay(Config.AIDelay);
+        QElapsedTimer timer;
+        timer.start();
+
         card_use.from = player;
         ai->activate(card_use);
+
+        qint64 diff = Config.AIDelay - timer.elapsed();
+        if(diff > 0)
+            thread->delay(diff);
+
     }else{
         broadcastInvoke("activate", player->objectName());
         getResult("useCardCommand", player);
@@ -3361,7 +3169,6 @@ void Room::makeDamage(const QStringList &texts){
     case 'N': damage.nature = DamageStruct::Normal; break;
     case 'T': damage.nature = DamageStruct::Thunder; break;
     case 'F': damage.nature = DamageStruct::Fire; break;
-    case 'W': damage.nature = DamageStruct::Wind; break;
     case 'L': loseHp(damage.to, point); return;
     case 'R':{
         RecoverStruct recover;
@@ -3467,8 +3274,8 @@ void Room::provide(const Card *card){
     Q_ASSERT(provided == NULL);
     Q_ASSERT(!has_provided);
 
-        provided = card;
-        has_provided = true;
+    provided = card;
+    has_provided = true;
 }
 
 QList<ServerPlayer *> Room::getLieges(const QString &kingdom, ServerPlayer *lord) const{
@@ -3680,7 +3487,6 @@ void Room::copyFrom(Room* rRoom)
     provided = rRoom->provided;
     has_provided = rRoom->has_provided;
 
-
     tag = QVariantMap(rRoom->tag);
 
 }
@@ -3693,4 +3499,232 @@ Room* Room::duplicate()
     room->fillRobotsCommand(NULL, 0);
     room->copyFrom(this);
     return room;
+}
+
+// Disha
+bool Room::askForCover(const CardEffectStruct &effect){
+    QString card_name = effect.card->objectName();
+    ServerPlayer *from = effect.from;
+    ServerPlayer *to = effect.to;
+    QList<ServerPlayer *> players = getOtherPlayers(from);
+    foreach(ServerPlayer *player, players){
+        if(player == to)
+            continue;
+        if(!player->hasCover())
+            continue;
+
+trust:
+        AI *ai = player->getAI();
+        const Card *card = NULL;
+        if(ai){
+            card = ai->askForCover(effect);
+            if(card)
+                thread->delay(Config.AIDelay);
+        }else{
+            QString ask_str = QString("%1:%2->%3").arg(card_name)
+                    .arg(from->getGeneralName())
+                    .arg(to->getGeneralName());
+
+            player->invoke("askForCover", ask_str);
+            getResult("responseCardCommand", player, false);
+
+            if(result.isEmpty())
+                goto trust;
+
+            if(result != ".")
+                card = Card::Parse(result);
+        }
+
+        if(card == NULL)
+            continue;
+
+        bool continable = false;
+        card = card->validateInResposing(player, &continable);
+        if(card){
+            CardUseStruct use;
+            use.card = card;
+            use.from = player;
+            use.to << to;
+            useCard(use);
+
+            QVariant decisionData = QVariant::fromValue(use);
+            thread->trigger(ChoiceMade, player, decisionData);
+            return true;
+        }else if(continable)
+            goto trust;
+    }
+
+    return false;
+}
+
+bool Room::askForRebound(const DamageStruct &damage){
+    QString card_name;
+    if(damage.card)
+        card_name = damage.card->objectName();
+    else
+        card_name = "no_card";
+
+    if(!damage.from)
+        return false;
+
+    ServerPlayer *from = damage.from;
+    ServerPlayer *to = damage.to;
+
+    if(!to->hasRebound())
+        return false;
+
+trust:
+    AI *ai = to->getAI();
+    const Card *card = NULL;
+    if(ai){
+        card = ai->askForRebound(damage);
+        if(card)
+            thread->delay(Config.AIDelay);
+    }else{
+        QString ask_str = QString("%1:%2->%3").arg(card_name)
+                .arg(from->getGeneralName())
+                .arg(to->getGeneralName());
+
+        to->invoke("askForRebound", ask_str);
+        getResult("responseCardCommand", to, false);
+
+        if(result.isEmpty())
+            goto trust;
+
+        if(result != ".")
+            card = Card::Parse(result);
+    }
+
+    if(card == NULL)
+        return false;
+
+    bool continable = false;
+    card = card->validateInResposing(to, &continable);
+    if(card){
+        CardUseStruct use;
+        use.card = card;
+        use.from = to;
+        use.to << from;
+        useCard(use);
+
+        QVariant decisionData = QVariant::fromValue(use);
+        thread->trigger(ChoiceMade, to, decisionData);
+        return true;
+    }else if(continable)
+        goto trust;
+
+    return false;
+}
+
+bool Room::askForRob(const DamageStruct &damage){
+    QString card_name;
+    if(damage.card)
+        card_name = damage.card->objectName();
+    else
+        card_name = "no_card";
+
+    if(!damage.to)
+        return false;
+
+    ServerPlayer *from = damage.from;
+    ServerPlayer *to = damage.to;
+    QList<ServerPlayer *> players = getOtherPlayers(to);
+    foreach(ServerPlayer *player, players){
+        if(!player->hasRob())
+            continue;
+
+trust:
+        AI *ai = player->getAI();
+        const Card *card = NULL;
+        if(ai){
+            card = ai->askForRob(damage);
+            if(card)
+                thread->delay(Config.AIDelay);
+        }else{
+            QString ask_str = QString("%1:%2->%3").arg(card_name)
+                    .arg(from ? from->getGeneralName() : ".")
+                    .arg(to->getGeneralName());
+
+            player->invoke("askForRob", ask_str);
+            getResult("responseCardCommand", player, false);
+
+            if(result.isEmpty())
+                goto trust;
+
+            if(result != ".")
+                card = Card::Parse(result);
+        }
+
+        if(card == NULL)
+            continue;
+
+        bool continable = false;
+        card = card->validateInResposing(player, &continable);
+        if(card){
+            CardUseStruct use;
+            use.card = card;
+            use.from = player;
+            use.to << to;
+            useCard(use);
+
+            QVariant decisionData = QVariant::fromValue(use);
+            thread->trigger(ChoiceMade, player, decisionData);
+            return true;
+        }else if(continable)
+            goto trust;
+    }
+
+    return false;
+}
+
+bool Room::askForSuddenStrike(ServerPlayer *player){
+    QString card_name = "no_card";
+    ServerPlayer *to = player;
+    QList<ServerPlayer *> players = getOtherPlayers(to);
+    foreach(ServerPlayer *pl, players){
+        if(!pl->hasSuddenStrike())
+            continue;
+
+trust:
+        AI *ai = pl->getAI();
+        const Card *card = NULL;
+        if(ai){
+            card = ai->askForSuddenStrike(player);
+            if(card)
+                thread->delay(Config.AIDelay);
+        }else{
+            QString ask_str = QString("%1:%2->%3").arg(card_name)
+                    .arg(pl->getGeneralName())
+                    .arg(to->getGeneralName());
+
+            pl->invoke("askForSuddenStrike", ask_str);
+            getResult("responseCardCommand", pl, false);
+
+            if(result.isEmpty())
+                goto trust;
+
+            if(result != ".")
+                card = Card::Parse(result);
+        }
+
+        if(card == NULL)
+            continue;
+
+        bool continable = false;
+        card = card->validateInResposing(pl, &continable);
+        if(card){
+            CardUseStruct use;
+            use.card = card;
+            use.from = pl;
+            use.to << to;
+            useCard(use);
+
+            QVariant decisionData = QVariant::fromValue(use);
+            thread->trigger(ChoiceMade, pl, decisionData);
+            return true;
+        }else if(continable)
+            goto trust;
+    }
+
+    return false;
 }

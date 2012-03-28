@@ -45,7 +45,7 @@ DyingStruct::DyingStruct()
 }
 
 RecoverStruct::RecoverStruct()
-    :recover(1), who(NULL), card(NULL), crisp(false)
+    :recover(1), who(NULL), card(NULL)
 {
 
 }
@@ -98,7 +98,7 @@ JudgeStructPattern &JudgeStructPattern::operator =(const QString &str){
 }
 
 JudgeStruct::JudgeStruct()
-    :who(NULL), card(NULL), good(true)
+    :who(NULL), card(NULL), good(true), time_consuming(false)
 {
 
 }
@@ -429,10 +429,12 @@ bool RoomThread::trigger(TriggerEvent event, ServerPlayer *target, QVariant &dat
     }
 
     if(target){
-        foreach(AI *ai, room->ais)
+        foreach(AI *ai, room->ais){
             ai->filterEvent(event, target, data);
+        }
     }
 
+    delay(1);
     // pop event stack
     event_stack.pop_back();
 
@@ -471,7 +473,7 @@ void RoomThread::addTriggerSkill(const TriggerSkill *skill){
 }
 
 void RoomThread::delay(unsigned long secs){
-    if(room->property("to_test").toString().isEmpty()&&Config.value("AIDelay",1000).toInt()>0)
+    if(room->property("to_test").toString().isEmpty()&& Config.AIDelay>0)
         msleep(secs);
 }
 

@@ -357,6 +357,7 @@ public:
 
         case Player::Play:{
                 if(target->askForSkillInvoke("lukang_weiyan", "play2draw")){
+                    target->clearHistory();
                     target->getRoom()->setPlayerProperty(target, "phase", "draw");
                 }
 
@@ -581,7 +582,7 @@ public:
     }
 
     virtual bool isEnabledAtResponse(const Player *player, const QString &pattern) const{
-        return  pattern == "@lianli";
+        return pattern == "@@lianli";
     }
 
     virtual const Card *viewAs() const{
@@ -598,7 +599,7 @@ public:
     virtual bool onPhaseChange(ServerPlayer *target) const{
         if(target->getPhase() == Player::Start){
             Room *room = target->getRoom();
-            bool used = room->askForUseCard(target, "@lianli", "@@lianli-card");
+            bool used = room->askForUseCard(target, "@@lianli", "@lianli-card");
             if(used){
                 if(target->getKingdom() != "shu")
                     room->setPlayerProperty(target, "kingdom", "shu");
@@ -931,6 +932,7 @@ public:
                 judge.good = true;
                 judge.reason = objectName();
                 judge.who = caizhaoji;
+                judge.time_consuming = true;
 
                 room->judge(judge);
 
@@ -1002,6 +1004,7 @@ public:
                 LogMessage log;
                 log.from = player;
                 log.type = "#ShenjunFlip";
+                log.arg = objectName();
                 room->sendLog(log);
 
                 QString new_general = "luboyan";
@@ -1019,6 +1022,7 @@ public:
                 log.type = "#ShenjunProtect";
                 log.to << player;
                 log.from = damage.from;
+                log.arg = objectName();
                 room->sendLog(log);
 
                 return true;
@@ -1040,13 +1044,15 @@ public:
         SlashEffectStruct effect = data.value<SlashEffectStruct>();
         if(effect.nature != DamageStruct::Fire){
             effect.nature = DamageStruct::Fire;
-
+            Room *room = player->getRoom();
             data = QVariant::fromValue(effect);
 
+            room->playSkillEffect(objectName());
             LogMessage log;
             log.type = "#Zonghuo";
             log.from = player;
-            player->getRoom()->sendLog(log);
+            log.arg = objectName();
+            room->sendLog(log);
         }
 
         return false;
@@ -1087,6 +1093,7 @@ public:
             room->judge(judge);
 
             if(judge.isGood()){
+                room->playSkillEffect(objectName());
                 DamageStruct shaoying_damage;
                 shaoying_damage.nature = DamageStruct::Fire;
                 shaoying_damage.from = luboyan;
@@ -1183,6 +1190,7 @@ public:
             log.from = zhongshiji;
             log.to << player;
             log.arg = QString::number(x);
+            log.arg2 = "gongmou";
             room->sendLog(log);
         }
 
@@ -1222,7 +1230,7 @@ public:
 
     }
 
-    virtual int getEffectIndex(ServerPlayer *, const Card *card) const{
+    virtual int getEffectIndex(const ServerPlayer *, const Card *card) const{
         if(card->getTypeId() == Card::Basic)
             return 2;
         else
@@ -1308,13 +1316,16 @@ void XunzhiCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer 
     source->tag["newgeneral"] = general;
     room->transfigure(source, general, false, false, "jiangboyue");
     room->acquireSkill(source, "xunzhi", false);
-    source->setFlags("xunzhi");
+    room->setPlayerFlag(source, "xunzhi");
 }
 
 class XunzhiViewAsSkill: public ZeroCardViewAsSkill{
 public:
     XunzhiViewAsSkill():ZeroCardViewAsSkill("#xunzhi"){
+    }
 
+    virtual bool isEnabledAtPlay(const Player *player) const{
+        return !player->hasFlag("xunzhi");
     }
 
     virtual const Card *viewAs() const{
@@ -1427,6 +1438,7 @@ public:
             log.type = "#SizhanPrevent";
             log.from = elai;
             log.arg = QString::number(damage.damage);
+            log.arg2 = objectName();
             elai->getRoom()->sendLog(log);
 
             elai->gainMark("@struggle", damage.damage);
@@ -1441,6 +1453,7 @@ public:
                 log.type = "#SizhanLoseHP";
                 log.from = elai;
                 log.arg = QString::number(x);
+                log.arg2 = objectName();
 
                 Room *room = elai->getRoom();
                 room->sendLog(log);

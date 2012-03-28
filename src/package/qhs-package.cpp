@@ -2123,6 +2123,103 @@ public:
     }
 };
 
+DubohCard::DubohCard(){
+
+}
+
+bool DubohCard::targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const{
+    return targets.isEmpty() && !to_select->isKongcheng();
+}
+
+void DubohCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const{
+    ServerPlayer *to = targets.first();
+    ServerPlayer *from = source;
+    bool add_dubo = true;
+    while(add_dubo){
+        int from_id = room->askForCardChosen(from, from, "h", "dubo");
+        from->addToPile("dubopile", from_id, false);
+        int to_id = room->askForCardChosen(to, to, "h", "dubo");
+        to->addToPile("dubopile", to_id, false);
+        if(to->isKongcheng() || from->isKongcheng())
+            break;
+        else
+            if(!from->askForSkillInvoke("add_dubo"))
+                break;
+    }
+    QList<int> gain_ids;
+    int sum_from = 0, sum_to = 0;
+    LogMessage log;
+    log.type = "$DuboLog_Showcard";
+    log.from = from;
+    foreach(int id, from->getPile("dubopile")){
+        gain_ids << id;
+        const Card *cd = Sanguosha->getCard(id);
+        int num = cd->getNumber();
+        sum_from += num;
+        log.card_str = cd->toString();
+        room->sendLog(log);
+    }
+    log.from = to;
+    foreach(int id, to->getPile("dubopile")){
+        gain_ids << id;
+        const Card *cd = Sanguosha->getCard(id);
+        int num = cd->getNumber();
+        sum_to += num;
+        log.card_str = cd->toString();
+        room->sendLog(log);
+    }
+    log.card_str.clear();
+    log.type = "#DuboLog_Showsum";
+    log.from = from;
+    log.arg = QString::number(sum_from);
+    room->sendLog(log);
+    log.from = to;
+    log.arg = QString::number(sum_to);
+    room->sendLog(log);
+
+    ServerPlayer *winner = to;
+    if(sum_from > sum_to){
+        winner = from;
+        room->setEmotion(from, "good");
+        room->setEmotion(to, "bad");
+    }else{
+        room->setEmotion(from, "bad");
+        room->setEmotion(to, "good");
+    }
+
+    log.type = "#DuboLog";
+    log.from = winner;
+    room->sendLog(log);
+
+    foreach(int id, gain_ids){
+        const Card *cd = Sanguosha->getCard(id);
+        room->moveCardTo(cd, winner, Player::Hand, true);
+    }
+
+    if((sum_from-sum_to)*2/gain_ids.length() >= 1){
+        RecoverStruct recover;
+        recover.card = this;
+        recover.recover = 1;
+        recover.who = from;
+        room->recover(from, recover);
+    }
+}
+
+class Duboh: public ZeroCardViewAsSkill{
+public:
+    Duboh():ZeroCardViewAsSkill("duboh"){
+    }
+
+    virtual const Card *viewAs() const{
+        return new DubohCard;
+    }
+
+protected:
+    virtual bool isEnabledAtPlay(const Player *player) const{
+        return !player->hasUsed("DubohCard") ;
+    }
+};
+
 QHSPackage::QHSPackage()
     :Package("QHS")
 {
@@ -2225,10 +2322,133 @@ QHSPackage::QHSPackage()
     addMetaObject<CaijianhCard>();
     */
 
-    General *huangshuh = new General(this, "huangshuh", "qun", 3);
+    General *huangshuh = new General(this, "huangshuh", "yan", 3);
     huangshuh->addSkill(new Jiangjih);
     huangshuh->addSkill(new Jiujih);
+
+    General *maomaoh = new General(this, "maomaoh", "yan", 4);
+    maomaoh->addSkill(new Duboh);
+
+    addMetaObject<DubohCard>();
 }
 
 ADD_PACKAGE(QHS)
 
+class TianlanghSkill : public WeaponSkill{
+public:
+    TianlanghSkill():WeaponSkill("tianlangh"){
+        events << Damage ;
+    }
+
+    virtual bool trigger(TriggerEvent, ServerPlayer *player, QVariant &) const{
+        Room *room = player->getRoom();
+        int x = player->getMark("@tianlang");
+        if(x ==  0){
+            if(player->askForSkillInvoke("tianlangh_yinxue")){
+                room->loseHp(player);
+                player->gainMark("@tianlang", 1);
+            }
+        }else if(x > 0 && x < 5 && x < player->getMaxHP()){
+            if(player->askForSkillInvoke("tianlangh_yinxue")){
+                player->gainMark("@tianlang", 1);
+            }
+        }
+        return false;
+    }
+};
+
+class TianlanghEffect: public TriggerSkill{
+public:
+    TianlanghEffect():TriggerSkill("#tianlangh_effect"){
+        events << PhaseChange << CardUsed << SlashProceed << Predamage;
+    }
+
+    virtual bool triggerable(const ServerPlayer *target) const{
+        return true;
+    }
+
+    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+        Room *room = player->getRoom();
+        ServerPlayer *weaponOwner = NULL;
+        foreach(ServerPlayer *p, room->getAllPlayers()){
+            if(p->getWeapon() && p->getWeapon()->objectName() == "tianlangh")
+                weaponOwner = p;
+        }
+        if(!weaponOwner)
+            return false;
+
+        if(event == PhaseChange && weaponOwner->getPhase() == Player::Finish){
+            if(weaponOwner->getMark("@tianlang") == 1 && weaponOwner->hasUsed("Slash"))
+                weaponOwner->drawCards(1);
+        }else if(event == CardUsed){
+            CardUseStruct use = data.value<CardUseStruct>();
+            if(use.card && !use.card->inherits("Slash"))
+                return false;
+            if(use.from && use.from->objectName() == weaponOwner->objectName()){
+                if(weaponOwner->getMark("@tianlang") == 2){
+                    Card *slash = Sanguosha->cloneCard(use.card->objectName(), Card::Heart, use.card->getNumber());
+                    slash->setSkillName("tianlangh");
+                    slash->addSubcard(use.card);
+                    use.card = slash;
+                    data = QVariant::fromValue(use);
+                }else if(weaponOwner->getMark("@tianlang") == 3)
+                    weaponOwner->drawCards(1);
+            }
+        }else if(event == SlashProceed){
+            SlashEffectStruct effect = data.value<SlashEffectStruct>();
+            if(effect.from && effect.from->objectName() != weaponOwner->objectName())
+                return false;
+            if(weaponOwner->getMark("@tianlang") == 4){
+                room->slashResult(effect, NULL);
+                return true;
+            }
+        }else if(event == Predamage){
+            DamageStruct damage = data.value<DamageStruct>();
+            if(damage.from->objectName() != weaponOwner->objectName() || !damage.card || !damage.card->inherits("Slash"))
+                return false;
+            if(weaponOwner->getMark("@tianlang") == 5){
+                damage.damage++;
+                damage.nature = DamageStruct::Fire;
+                data = QVariant::fromValue(damage);
+            }
+        }
+        return false;
+    }
+};
+
+Tianlangh::Tianlangh(Suit suit, int number)
+    :Weapon(suit, number, 1)
+{
+    setObjectName("tianlangh");
+    skill = new TianlanghSkill;
+}
+
+void Tianlangh::onMove(const CardMoveStruct &move) const{
+    if(move.to_place == Player::Equip && move.to->isAlive()){
+        Room *room = move.to->getRoom();
+        if(move.to->askForSkillInvoke("tianlangh_yinxue")){
+            room->loseHp(move.to);
+            move.to->gainMark("@tianlang", 1);
+        }
+    }else if(move.from_place == Player::Equip && move.from->isAlive() && move.from->getMark("@tianlang") > 0){
+        move.from->loseMark("@tianlang", move.from->getMark("@tianlang"));
+    }
+}
+
+QHSEquipPackage::QHSEquipPackage()
+    :Package("QHS_Equip")
+{
+    QList<Card *> cards;
+
+    cards << new Tianlangh(Card::Spade, 13);
+
+    foreach(Card *card, cards)
+        card->setParent(this);
+
+    type = CardPack;
+
+    skills << new TianlanghEffect;
+    related_skills.insertMulti("tianlangh", "#tianlangh_effect");
+}
+
+ADD_PACKAGE(QHSEquip)

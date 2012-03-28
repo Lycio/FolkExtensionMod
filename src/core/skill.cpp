@@ -5,6 +5,7 @@
 #include "client.h"
 #include "standard.h"
 #include "scenario.h"
+#include "settings.h"
 
 #include <QFile>
 
@@ -54,29 +55,28 @@ QString Skill::getDefaultChoice(ServerPlayer *) const{
     return default_choice;
 }
 
-int Skill::getEffectIndex(ServerPlayer *, const Card *) const{
+int Skill::getEffectIndex(const ServerPlayer *, const Card *) const{
     return -1;
 }
 
 void Skill::initMediaSource(){
     sources.clear();
 
-    if(parent()){
-        int i;
-        for(i=1; ;i++){
-            QString effect_file = QString("audio/skill/%1%2.ogg").arg(objectName()).arg(i);
-            if(QFile::exists(effect_file))
-                sources << effect_file;
-            else
-                break;
-        }
-
-        if(sources.isEmpty()){
-            QString effect_file = QString("audio/skill/%1.ogg").arg(objectName());
-            if(QFile::exists(effect_file))
-                sources << effect_file;
-        }
+    int i;
+    for(i=1; ;i++){
+        QString effect_file = QString("audio/skill/%1%2%3.ogg").arg(Config.value("EffectEdition").toString()).arg(objectName()).arg(i);
+        if(QFile::exists(effect_file))
+            sources << effect_file;
+        else
+            break;
     }
+
+    if(sources.isEmpty()){
+        QString effect_file = QString("audio/skill/%1%2.ogg").arg(Config.value("EffectEdition").toString()).arg(objectName());
+        if(QFile::exists(effect_file))
+            sources << effect_file;
+    }
+
 }
 
 Skill::Location Skill::getLocation() const{
@@ -101,10 +101,6 @@ void Skill::playEffect(int index) const{
         if(ClientInstance)
             ClientInstance->setLines(filename);
     }
-}
-
-bool Skill::useCardSoundEffect() const{
-    return false;
 }
 
 void Skill::setFlag(ServerPlayer *player) const{
@@ -304,8 +300,8 @@ bool GameStartSkill::trigger(TriggerEvent, ServerPlayer *player, QVariant &) con
     return false;
 }
 
-SPConvertSkill::SPConvertSkill(const QString &name, const QString &from, const QString &to, bool transfigure)
-    :GameStartSkill(name), from(from), to(to), transfigure(transfigure)
+SPConvertSkill::SPConvertSkill(const QString &name, const QString &from, const QString &to)
+    :GameStartSkill(name), from(from), to(to)
 {
     frequency = Limited;
 }
@@ -319,10 +315,7 @@ bool SPConvertSkill::triggerable(const ServerPlayer *target) const{
 void SPConvertSkill::onGameStart(ServerPlayer *player) const{
     if(player->askForSkillInvoke(objectName())){
         Room *room = player->getRoom();
-        if(transfigure)
-            room->transfigure(player, to, true, false);
-        else
-            room->setPlayerProperty(player, "general", to);
+        room->setPlayerProperty(player, "general", to);
 
         const General *general = Sanguosha->getGeneral(to);
         const QString kingdom = general->getKingdom();

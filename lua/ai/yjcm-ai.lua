@@ -32,7 +32,7 @@ sgs.ai_skill_use_func.JujianCard = function(card, use, self)
 		end
 		local f
 		for _, friend in ipairs(self.friends_noself) do
-			if (friend:getHandcardNum()<2) or (friend:getHandcardNum()<friend:getHp()+1) then
+			if (friend:getHandcardNum()<2) or (friend:getHandcardNum()<friend:getHp()+1) and not friend:hasSkill("manjuan") then
 				for _, fcard in ipairs(cards) do
 					if fcard:inherits(result_class) and not fcard:inherits("ExNihilo") then
 						table.insert(abandon_handcard, fcard:getId())
@@ -99,7 +99,7 @@ end
 sgs.ai_use_priority.JujianCard = 4.5
 sgs.ai_use_value.JujianCard = 6.7
 
-sgs.ai_card_intention.JujianCard = -70
+sgs.ai_card_intention.JujianCard = -100
 
 sgs.dynamic_value.benefit.JujianCard = true
 
@@ -392,6 +392,7 @@ sgs.ai_skill_choice.mingce = function(self, choices)
 end
 
 sgs.ai_skill_playerchosen.mingce = sgs.ai_skill_playerchosen.zero_card_as_slash
+sgs.ai_playerchosen_intention.mingce = 80
 
 sgs.ai_use_value.MingceCard = 5.9
 sgs.ai_use_priority.MingceCard = 4
@@ -487,7 +488,7 @@ sgs.ai_skill_use_func.XianzhenSlashCard=function(card,use,self)
 	local target = self.player:getTag("XianzhenTarget"):toPlayer()
 	if self:askForCard("slash", "@xianzhen-slash") == "." then return end
 	
-	if self:getCard("Slash") and not target:isDead() and not (target:hasSkill("kongcheng") and target:isKongcheng()) then
+	if self:getCard("Slash") and not (target:hasSkill("kongcheng") and target:isKongcheng()) then
 		use.card=card
 	end
 end
@@ -535,7 +536,7 @@ sgs.ai_skill_cardask["@xianzhen-slash"] = function(self)
 	local target = self.player:getTag("XianzhenTarget"):toPlayer()
 	local slashes = self:getCards("Slash")
 	for _, slash in ipairs(slashes) do
-		if self:slashIsEffective(slash, target) then return slash:getEffectiveId() end
+		if self:slashIsEffective(slash, target) then return slash:toString() end
 	end
 	return "."
 end

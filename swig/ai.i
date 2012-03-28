@@ -23,10 +23,6 @@ public:
 	virtual bool askForSkillInvoke(const char *skill_name, const QVariant &data) = 0;
 	virtual QString askForChoice(const char *skill_name, const char *choices) = 0;
 	virtual QList<int> askForDiscard(const char *reason, int discard_num, bool optional, bool include_equip) = 0;
-    virtual const Card *askForCover(const CardEffectStruct &effect) = 0;
-    virtual const Card *askForRebound(const DamageStruct &damage) = 0;
-    virtual const Card *askForRob(const DamageStruct &damage) = 0;
-    virtual const Card *askForSuddenStrike(ServerPlayer *player) = 0;
 	virtual const Card *askForNullification(const TrickCard *trick, ServerPlayer *from, ServerPlayer *to, bool positive) = 0;
 	virtual int askForCardChosen(ServerPlayer *who, const char *flags, const char *reason)  = 0;
 	virtual const Card *askForCard(const char *pattern, const char *prompt, const QVariant &data)  = 0;
@@ -36,6 +32,11 @@ public:
 	virtual const Card *askForPindian(ServerPlayer *requestor, const char *reason) = 0;
 	virtual ServerPlayer *askForPlayerChosen(const QList<ServerPlayer *> &targets, const char *reason) = 0;
 	virtual const Card *askForSinglePeach(ServerPlayer *dying) = 0;
+	
+    virtual const Card *askForCover(const CardEffectStruct &effect) = 0;
+    virtual const Card *askForRebound(const DamageStruct &damage) = 0;
+    virtual const Card *askForRob(const DamageStruct &damage) = 0;
+    virtual const Card *askForSuddenStrike(ServerPlayer *player) = 0;
 };
 
 class TrustAI: public AI{
@@ -48,10 +49,6 @@ public:
 	virtual bool askForSkillInvoke(const char *skill_name, const QVariant &data) ;
 	virtual QString askForChoice(const char *skill_name, const char *choices);
 	virtual QList<int> askForDiscard(const char *reason, int discard_num, bool optional, bool include_equip) ;
-    virtual const Card *askForCover(const CardEffectStruct &effect);
-    virtual const Card *askForRebound(const DamageStruct &damage);
-    virtual const Card *askForRob(const DamageStruct &damage);
-    virtual const Card *askForSuddenStrike(ServerPlayer *player);
 	virtual const Card *askForNullification(const TrickCard *trick, ServerPlayer *from, ServerPlayer *to, bool positive);
 	virtual int askForCardChosen(ServerPlayer *who, const char *flags, const char *reason) ;
 	virtual const Card *askForCard(const char *pattern, const char *prompt, const QVariant &data) ;
@@ -63,6 +60,11 @@ public:
 	virtual const Card *askForSinglePeach(ServerPlayer *dying) ;
 
 	virtual bool useCard(const Card *card);
+	
+    virtual const Card *askForCover(const CardEffectStruct &effect);
+    virtual const Card *askForRebound(const DamageStruct &damage);
+    virtual const Card *askForRob(const DamageStruct &damage);
+    virtual const Card *askForSuddenStrike(ServerPlayer *player);
 };
 
 class LuaAI: public TrustAI{
@@ -73,10 +75,6 @@ public:
 	virtual bool askForSkillInvoke(const char *skill_name, const QVariant &data);
 	virtual void activate(CardUseStruct &card_use);
 	virtual QList<int> askForDiscard(const char *reason, int discard_num, bool optional, bool include_equip) ;
-    virtual const Card *askForCover(const CardEffectStruct &effect);
-    virtual const Card *askForRebound(const DamageStruct &damage);
-    virtual const Card *askForRob(const DamageStruct &damage);
-    virtual const Card *askForSuddenStrike(ServerPlayer *player);
 	virtual QString askForChoice(const char *skill_name, const char *choices);
 	virtual int askForCardChosen(ServerPlayer *who, const char *flags, const char *reason);
 	virtual ServerPlayer *askForPlayerChosen(const QList<ServerPlayer *> &targets, const char *reason) ;
@@ -304,102 +302,6 @@ ServerPlayer *LuaAI::askForPlayerChosen(const QList<ServerPlayer *> &targets, co
 	}
 }
 
-const Card *LuaAI::askForCover(const CardEffectStruct &effect){
-	lua_State *L = room->getLuaState();
-
-	pushCallback(L, __func__);
-	SWIG_NewPointerObj(L, &effect, SWIGTYPE_p_CardEffectStruct, 0);
-
-	int error = lua_pcall(L, 2, 1, 0);
-	if(error){
-		const char *error_msg = lua_tostring(L, -1);
-		lua_pop(L, 1);
-		room->output(error_msg);
-
-		return TrustAI::askForCover(effect);
-	}
-
-	void *card_ptr;
-	int result = SWIG_ConvertPtr(L, -1, &card_ptr, SWIGTYPE_p_Card, 0);
-	lua_pop(L, 1);
-	if(SWIG_IsOK(result))
-		return static_cast<const Card *>(card_ptr);
-	else
-		return TrustAI::askForCover(effect);
-}
-
-const Card *LuaAI::askForRebound(const DamageStruct &damage){
-	lua_State *L = room->getLuaState();
-
-	pushCallback(L, __func__);
-	SWIG_NewPointerObj(L, &damage, SWIGTYPE_p_DamageStruct, 0);
-
-	int error = lua_pcall(L, 2, 1, 0);
-	if(error){
-		const char *error_msg = lua_tostring(L, -1);
-		lua_pop(L, 1);
-		room->output(error_msg);
-
-		return TrustAI::askForRebound(damage);
-	}
-
-	void *card_ptr;
-	int result = SWIG_ConvertPtr(L, -1, &card_ptr, SWIGTYPE_p_Card, 0);
-	lua_pop(L, 1);
-	if(SWIG_IsOK(result))
-		return static_cast<const Card *>(card_ptr);
-	else
-		return TrustAI::askForRebound(damage);
-}
-
-const Card *LuaAI::askForRob(const DamageStruct &damage){
-	lua_State *L = room->getLuaState();
-
-	pushCallback(L, __func__);
-	SWIG_NewPointerObj(L, &damage, SWIGTYPE_p_DamageStruct, 0);
-
-	int error = lua_pcall(L, 2, 1, 0);
-	if(error){
-		const char *error_msg = lua_tostring(L, -1);
-		lua_pop(L, 1);
-		room->output(error_msg);
-
-		return TrustAI::askForRob(damage);
-	}
-
-	void *card_ptr;
-	int result = SWIG_ConvertPtr(L, -1, &card_ptr, SWIGTYPE_p_Card, 0);
-	lua_pop(L, 1);
-	if(SWIG_IsOK(result))
-		return static_cast<const Card *>(card_ptr);
-	else
-		return TrustAI::askForRob(damage);
-}
-
-const Card *LuaAI::askForSuddenStrike(ServerPlayer *player){
-	lua_State *L = room->getLuaState();
-
-	pushCallback(L, __func__);
-	SWIG_NewPointerObj(L, player, SWIGTYPE_p_ServerPlayer, 0);
-
-	int error = lua_pcall(L, 2, 1, 0);
-	if(error){
-		const char *error_msg = lua_tostring(L, -1);
-		lua_pop(L, 1);
-		room->output(error_msg);
-
-		return TrustAI::askForSuddenStrike(player);
-	}
-
-	void *card_ptr;
-	int result = SWIG_ConvertPtr(L, -1, &card_ptr, SWIGTYPE_p_Card, 0);
-	lua_pop(L, 1);
-	if(SWIG_IsOK(result))
-		return static_cast<const Card *>(card_ptr);
-	else
-		return TrustAI::askForSuddenStrike(player);
-}
-
 const Card *LuaAI::askForNullification(const TrickCard *trick, ServerPlayer *from, ServerPlayer *to, bool positive){
 	lua_State *L = room->getLuaState();
 
@@ -519,6 +421,102 @@ Card::Suit LuaAI::askForSuit(const QString &reason){
 	}
 
     return TrustAI::askForSuit(reason);
+}
+
+const Card *LuaAI::askForCover(const CardEffectStruct &effect){
+	lua_State *L = room->getLuaState();
+
+	pushCallback(L, __func__);
+	SWIG_NewPointerObj(L, &effect, SWIGTYPE_p_CardEffectStruct, 0);
+
+	int error = lua_pcall(L, 2, 1, 0);
+	if(error){
+		const char *error_msg = lua_tostring(L, -1);
+		lua_pop(L, 1);
+		room->output(error_msg);
+
+		return TrustAI::askForCover(effect);
+	}
+
+	void *card_ptr;
+	int result = SWIG_ConvertPtr(L, -1, &card_ptr, SWIGTYPE_p_Card, 0);
+	lua_pop(L, 1);
+	if(SWIG_IsOK(result))
+		return static_cast<const Card *>(card_ptr);
+	else
+		return TrustAI::askForCover(effect);
+}
+
+const Card *LuaAI::askForRebound(const DamageStruct &damage){
+	lua_State *L = room->getLuaState();
+
+	pushCallback(L, __func__);
+	SWIG_NewPointerObj(L, &damage, SWIGTYPE_p_DamageStruct, 0);
+
+	int error = lua_pcall(L, 2, 1, 0);
+	if(error){
+		const char *error_msg = lua_tostring(L, -1);
+		lua_pop(L, 1);
+		room->output(error_msg);
+
+		return TrustAI::askForRebound(damage);
+	}
+
+	void *card_ptr;
+	int result = SWIG_ConvertPtr(L, -1, &card_ptr, SWIGTYPE_p_Card, 0);
+	lua_pop(L, 1);
+	if(SWIG_IsOK(result))
+		return static_cast<const Card *>(card_ptr);
+	else
+		return TrustAI::askForRebound(damage);
+}
+
+const Card *LuaAI::askForRob(const DamageStruct &damage){
+	lua_State *L = room->getLuaState();
+
+	pushCallback(L, __func__);
+	SWIG_NewPointerObj(L, &damage, SWIGTYPE_p_DamageStruct, 0);
+
+	int error = lua_pcall(L, 2, 1, 0);
+	if(error){
+		const char *error_msg = lua_tostring(L, -1);
+		lua_pop(L, 1);
+		room->output(error_msg);
+
+		return TrustAI::askForRob(damage);
+	}
+
+	void *card_ptr;
+	int result = SWIG_ConvertPtr(L, -1, &card_ptr, SWIGTYPE_p_Card, 0);
+	lua_pop(L, 1);
+	if(SWIG_IsOK(result))
+		return static_cast<const Card *>(card_ptr);
+	else
+		return TrustAI::askForRob(damage);
+}
+
+const Card *LuaAI::askForSuddenStrike(ServerPlayer *player){
+	lua_State *L = room->getLuaState();
+
+	pushCallback(L, __func__);
+	SWIG_NewPointerObj(L, player, SWIGTYPE_p_ServerPlayer, 0);
+
+	int error = lua_pcall(L, 2, 1, 0);
+	if(error){
+		const char *error_msg = lua_tostring(L, -1);
+		lua_pop(L, 1);
+		room->output(error_msg);
+
+		return TrustAI::askForSuddenStrike(player);
+	}
+
+	void *card_ptr;
+	int result = SWIG_ConvertPtr(L, -1, &card_ptr, SWIGTYPE_p_Card, 0);
+	lua_pop(L, 1);
+	if(SWIG_IsOK(result))
+		return static_cast<const Card *>(card_ptr);
+	else
+		return TrustAI::askForSuddenStrike(player);
 }
 
 %}

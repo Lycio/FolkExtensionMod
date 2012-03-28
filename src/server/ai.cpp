@@ -260,50 +260,6 @@ QList<int> TrustAI::askForDiscard(const QString &reason, int discard_num, bool o
         return self->forceToDiscard(discard_num, include_equip);
 }
 
-const Card *TrustAI::askForCover(const CardEffectStruct &effect){
-    if(self != effect.to && isFriend(effect.to) && (!self->getArmor() || self->getArmor()->objectName() != "jiaoliao")){
-        QList<const Card *> cards = self->getHandcards();
-        foreach(const Card *card, cards){
-            if(card->objectName() == "cover")
-                return card;
-        }
-    }
-    return NULL;
-}
-
-const Card *TrustAI::askForRebound(const DamageStruct &damage){
-    if(self == damage.to && !isFriend(damage.from)){
-        QList<const Card *> cards = self->getHandcards();
-        foreach(const Card *card, cards){
-            if(card->objectName() == "rebound")
-                return card;
-        }
-    }
-    return NULL;
-}
-
-const Card *TrustAI::askForSuddenStrike(ServerPlayer *player){
-    if(self != player && !isFriend(player)){
-        QList<const Card *> cards = self->getHandcards();
-        foreach(const Card *card, cards){
-            if(card->objectName() == "sudden_strike")
-                return card;
-        }
-    }
-    return NULL;
-}
-
-const Card *TrustAI::askForRob(const DamageStruct &damage){
-    if(self != damage.to && !isFriend(damage.to)){
-        QList<const Card *> cards = self->getHandcards();
-        foreach(const Card *card, cards){
-            if(card->objectName() == "rob")
-                return card;
-        }
-    }
-    return NULL;
-}
-
 const Card *TrustAI::askForNullification(const TrickCard *trick, ServerPlayer *, ServerPlayer *to, bool positive){
     if(self == to && trick->isAggressive() && positive){
         QList<const Card *> cards = self->getHandcards();
@@ -389,7 +345,7 @@ const Card *TrustAI::askForSinglePeach(ServerPlayer *dying) {
     if(isFriend(dying)){
         QList<const Card *> cards = self->getHandcards();
         foreach(const Card *card, cards){
-            if(card->inherits("Peach") && card->isRed())
+            if(card->inherits("Peach"))
                 return card;
 
             if(card->inherits("Analeptic") && dying == self)
@@ -426,12 +382,6 @@ const Card *TrustAI::askForSinglePeach(ServerPlayer *dying) {
                 }
             }
         }
-    }else if(!isFriend(dying) && dying != self){
-        QList<const Card *> cards = self->getHandcards();
-        foreach(const Card *card, cards){
-            if(card->inherits("PoisonPeach"))
-                return card;
-        }
     }
 
     return NULL;
@@ -447,6 +397,51 @@ void TrustAI::askForGuanxing(const QList<int> &cards, QList<int> &up, QList<int>
 
     up = cards;
     bottom.clear();
+}
+
+// Disha
+const Card *TrustAI::askForCover(const CardEffectStruct &effect){
+    if(self != effect.to && isFriend(effect.to) && (!self->getArmor() || self->getArmor()->objectName() != "jiaoliao")){
+        QList<const Card *> cards = self->getHandcards();
+        foreach(const Card *card, cards){
+            if(card->objectName() == "cover")
+                return card;
+        }
+    }
+    return NULL;
+}
+
+const Card *TrustAI::askForRebound(const DamageStruct &damage){
+    if(self == damage.to && !isFriend(damage.from)){
+        QList<const Card *> cards = self->getHandcards();
+        foreach(const Card *card, cards){
+            if(card->objectName() == "rebound")
+                return card;
+        }
+    }
+    return NULL;
+}
+
+const Card *TrustAI::askForSuddenStrike(ServerPlayer *player){
+    if(self != player && !isFriend(player)){
+        QList<const Card *> cards = self->getHandcards();
+        foreach(const Card *card, cards){
+            if(card->objectName() == "sudden_strike")
+                return card;
+        }
+    }
+    return NULL;
+}
+
+const Card *TrustAI::askForRob(const DamageStruct &damage){
+    if(self != damage.to && !isFriend(damage.to)){
+        QList<const Card *> cards = self->getHandcards();
+        foreach(const Card *card, cards){
+            if(card->objectName() == "rob")
+                return card;
+        }
+    }
+    return NULL;
 }
 
 LuaAI::LuaAI(ServerPlayer *player)

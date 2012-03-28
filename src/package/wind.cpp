@@ -82,7 +82,7 @@ public:
     }
 
     virtual bool isEnabledAtResponse(const Player *player, const QString &pattern) const{
-        return  pattern == "@guidao";
+        return pattern == "@guidao";
     }
 
     virtual bool viewFilter(const CardItem *to_select) const{
@@ -131,10 +131,8 @@ public:
 
         QStringList prompt_list;
         prompt_list << "@guidao-card" << judge->who->objectName()
-                << "" << judge->reason << judge->card->getEffectIdString();
+                << objectName() << judge->reason << judge->card->getEffectIdString();
         QString prompt = prompt_list.join(":");
-
-        player->tag["Judge"] = data;
         const Card *card = room->askForCard(player, "@guidao", prompt, data);
 
         if(card){
@@ -618,7 +616,7 @@ public:
     }
 
     virtual bool isEnabledAtResponse(const Player *player, const QString &pattern) const{
-        return  pattern == "@tianxiang";
+        return pattern == "@@tianxiang";
     }
 
     virtual bool viewFilter(const CardItem *to_select) const{
@@ -651,7 +649,7 @@ public:
             Room *room = xiaoqiao->getRoom();
 
             xiaoqiao->tag["TianxiangDamage"] = QVariant::fromValue(damage);
-            if(room->askForUseCard(xiaoqiao, "@tianxiang", "@@tianxiang-card"))
+            if(room->askForUseCard(xiaoqiao, "@@tianxiang", "@tianxiang-card"))
                 return true;
         }
 
@@ -663,7 +661,7 @@ GuhuoCard::GuhuoCard(){
     mute = true;
 }
 
-bool GuhuoCard::guhuo(ServerPlayer *yuji) const{
+bool GuhuoCard::guhuo(ServerPlayer* yuji, const QString& message) const{
     Room *room = yuji->getRoom();
     room->setTag("Guhuoing", true);
 
@@ -686,6 +684,8 @@ bool GuhuoCard::guhuo(ServerPlayer *yuji) const{
             continue;
         }
 
+        if(player->getState()=="online")
+            player->invoke("log", message);
         QString choice = room->askForChoice(player, "guhuo", "question+noquestion");
         if(choice == "question"){
             room->setEmotion(player, "question");
@@ -754,7 +754,7 @@ GuhuoDialog *GuhuoDialog::GetInstance(){
 
 GuhuoDialog::GuhuoDialog()
 {
-    setWindowTitle(tr("Guhuo"));
+    setWindowTitle(Sanguosha->translate("guhuo"));
 
     group = new QButtonGroup(this);
 
@@ -788,7 +788,7 @@ void GuhuoDialog::selectCard(QAbstractButton *button){
 
 QGroupBox *GuhuoDialog::createLeft(){
     QGroupBox *box = new QGroupBox;
-    box->setTitle(tr("Basic cards"));
+    box->setTitle(Sanguosha->translate("basic"));
 
     QVBoxLayout *layout = new QVBoxLayout;
 
@@ -809,13 +809,13 @@ QGroupBox *GuhuoDialog::createLeft(){
 }
 
 QGroupBox *GuhuoDialog::createRight(){
-    QGroupBox *box = new QGroupBox(tr("Non delayed tricks"));
+    QGroupBox *box = new QGroupBox(Sanguosha->translate("ndtrick"));
     QHBoxLayout *layout = new QHBoxLayout;
 
-    QGroupBox *box1 = new QGroupBox(tr("Single target"));
+    QGroupBox *box1 = new QGroupBox(Sanguosha->translate("single_target"));
     QVBoxLayout *layout1 = new QVBoxLayout;
 
-    QGroupBox *box2 = new QGroupBox(tr("Multiple targets"));
+    QGroupBox *box2 = new QGroupBox(Sanguosha->translate("multiple_targets"));
     QVBoxLayout *layout2 = new QVBoxLayout;
 
 
@@ -881,10 +881,11 @@ const Card *GuhuoCard::validate(const CardUseStruct *card_use) const{
     log.from = card_use->from;
     log.to = card_use->to;
     log.arg = user_string;
+    log.arg2 = "guhuo";
 
     room->sendLog(log);
 
-    if(guhuo(card_use->from)){
+    if(guhuo(card_use->from, log.toString())){
         const Card *card = Sanguosha->getCard(subcards.first());
         Card *use_card = Sanguosha->cloneCard(user_string, card->getSuit(), card->getNumber());
         use_card->setSkillName("guhuo");
@@ -911,9 +912,10 @@ const Card *GuhuoCard::validateInResposing(ServerPlayer *yuji, bool *continuable
     log.type = "#GuhuoNoTarget";
     log.from = yuji;
     log.arg = to_guhuo;
+    log.arg2 = "guhuo";
     room->sendLog(log);
 
-    if(guhuo(yuji)){
+    if(guhuo(yuji,log.toString())){
         const Card *card = Sanguosha->getCard(subcards.first());
         Card *use_card = Sanguosha->cloneCard(to_guhuo, card->getSuit(), card->getNumber());
         use_card->setSkillName("guhuo");
@@ -961,6 +963,10 @@ public:
     virtual QDialog *getDialog() const{
         return GuhuoDialog::GetInstance();
     }
+
+    virtual int getEffectIndex(const ServerPlayer *, const Card *) const{
+        return 0;
+    }
 };
 
 WindPackage::WindPackage()
@@ -979,7 +985,6 @@ WindPackage::WindPackage()
 
     weiyan = new General(this, "weiyan", "shu");
     weiyan->addSkill(new Kuanggu);
-    //weiyan->addSkill(new SPConvertSkill("bianshen", "weiyan", "diyweiyan", true));
 
     zhangjiao = new General(this, "zhangjiao$", "qun", 3);
     zhangjiao->addSkill(new Guidao);

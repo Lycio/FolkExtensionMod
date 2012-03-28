@@ -26,7 +26,7 @@
     </rect>
    </property>
    <property name="currentIndex">
-    <number>1</number>
+    <number>0</number>
    </property>
    <widget class="QWidget" name="envTab">
     <attribute name="title">
@@ -148,7 +148,7 @@
        <rect>
         <x>10</x>
         <y>130</y>
-        <width>411</width>
+        <width>311</width>
         <height>21</height>
        </rect>
       </property>
@@ -183,7 +183,7 @@
        <rect>
         <x>10</x>
         <y>160</y>
-        <width>411</width>
+        <width>311</width>
         <height>21</height>
        </rect>
       </property>
@@ -208,6 +208,32 @@
          </property>
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="verticalLayoutWidget">
+      <property name="geometry">
+       <rect>
+        <x>330</x>
+        <y>120</y>
+        <width>101</width>
+        <height>62</height>
+       </rect>
+      </property>
+      <layout class="QVBoxLayout" name="EditionVLayout">
+       <item>
+        <widget class="QRadioButton" name="qsanguoshaRdo">
+         <property name="text">
+          <string>QSanguosha</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QRadioButton" name="sanguoshaolRdo">
+         <property name="text">
+          <string>SanguoshaOL</string>
          </property>
         </widget>
        </item>

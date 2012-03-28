@@ -138,15 +138,16 @@ void Dashboard::setActionState(){
 
 void Dashboard::setFilter(const FilterSkill *filter){
     this->filter = filter;
-
-    //if(filter == NULL){
-        foreach(CardItem *card_item, card_items)
-            card_item->filter(filter);
-    //}
+    doFilter();
 }
 
 const FilterSkill *Dashboard::getFilter() const{
     return filter;
+}
+
+void Dashboard::doFilter(){
+    foreach(CardItem *card_item, card_items)
+        card_item->filter(filter);
 }
 
 void Dashboard::setTrust(bool trust){
@@ -796,6 +797,8 @@ void Dashboard::enableCards(){
     foreach(CardItem *card_item, card_items){
         if(Self->isJilei(card_item->getFilteredCard()))
             card_item->setEnabled(false);
+        else if(Self->isLocked(card_item->getFilteredCard()))
+            card_item->setEnabled(false);
         else
             card_item->setEnabled(card_item->getFilteredCard()->isAvailable(Self));
     }
@@ -871,7 +874,7 @@ void Dashboard::onCardItemClicked(){
 
 void Dashboard::updatePending(){
     foreach(CardItem *c, card_items){
-        if(!c->isPending()){
+        if(!c->isPending()||pendings.isEmpty()){
             c->setEnabled(view_as_skill->viewFilter(pendings, c));
         }
     }

@@ -51,16 +51,18 @@ void Settings::init(){
 
     if(!contains("BanPackages")){
         QStringList banlist;
-        banlist << "nostalgia" << "yitian" << "wisdom" << "test" << "Special3v3"
-                << "QHS" << "YJ1st" << "Ghost" << "Huangjin" << "ChangbanSlope" << "TBdiy" << "DishaCard"
-                << "disaster" << "god" << "YJCM" << "yitian_cards"
-                << "sp" << "sp_cards"
-                << "joy" << "joy_equip";
+        banlist << "nostalgia" << "yitian" << "wisdom" << "test"
+                << "disaster" << "god" << "YJCM" << "yitian_cards" << "YJCM2012"
+                << "sp" << "sp_cards" << "BGM"
+                << "joy" << "joy_equip"
+                << "QHS" << "YJ1st" << "ghost" << "huangjin"  << "TBdiy" << "Yan"
+                << "ChangbanSlope" << "DishaCard" ;
 
         setValue("BanPackages", banlist);
     }
 
     BanPackages = value("BanPackages").toStringList();
+    BanPackages << "Special3v3";
 
     ContestMode = value("ContestMode", false).toBool();
     FreeChoose = value("FreeChoose", false).toBool();
@@ -107,10 +109,13 @@ void Settings::init(){
     EnableBgMusic = value("EnableBgMusic", true).toBool();
     BGMVolume = value("BGMVolume", 1.0f).toFloat();
     EffectVolume = value("EffectVolume", 1.0f).toFloat();
+    EffectEdition = value("EffectEdition", "qsanguosha/").toString();
 
     BackgroundBrush = value("BackgroundBrush", "backdrop/new-version.jpg").toString();
 
-    QStringList kof_ban, basara_ban, hegemony_ban, pairs_ban;
+    QStringList roles_ban, kof_ban, basara_ban, hegemony_ban, pairs_ban;
+
+    roles_ban << "zhugejin";
 
     kof_ban << "sunquan" << "huatuo" << "zhangliao" << "liubei";
 
@@ -144,7 +149,14 @@ void Settings::init(){
                 << "lukang+zhanggongqi" << "bgm_diaochan+caoren" << "bgm_diaochan+shenlubu"
                 << "bgm_diaochan+caizhaoji" << "caozhi+shenlubu" << "caoren+caozhi";
 
-    QStringList banlist = value("Banlist/1v1").toStringList();
+    QStringList banlist = value("Banlist/Roles").toStringList();
+    foreach(QString ban_general, roles_ban){
+        if(!banlist.contains(ban_general))
+            banlist << ban_general;
+    }
+    setValue("Banlist/Roles", banlist);
+
+    banlist = value("Banlist/1v1").toStringList();
     foreach(QString ban_general, kof_ban){
         if(!banlist.contains(ban_general))
             banlist << ban_general;

@@ -59,6 +59,10 @@ int Player::getMaxHP() const{
     return max_hp;
 }
 
+int Player::getMaxHp() const{
+    return getMaxHP();
+}
+
 void Player::setMaxHP(int max_hp){
     if(this->max_hp == max_hp)
         return;
@@ -68,6 +72,10 @@ void Player::setMaxHP(int max_hp){
         hp = max_hp;
 
     emit state_changed();
+}
+
+void Player::setMaxHp(int max_hp){
+    setMaxHP(max_hp);
 }
 
 int Player::getLostHp() const{
@@ -136,12 +144,14 @@ void Player::clearFlags(){
 }
 
 int Player::getAttackRange() const{
-    if(hasFlag("tianyi_success"))
+    if(hasFlag("tianyi_success") || hasFlag("jiangchi_invoke"))
         return 1000;
 
     if(weapon){
         if(weapon->objectName() == "luofeng_bow")
             return hp;
+        else if(weapon->objectName() == "tianlangh")
+            return qMax(getMark("@tianlang"), 1);
         else
             return weapon->getRange();
     }
@@ -460,9 +470,9 @@ void Player::setFaceUp(bool face_up){
 }
 
 int Player::getMaxCards() const{
-    int extra = 0;
+    int extra = 0, total = 0;
     if(Config.MaxHpScheme == 2 && general2){
-        int total = general->getMaxHp() + general2->getMaxHp();
+        total = general->getMaxHp() + general2->getMaxHp();
         if(total % 2 != 0)
             extra = 1;
     }
@@ -482,7 +492,21 @@ int Player::getMaxCards() const{
     if(hasSkill("shenwei"))
         shenwei = 2;
 
-    return qMax(hp,0) + extra + juejing + xueyi + shenwei;
+    int zongshi = 0;
+    if(hasSkill("zongshi")){
+        QSet<QString> kingdom_set ;
+        if(parent()){
+            foreach(const Player *player, parent()->findChildren<const Player *>()){
+                if(player->isAlive())
+                    kingdom_set << player->getKingdom();
+            }
+        }
+        zongshi = kingdom_set.size();
+    }
+
+    total = qMax(hp,0) + extra + juejing + xueyi + shenwei + zongshi;
+
+    return total;
 }
 
 QString Player::getKingdom() const{
@@ -648,11 +672,10 @@ void Player::addHistory(const QString &name, int times){
 
 int Player::getSlashCount() const{
     return history.value("Slash", 0)
-            + history.value("ThunderSlash", 0)
             + history.value("PunctureSlash", 0)
             + history.value("BloodSlash", 0)
-            + history.value("FireSlash", 0)
-            + history.value("WindSlash", 0);
+            + history.value("ThunderSlash", 0)
+            + history.value("FireSlash", 0);
 }
 
 void Player::clearHistory(){
@@ -714,11 +737,11 @@ bool Player::isProhibited(const Player *to, const Card *card) const{
 }
 
 bool Player::canSlashWithoutCrossbow() const{
-    if(hasSkill("paoxiao"))
+    if(hasSkill("paoxiao") || getMark("@tianlang") == 5)
         return true;
 
     int slash_count = getSlashCount();
-    if(hasFlag("tianyi_success"))
+    if(hasFlag("tianyi_success") || hasFlag("jiangchi_invoke"))
         return slash_count < 2;
     else
         return slash_count < 1;
@@ -746,25 +769,57 @@ bool Player::isJilei(const Card *card) const{
             const Card *c = Sanguosha->getCard(card_id);
             foreach(QString pattern, jilei_set.toList()){
                 ExpPattern p(pattern);
-                if(p.match(this,c)) return true;
+                if(p.match(this,c) && !hasEquip(c)) return true;
             }
         }
     }
     else{
-        foreach(QString pattern, jilei_set.toList()){
-            ExpPattern p(pattern);
-            if(p.match(this,card)) return true;
-        }
-        foreach(int card_id, card->getSubcards()){
-            const Card *c = Sanguosha->getCard(card_id);
+        if(card->getSubcards().isEmpty())
             foreach(QString pattern, jilei_set.toList()){
                 ExpPattern p(pattern);
-                if(p.match(this,c)) return true;
+                if(p.match(this,card)) return true;
+            }
+        else{
+            foreach(int card_id, card->getSubcards()){
+                const Card *c = Sanguosha->getCard(card_id);
+                foreach(QString pattern, jilei_set.toList()){
+                    ExpPattern p(pattern);
+                    if(p.match(this,card) && !hasEquip(c)) return true;
+                }
             }
         }
     }
 
     return false;
+}
+
+void Player::setCardLocked(const QString &name){
+    static QChar unset_symbol('-');
+    if(name.isEmpty())
+        return;
+    else if(name == ".")
+        lock_card.clear();
+    else if(name.startsWith(unset_symbol)){
+        QString copy = name;
+        copy.remove(unset_symbol);
+        lock_card.remove(copy);
+    }
+    else if(!lock_card.contains(name))
+        lock_card << name;
+}
+
+bool Player::isLocked(const Card *card) const{
+    foreach(QString card_name, lock_card){
+        if(card->inherits(card_name.toStdString().c_str())){
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool Player::hasCardLock(const QString &card_str) const{
+    return lock_card.contains(card_str);
 }
 
 bool Player::isCaoCao() const{

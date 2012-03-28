@@ -22,21 +22,31 @@ Room *ServerPlayer::getRoom() const{
     return room;
 }
 
-void ServerPlayer::playCardEffect(const Card *card){
-    if(card->isVirtualCard() && !card->isMute()){
-        QString skill_name = card->getSkillName();
-        const Skill *skill = Sanguosha->getSkill(skill_name);
-        int index = -1;
-        if(skill){
-            if(skill->useCardSoundEffect()){
-                room->playCardEffect(card->objectName(), getGeneral()->isMale());
-                return;
-            }
-            index = skill->getEffectIndex(this, card);
-        }
+void ServerPlayer::playCardEffect(const QString &card_name) const{
+    QString gender = getGender() == General::Male ? "M" : "F";
+    room->broadcastInvoke("playCardEffect", QString("%1:%2").arg(card_name).arg(gender));
+}
+
+void ServerPlayer::playCardEffect(const Card *card) const{
+    if(card->isMute())
+        return;
+
+    if(!card->isVirtualCard())
+        playCardEffect(card->objectName());
+
+    QString skill_name = card->getSkillName();
+    const Skill *skill = Sanguosha->getSkill(skill_name);
+    if(skill == NULL)
+        return;
+
+    int index = skill->getEffectIndex(this, card);
+    if(index == 0)
+        return;
+
+    if(index == -1 && skill->getSources().isEmpty())
+        playCardEffect(card->objectName());
+    else
         room->playSkillEffect(skill_name, index);
-    }else
-        room->playCardEffect(card->objectName(), getGeneral()->isMale());
 }
 
 int ServerPlayer::getRandomHandCardId() const{
@@ -418,38 +428,6 @@ DummyCard *ServerPlayer::wholeHandCards() const{
     return dummy_card;
 }
 
-bool ServerPlayer::hasCover() const{
-    foreach(const Card *card, handcards){
-        if(card->objectName() == "cover")
-            return true;
-    }
-    return false;
-}
-
-bool ServerPlayer::hasRebound() const{
-    foreach(const Card *card, handcards){
-        if(card->objectName() == "rebound")
-            return true;
-    }
-    return false;
-}
-
-bool ServerPlayer::hasSuddenStrike() const{
-    foreach(const Card *card, handcards){
-        if(card->objectName() == "sudden_strike")
-            return true;
-    }
-    return false;
-}
-
-bool ServerPlayer::hasRob() const{
-    foreach(const Card *card, handcards){
-        if(card->objectName() == "rob")
-            return true;
-    }
-    return false;
-}
-
 bool ServerPlayer::hasNullification() const{
     if(hasSkill("kanpo")){
         foreach(const Card *card, handcards){
@@ -575,30 +553,14 @@ void ServerPlayer::turnOver(){
     room->getThread()->trigger(TurnedOver, this);
 }
 
-void ServerPlayer::play(){
-    static QList<Phase> all_phases;
-    if(all_phases.isEmpty()){
-        all_phases << Start << Judge << Draw << Play
+void ServerPlayer::play(QList<Player::Phase> set_phases){
+    if(!set_phases.isEmpty()){
+        if(!set_phases.contains(NotActive))
+            set_phases << NotActive;
+    }
+    else
+        set_phases << Start << Judge << Draw << Play
                 << Discard << Finish << NotActive;
-    }
-
-    phases = all_phases;
-    while(!phases.isEmpty()){
-        Phase phase = phases.takeFirst();
-        setPhase(phase);
-        room->broadcastProperty(this, "phase");
-        room->getThread()->trigger(PhaseChange, this);
-
-        if(isDead() && phase != NotActive){
-            phases.clear();
-            phases << NotActive;
-        }
-    }
-}
-
-void ServerPlayer::play(QList<Player::Phase> &set_phases){
-    if(!set_phases.contains(NotActive))
-        set_phases << NotActive;
 
     phases = set_phases;
     while(!phases.isEmpty()){
@@ -636,6 +598,14 @@ void ServerPlayer::skip(Player::Phase phase){
     room->sendLog(log);
 }
 
+void ServerPlayer::skip(){
+    phases.clear();
+
+    LogMessage log;
+    log.type = "#SkipAllPhase";
+    log.from = this;
+    room->sendLog(log);
+}
 
 void ServerPlayer::gainMark(const QString &mark, int n){
     int value = getMark(mark) + n;
@@ -743,6 +713,9 @@ int ServerPlayer::getGeneralMaxHP() const{
     return max_hp;
 }
 
+int ServerPlayer::getGeneralMaxHp() const{
+    return getGeneralMaxHP();
+}
 QString ServerPlayer::getGameMode() const{
     return room->getMode();
 }
@@ -861,11 +834,13 @@ void ServerPlayer::addToPile(const QString &pile_name, int card_id, bool open){
     room->moveCardTo(Sanguosha->getCard(card_id), this, Player::Special, open);
 }
 
-void ServerPlayer::gainAnExtraTurn(){
+void ServerPlayer::gainAnExtraTurn(ServerPlayer *clearflag){
     ServerPlayer *current = room->getCurrent();
 
     room->setCurrent(this);
     room->removeTag("Zhichi");
+    if(clearflag)
+        clearflag->clearFlags();
     room->getThread()->trigger(TurnStart, this);
     room->setCurrent(current);
 }
@@ -881,4 +856,64 @@ void ServerPlayer::copyFrom(ServerPlayer* sp)
 
     Player* c = b;
     c->copyFrom(a);
+}
+
+// Disha
+bool ServerPlayer::hasCover() const{
+    if(hasSkill("yanyanhu")){
+        bool has_redcard = false;
+        foreach(const Card *card, getCards("he")){
+            if(card->getSuit() == Card::Heart)
+                has_redcard = true;
+        }
+        return has_redcard;
+    }
+
+    foreach(const Card *card, handcards){
+        if(card->objectName() == "cover")
+            return true;
+    }
+    return false;
+}
+
+bool ServerPlayer::hasRebound() const{
+    foreach(const Card *card, handcards){
+        if(card->objectName() == "rebound")
+            return true;
+    }
+    return false;
+}
+
+bool ServerPlayer::hasSuddenStrike() const{
+    if(hasSkill("yanxianfeng")){
+        bool has_redcard = false;
+        foreach(const Card *card, getCards("h")){
+            if(card->getSuit() == Card::Heart)
+                has_redcard = true;
+        }
+        return has_redcard;
+    }
+
+    foreach(const Card *card, handcards){
+        if(card->objectName() == "sudden_strike")
+            return true;
+    }
+    return false;
+}
+
+bool ServerPlayer::hasRob() const{
+    if(hasSkill("yanjiefu")){
+        bool has_blackcard = false;
+        foreach(const Card *card, getCards("h")){
+            if(card->isBlack())
+                has_blackcard = true;
+        }
+        return has_blackcard;
+    }
+
+    foreach(const Card *card, handcards){
+        if(card->objectName() == "rob")
+            return true;
+    }
+    return false;
 }

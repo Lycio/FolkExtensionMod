@@ -4,79 +4,34 @@
 #include "clientplayer.h"
 #include "carditem.h"
 #include "engine.h"
-
-HongyuanCard::HongyuanCard(){
-
-}
-
-bool HongyuanCard::targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const{
-    if(to_select == Self)
-        return false;
-    return targets.length() < 2;
-}
-
-void HongyuanCard::onEffect(const CardEffectStruct &effect) const{
-    effect.to->drawCards(1);
-}
-
-class HongyuanViewAsSkill: public ZeroCardViewAsSkill{
-public:
-    HongyuanViewAsSkill():ZeroCardViewAsSkill("hongyuan"){
-    }
-
-    virtual const Card *viewAs() const{
-        return new HongyuanCard;
-    }
-
-protected:
-    virtual bool isEnabledAtPlay(const Player *player) const{
-        return false;
-    }
-
-    virtual bool isEnabledAtResponse(const Player *player, const QString &pattern) const{
-        return  pattern == "@@hongyuan";
-    }
-};
+#include "ai.h"
 
 class Hongyuan:public DrawCardsSkill{
 public:
     Hongyuan():DrawCardsSkill("hongyuan"){
-        frequency = NotFrequent;
-        view_as_skill = new HongyuanViewAsSkill;
+
     }
 
     QList<ServerPlayer *> getTeammates(ServerPlayer *zhugejin) const{
         Room *room = zhugejin->getRoom();
-        QStringList warm, cool, team;
-        warm << "lord" << "loyalist" ;
-        cool << "renegade"  << "rebel" ;
-        QString player_role = zhugejin->getRole();
-        if(warm.contains(player_role)){
-            team = warm;
-        }else
-            team = cool;
+
         QList<ServerPlayer *> teammates;
-        foreach(QString role, team){
-            foreach(ServerPlayer *teammate, room->getAllPlayers()){
-                if(teammate->getRole() == role)
-                    teammates << teammate;
-            }
+        foreach(ServerPlayer *other, room->getOtherPlayers(zhugejin)){
+            if(AI::GetRelation3v3(zhugejin, other) == AI::Friend)
+                teammates << other;
         }
         return teammates;
     }
 
     virtual int getDrawNum(ServerPlayer *zhugejin, int n) const{
-        Room *room = zhugejin->getRoom();
+        Room *room = zhugejin->getRoom();        
+        if(ServerInfo.GameMode != "06_3v3")
+            return n;
         if(room->askForSkillInvoke(zhugejin, objectName())){
             room->playSkillEffect(objectName());
-            if(ServerInfo.GameMode == "06_3v3"){
-                foreach(ServerPlayer *teammate, getTeammates(zhugejin)){
-                    if(teammate->objectName() != zhugejin->objectName())
-                        teammate->drawCards(1);
-                }
-            }else{
-                if(!room->askForUseCard(zhugejin, "@@hongyuan", "@hongyuan"))
-                    zhugejin->drawCards(1);
+            foreach(ServerPlayer *teammate, getTeammates(zhugejin)){
+                if(teammate->objectName() != zhugejin->objectName())
+                    teammate->drawCards(1);
             }
             return n - 1;
         }else
@@ -104,7 +59,7 @@ public:
     }
 
     virtual bool isEnabledAtResponse(const Player *player, const QString &pattern) const{
-        return  pattern == "@huanshi";
+        return pattern == "@huanshi";
     }
 
     virtual bool viewFilter(const CardItem *) const{
@@ -128,26 +83,6 @@ public:
         events << AskForRetrial;
     }
 
-    QList<ServerPlayer *> getTeammates(ServerPlayer *zhugejin) const{
-        Room *room = zhugejin->getRoom();
-        QStringList warm, cool, team;
-        warm << "lord" << "loyalist" ;
-        cool << "renegade"  << "rebel" ;
-        QString player_role = zhugejin->getRole();
-        if(warm.contains(player_role)){
-            team = warm;
-        }else
-            team = cool;
-        QList<ServerPlayer *> teammates;
-        foreach(QString role, team){
-            foreach(ServerPlayer *teammate, room->getAllPlayers()){
-                if(teammate->getRole() == role)
-                    teammates << teammate;
-            }
-        }
-        return teammates;
-    }
-
     virtual bool triggerable(const ServerPlayer *target) const{
         return TriggerSkill::triggerable(target) && !target->isKongcheng();
     }
@@ -155,23 +90,12 @@ public:
     virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
         Room *room = player->getRoom();
         JudgeStar judge = data.value<JudgeStar>();
-        bool can_invoke = false;
-        if(ServerInfo.GameMode == "06_3v3"){
-            foreach(ServerPlayer *teammate, getTeammates(player)){
-                if(teammate->objectName() == judge->who->objectName()){
-                    can_invoke = true;
-                    break;
-                }
-            }
-        }else
-            can_invoke = true;
-
-        if(!can_invoke)
+        if(ServerInfo.GameMode != "06_3v3" || AI::GetRelation3v3(player, judge->who) != AI::Friend)
             return false;
 
         QStringList prompt_list;
         prompt_list << "@huanshi-card" << judge->who->objectName()
-                << "" << judge->reason << judge->card->getEffectIdString();
+                << objectName() << judge->reason << judge->card->getEffectIdString();
         QString prompt = prompt_list.join(":");
 
         player->tag["Judge"] = data;
@@ -206,7 +130,7 @@ public:
     }
 
     virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
-        if(player->getPhase() != Player::NotActive)
+        if(ServerInfo.GameMode != "06_3v3" || player->getPhase() != Player::NotActive)
             return false;
         bool can_invoke = false;
         int n = 0;
@@ -250,7 +174,6 @@ Special3v3Package::Special3v3Package():Package("Special3v3")
     zhugejin->addSkill(new Huanshi);
     zhugejin->addSkill(new Mingzhe);
 
-    addMetaObject<HongyuanCard>();
     addMetaObject<HuanshiCard>();
 }
 

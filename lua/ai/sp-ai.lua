@@ -11,14 +11,15 @@ sgs.ai_skill_invoke.sp_moonspear = function(self, data)
 end
 
 sgs.ai_skill_playerchosen.sp_moonspear = sgs.ai_skill_playerchosen.zero_card_as_slash
+sgs.ai_playerchosen_intention.sp_moonspaer = 80
 
 function sgs.ai_slash_prohibit.weidi(self, to, card)
 	if to:isLord() then return false end
 	local lord = self.room:getLord()
 	for _, askill in sgs.qlist(lord:getVisibleSkillList()) do
-		if askill:objectName() ~= "weidi" then
+		if askill:objectName() ~= "weidi" and askill:isLordSkill() then
 			local filter = sgs.ai_slash_prohibit[askill:objectName()]
-			if to:hasLordSkill(askill:objectName()) and filter and type(filter) == "function" and filter(self, to, card) then return true end
+			if  type(filter) == "function" and filter(self, to, card) then return true end
 		end
 	end
 end

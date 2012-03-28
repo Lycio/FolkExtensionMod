@@ -936,6 +936,9 @@ const Card *DiyXiXueCard::validate(const CardUseStruct *card_use) const{
     Room *room = card_use->from->getRoom();
     room->playSkillEffect("diyxixue", qrand() %4 + 1);
     Card *use_card = Sanguosha->cloneCard(user_string, Card::NoSuit, 0);
+    foreach(int id, this->getSubcards()){
+        use_card->addSubcard(id);
+    }
     use_card->setSkillName("diyxixue");
     room->throwCard(this);
     return use_card;

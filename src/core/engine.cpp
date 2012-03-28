@@ -13,7 +13,6 @@
 #include <QStringList>
 #include <QMessageBox>
 #include <QDir>
-#include <QLibrary>
 #include <QApplication>
 
 Engine *Sanguosha = NULL;
@@ -22,40 +21,25 @@ extern "C" {
     int luaopen_sgs(lua_State *);
 }
 
-template<typename T>
-static inline T GetSymbol(QLibrary *lib, const char *name){
-    char buffer[255] = "New";
-    strcat(buffer, name);
-
-    void *func = lib->resolve(buffer);
-    return reinterpret_cast<T>(func);
-}
-
 void Engine::addPackage(const QString &name){
-    typedef Package * (*package_creator)();
-    package_creator creator = GetSymbol<package_creator>(lib, name.toAscii());
-
-    if(creator){
-        addPackage(creator());
-    }else
+    Package *pack = PackageAdder::packages()[name];
+    if(pack)
+        addPackage(pack);
+    else
         qWarning("Package %s cannot be loaded!", qPrintable(name));
 }
 
 void Engine::addScenario(const QString &name){
-    typedef Scenario * (*scenario_creator)();
-    scenario_creator creator = GetSymbol<scenario_creator>(lib, name.toAscii());
-
-    if(creator){
-        addScenario(creator());
-    }else
+    Scenario *scenario = ScenarioAdder::scenarios()[name];
+    if(scenario)
+        addScenario(scenario);
+    else
         qWarning("Scenario %s cannot be loaded!", qPrintable(name));
 }
 
 Engine::Engine()
 {
     Sanguosha = this;
-
-    lib = new QLibrary(qApp->applicationFilePath(), this);
 
     QStringList package_names;
     package_names << "Standard"
@@ -66,6 +50,7 @@ Engine::Engine()
                   << "God"
                   << "SP"
                   << "YJCM"
+                  << "YJCM2012"
                   << "Special3v3"
                   << "BGM"
                   << "Yitian"
@@ -75,6 +60,7 @@ Engine::Engine()
                   << "QHS"
                   << "YJ1st"
                   << "TBdiy"
+                  << "Yan"
                   << "ChangbanSlope"
                   << "Test"
 
@@ -87,25 +73,32 @@ Engine::Engine()
                   << "Joy"
                   << "Disaster"
                   << "JoyEquip"
-                  << "ChibiCard"
-                  << "DishaCard";
+                  << "DishaCard"
+                  //<< "ChibiCard"
+                  << "QHSEquip";
 
     foreach(QString name, package_names)
         addPackage(name);
 
     QStringList scene_names;
-    scene_names << "GuanduScenario"
-                << "FanchengScenario"
-                << "ZombieScenario"
-                << "ImpasseScenario"
-                << "CustomScenario";
+    scene_names << "Guandu"
+                << "Fancheng"
+                << "Couple"
+                << "Zombie"
+                << "Impasse"
+                << "Custom";
 
-    for(int i=1; i<=20; i++){
+    for(int i=1; i<=21; i++){
         scene_names << QString("MiniScene_%1").arg(i, 2, 10, QChar('0'));
     }
 
     foreach(QString name, scene_names)
         addScenario(name);
+
+    foreach(const Skill *skill, skills.values()){
+        Skill *mutable_skill = const_cast<Skill *>(skill);
+        mutable_skill->initMediaSource();
+    }
 
     // available game modes
     modes["02p"] = tr("2 players");
@@ -122,9 +115,12 @@ Engine::Engine()
     modes["07p"] = tr("7 players");
     modes["08p"] = tr("8 players");
     modes["08pd"] = tr("8 players (2 renegades)");
+    modes["08pz"] = tr("8 players (0 renegade)");
     modes["08same"] = tr("8 players (same mode)");
     modes["09p"] = tr("9 players");
-    modes["10p"] = tr("10 players");
+    modes["10pd"] = tr("10 players");
+    modes["10p"] = tr("10 players (1 renegade)");
+    modes["10pz"] = tr("10 players (0 renegade)");
 
     connect(qApp, SIGNAL(aboutToQuit()), this, SLOT(deleteLater()));
 
@@ -133,6 +129,10 @@ Engine::Engine()
     if(lua == NULL){
         QMessageBox::warning(NULL, tr("Lua script error"), error_msg);
         exit(1);
+    }
+
+    foreach(QString ban, getBanPackages()){
+        addBanPackage(ban);
     }
 }
 
@@ -360,7 +360,7 @@ SkillCard *Engine::cloneSkillCard(const QString &name) const{
 }
 
 QString Engine::getVersionNumber() const{
-    return "20120214";
+    return "20120122";
 }
 
 QString Engine::getVersion() const{
@@ -377,7 +377,7 @@ QString Engine::getVersionName() const{
 }
 
 QString Engine::getMODName() const{
-    return "FolkExtensionMod_ver_0.45";
+    return "FolkExtensionMod_ver_0.47_beta2";
 }
 
 QStringList Engine::getExtensions() const{
@@ -395,7 +395,7 @@ QStringList Engine::getExtensions() const{
 QStringList Engine::getKingdoms() const{
     static QStringList kingdoms;
     if(kingdoms.isEmpty())
-        kingdoms << "wei" << "shu" << "wu" << "qun" << "god";
+        kingdoms << "wei" << "shu" << "wu" << "qun" << "yan" << "god";
 
     return kingdoms;
 }
@@ -407,6 +407,7 @@ QColor Engine::getKingdomColor(const QString &kingdom) const{
         color_map["shu"] = QColor(0xD0, 0x79, 0x6C);
         color_map["wu"] = QColor(0x4D, 0xB8, 0x73);
         color_map["qun"] = QColor(0x8A, 0x80, 0x7A);
+        color_map["yan"] = QColor(0x77, 0x54, 0x9A);
         color_map["god"] = QColor(0x96, 0x94, 0x3D);
     }
 
@@ -485,27 +486,6 @@ void Engine::getRoles(const QString &mode, char *roles) const{
     }else if(mode == "04_1v3"){
         qstrcpy(roles, "ZFFF");
         return;
-    }else if(mode == "05_2v3"){
-        qstrcpy(roles, "ZCFFF");
-        return;
-    }else if(Config.EnableHegemony){
-        static const char *table[] = {
-            "",
-            "",
-
-            "ZN", // 2
-            "ZNN", // 3
-            "ZNNN", // 4
-            "ZNNNN", // 5
-            "ZNNNNN", // 6
-            "ZNNNNNN", // 7
-            "ZNNNNNNN", // 8
-            "ZNNNNNNNN", // 9
-            "ZNNNNNNNNN" // 10
-        };
-
-        qstrcpy(roles, table[n]);
-        return;
     }
 
     if(modes.contains(mode)){
@@ -521,7 +501,7 @@ void Engine::getRoles(const QString &mode, char *roles) const{
             "ZCCFFFN", // 7
             "ZCCFFFFN", // 8
             "ZCCCFFFFN", // 9
-            "ZCCCFFFFNN" // 10
+            "ZCCCFFFFFN" // 10
         };
 
         static const char *table2[] = {
@@ -540,7 +520,15 @@ void Engine::getRoles(const QString &mode, char *roles) const{
         };
 
         const char **table = mode.endsWith("d") ? table2 : table1;
-        qstrcpy(roles, table[n]);
+        QString rolechar = table[n];
+        if(mode.endsWith("z"))
+            rolechar.replace("N", "C");
+        else if(Config.EnableHegemony){
+            rolechar.replace("F", "N");
+            rolechar.replace("C", "N");
+        }
+
+        qstrcpy(roles, rolechar.toStdString().c_str());
     }else if(mode.startsWith("@")){
         if(n == 8)
             qstrcpy(roles, "ZCCCNFFF");
@@ -747,6 +735,10 @@ void Engine::playCardEffect(const QString &card_name, bool is_male) const{
 
 const Skill *Engine::getSkill(const QString &skill_name) const{
     return skills.value(skill_name, NULL);
+}
+
+QStringList Engine::getSkillNames() const{
+    return skills.keys();
 }
 
 const TriggerSkill *Engine::getTriggerSkill(const QString &skill_name) const{

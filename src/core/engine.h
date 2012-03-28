@@ -13,7 +13,6 @@
 
 class AI;
 class Scenario;
-class QLibrary;
 
 struct lua_State;
 
@@ -65,6 +64,7 @@ public:
     const General *getGeneral(const QString &name) const;
     int getGeneralCount(bool include_banned = false) const;
     const Skill *getSkill(const QString &skill_name) const;
+    QStringList getSkillNames() const;
     const TriggerSkill *getTriggerSkill(const QString &skill_name) const;
     const ViewAsSkill *getViewAsSkill(const QString &skill_name) const;
     QList<const DistanceSkill *> getDistanceSkills() const;
@@ -108,8 +108,6 @@ private:
     QSet<QString> ban_package;
 
     lua_State *lua;
-
-    QLibrary *lib;
 };
 
 extern Engine *Sanguosha;

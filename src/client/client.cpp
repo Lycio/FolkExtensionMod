@@ -52,6 +52,7 @@ Client::Client(QObject *parent, const QString &filename)
     callbacks["revivePlayer"] = &Client::revivePlayer;
     callbacks["showCard"] = &Client::showCard;
     callbacks["setMark"] = &Client::setMark;
+    callbacks["doFilter"] = &Client::doFilter;
     callbacks["log"] = &Client::log;
     callbacks["speak"] = &Client::speak;
     callbacks["acquireSkill"] = &Client::acquireSkill;
@@ -67,6 +68,7 @@ Client::Client(QObject *parent, const QString &filename)
     callbacks["setFixedDistance"] = &Client::setFixedDistance;
     callbacks["transfigure"] = &Client::transfigure;
     callbacks["jilei"] = &Client::jilei;
+    callbacks["cardLock"] = &Client::cardLock;
     callbacks["pile"] = &Client::pile;
 
     callbacks["updateStateItem"] = &Client::updateStateItem;
@@ -104,15 +106,17 @@ Client::Client(QObject *parent, const QString &filename)
     callbacks["askForYiji"] = &Client::askForYiji;
     callbacks["askForPlayerChosen"] = &Client::askForPlayerChosen;
     callbacks["askForGeneral"] = &Client::askForGeneral;
-    callbacks["askForRebound"] = &Client::askForRebound;
-    callbacks["askForCover"] = &Client::askForCover;
-    callbacks["askForSuddenStrike"] = &Client::askForSuddenStrike;
-    callbacks["askForRob"] = &Client::askForRob;
 
     callbacks["fillAG"] = &Client::fillAG;
     callbacks["askForAG"] = &Client::askForAG;
     callbacks["takeAG"] = &Client::takeAG;
     callbacks["clearAG"] = &Client::clearAG;
+
+    // Disha
+    callbacks["askForRebound"] = &Client::askForRebound;
+    callbacks["askForCover"] = &Client::askForCover;
+    callbacks["askForSuddenStrike"] = &Client::askForSuddenStrike;
+    callbacks["askForRob"] = &Client::askForRob;
 
     // 3v3 mode & 1v1 mode
     callbacks["fillGenerals"] = &Client::fillGenerals;
@@ -366,6 +370,11 @@ void Client::requestCard(int card_id){
     request(QString("useCard @CheatCard=%1->.").arg(card_id));
 }
 
+void Client::changeGeneral(QString name){
+    Self->tag["GeneralName"] = name;
+    request(QString("useCard @ChangeCard=.->."));
+}
+
 void Client::addRobot(){
     request("addRobot .");
 }
@@ -522,7 +531,7 @@ void Client::startGame(const QString &){
 }
 
 void Client::hpChange(const QString &change_str){
-    QRegExp rx("(.+):(-?\\d+)([FTIP]*)");
+    QRegExp rx("(.+):(-?\\d+)([FTL]*)");
 
     if(!rx.exactMatch(change_str))
         return;
@@ -537,16 +546,14 @@ void Client::hpChange(const QString &change_str){
         nature = DamageStruct::Fire;
     else if(nature_str == "T")
         nature = DamageStruct::Thunder;
-    else if(nature_str == "W")
-        nature = DamageStruct::Wind;
     else
         nature = DamageStruct::Normal;
 
-    emit hp_changed(who, delta, nature);
+    emit hp_changed(who, delta, nature, nature_str == "L");
 }
 
 void Client::setStatus(Status status){
-    if(this->status != status){
+    if(this->status != status||status == NotActive){
         this->status = status;
         emit status_changed(status);
     }
@@ -558,6 +565,10 @@ Client::Status Client::getStatus() const{
 
 void Client::jilei(const QString &jilei_str){
     Self->jilei(jilei_str);
+}
+
+void Client::cardLock(const QString &card_str){
+    Self->setCardLocked(card_str);
 }
 
 void Client::judgeResult(const QString &result_str){
@@ -775,7 +786,7 @@ void Client::askForNullification(const QString &ask_str){
         source = getPlayer(source_name);
 
     if(Config.NeverNullifyMyTrick && source == Self){
-        if(trick_card->inherits("SingleTargetTrick")){
+        if(trick_card->inherits("SingleTargetTrick") || trick_card->objectName() == "iron_chain"){
             responseCard(NULL);
             return;
         }
@@ -1084,6 +1095,12 @@ void Client::killPlayer(const QString &player_name){
                 last_word = Sanguosha->translate(("~") +  origin_generals.at(1));
         }
 
+        if(last_word.startsWith("~") && general_name.endsWith("f")){
+            QString origin_general = general_name;
+            origin_general.chop(1);
+            if(Sanguosha->getGeneral(origin_general))
+                last_word = Sanguosha->translate(("~") + origin_general);
+        }
         skill_title = tr("%1[dead]").arg(Sanguosha->translate(general_name));
         skill_line = last_word;
 
@@ -1201,6 +1218,10 @@ void Client::setMark(const QString &mark_str){
 
     ClientPlayer *player = getPlayer(who);
     player->setMark(mark, value);
+}
+
+void Client::doFilter(const QString &){
+    emit do_filter();
 }
 
 void Client::chooseSuit(){
@@ -1456,74 +1477,6 @@ void Client::askForPlayerChosen(const QString &players){
 void Client::askForGeneral(const QString &generals){
     choose_command = "chooseGeneral";
     emit generals_got(generals.split("+"));
-}
-
-void Client::askForCover(const QString &ask_str){
-    QRegExp rx("(\\w+):(.+)->(.+)");
-    if(!rx.exactMatch(ask_str))
-        return;
-    QStringList texts = rx.capturedTexts();
-
-    QStringList prompt;
-    prompt << "@cover" << texts.at(3) << texts.at(1);
-
-    setPromptList(prompt);
-
-    card_pattern = "Cover";
-    refusable = true;
-    use_card = false;
-    setStatus(Responsing);
-}
-
-void Client::askForRebound(const QString &ask_str){
-    QRegExp rx("(\\w+):(.+)->(.+)");
-    if(!rx.exactMatch(ask_str))
-        return;
-    QStringList texts = rx.capturedTexts();
-
-    QStringList prompt;
-    prompt << "@rebound" << texts.at(2) ;
-
-    setPromptList(prompt);
-
-    card_pattern = "Rebound";
-    refusable = true;
-    use_card = false;
-    setStatus(Responsing);
-}
-
-void Client::askForSuddenStrike(const QString &ask_str){
-    QRegExp rx("(\\w+):(.+)->(.+)");
-    if(!rx.exactMatch(ask_str))
-        return;
-    QStringList texts = rx.capturedTexts();
-
-    QStringList prompt;
-    prompt << "@sudden_strike" << texts.at(3) ;
-
-    setPromptList(prompt);
-
-    card_pattern = "SuddenStrike";
-    refusable = true;
-    use_card = false;
-    setStatus(Responsing);
-}
-
-void Client::askForRob(const QString &ask_str){
-    QRegExp rx("(\\w+):(.+)->(.+)");
-    if(!rx.exactMatch(ask_str))
-        return;
-    QStringList texts = rx.capturedTexts();
-
-    QStringList prompt;
-    prompt << "@rob" << texts.at(3) ;
-
-    setPromptList(prompt);
-
-    card_pattern = "Rob";
-    refusable = true;
-    use_card = false;
-    setStatus(Responsing);
 }
 
 void Client::replyYiji(const Card *card, const Player *to){
@@ -1888,4 +1841,73 @@ void Client::selectOrder(){
 void Client::updateStateItem(const QString &state_str)
 {
     emit role_state_changed(state_str);
+}
+
+// Disha
+void Client::askForCover(const QString &ask_str){
+    QRegExp rx("(\\w+):(.+)->(.+)");
+    if(!rx.exactMatch(ask_str))
+        return;
+    QStringList texts = rx.capturedTexts();
+
+    QStringList prompt;
+    prompt << "@cover" << texts.at(3) << texts.at(1);
+
+    setPromptList(prompt);
+
+    card_pattern = "cover";
+    refusable = true;
+    use_card = false;
+    setStatus(Responsing);
+}
+
+void Client::askForRebound(const QString &ask_str){
+    QRegExp rx("(\\w+):(.+)->(.+)");
+    if(!rx.exactMatch(ask_str))
+        return;
+    QStringList texts = rx.capturedTexts();
+
+    QStringList prompt;
+    prompt << "@rebound" << texts.at(2) ;
+
+    setPromptList(prompt);
+
+    card_pattern = "rebound";
+    refusable = true;
+    use_card = false;
+    setStatus(Responsing);
+}
+
+void Client::askForSuddenStrike(const QString &ask_str){
+    QRegExp rx("(\\w+):(.+)->(.+)");
+    if(!rx.exactMatch(ask_str))
+        return;
+    QStringList texts = rx.capturedTexts();
+
+    QStringList prompt;
+    prompt << "@sudden_strike" << texts.at(3) ;
+
+    setPromptList(prompt);
+
+    card_pattern = "sudden_strike";
+    refusable = true;
+    use_card = false;
+    setStatus(Responsing);
+}
+
+void Client::askForRob(const QString &ask_str){
+    QRegExp rx("(\\w+):(.+)->(.+)");
+    if(!rx.exactMatch(ask_str))
+        return;
+    QStringList texts = rx.capturedTexts();
+
+    QStringList prompt;
+    prompt << "@rob" << texts.at(3) ;
+
+    setPromptList(prompt);
+
+    card_pattern = "rob";
+    refusable = true;
+    use_card = false;
+    setStatus(Responsing);
 }

@@ -31,6 +31,13 @@ ConfigDialog::ConfigDialog(QWidget *parent) :
     ui->bgmVolumeSlider->setValue(100 * Config.BGMVolume);
     ui->effectVolumeSlider->setValue(100 * Config.EffectVolume);
 
+    if(Config.value("EffectEdition") == "qsanguosha/")
+        ui->qsanguoshaRdo->setChecked(true);
+    else if(Config.value("EffectEdition") == "sanguoshaol/")
+        ui->sanguoshaolRdo->setChecked(true);
+    else
+        ui->qsanguoshaRdo->setChecked(true);
+
     // tab 2
     ui->nullificationSpinBox->setValue(Config.NullificationCountDown);
     ui->neverNullifyMyTrickCheckBox->setChecked(Config.NeverNullifyMyTrick);
@@ -119,6 +126,11 @@ void ConfigDialog::saveConfig()
     enabled = ui->enableBgMusicCheckBox->isChecked();
     Config.EnableBgMusic = enabled;
     Config.setValue("EnableBgMusic", enabled);
+
+    if(ui->qsanguoshaRdo->isChecked())
+        Config.setValue("EffectEdition", "qsanguosha/");
+    else if(ui->sanguoshaolRdo->isChecked())
+        Config.setValue("EffectEdition", "sanguoshaol/");
 
     Config.FitInView = ui->fitInViewCheckBox->isChecked();
     Config.setValue("FitInView", Config.FitInView);

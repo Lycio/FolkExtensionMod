@@ -78,12 +78,32 @@ function SmartAI:askForSinglePeach(dying)
 			if not same then return "." end
 		end
 		if (self.player:objectName() == dying:objectName()) then
-			card_str = self:getCards("Analeptic") or self:getCards("Peach")
+			local cardstmp = self:getCards("Peach")
+			local peach_str
+			for _, cardtmp in ipairs(cardstmp) do
+				if not sgs.Card_Parse(cardtmp:getEffectiveId()):inherits("PoisonPeach") then
+					peach_str = cardtmp:toString()
+				end
+			end
+			if (self.player:getWeapon() and self.player:getWeapon():objectName() == "jiasuo") then
+				card_str = self:getCardId("Analeptic")
+			else				
+				card_str = self:getCardId("Analeptic") or peach_str
+			end
 		else
-			card_str = self:getCards("Peach")
+			local cardstmp = self:getCards("Peach")
+			local peach_str
+			for _, cardtmp in ipairs(cardstmp) do
+				if not sgs.Card_Parse(cardtmp:getEffectiveId()):inherits("PoisonPeach") then
+					peach_str = cardtmp:toString()
+				end
+			end
+			if not (self.player:getWeapon() and self.player:getWeapon():objectName() == "jiasuo") then
+				card_str = peach_str
+			end
 		end
-	elseif not self:isFriend(dying) and self:objectiveLevel(dying) > 3 then
-		card_str = self:getCardId("PoisonPeach")		
+	elseif not self:isFriend(dying) and self:objectiveLevel(dying) > 3 and 1 - dying:getHp() <= 1 then
+		card_str = self:getCardId("PoisonPeach")
 	end
 	
 	return card_str or "."
@@ -207,7 +227,7 @@ function SmartAI:askForNullification(trick, from, to, positive)
 	if null_card then null_card = sgs.Card_Parse(null_card) else return end
 
 	if positive then
-		if from and self:isEnemy(from) and (sgs.ai_explicit[from:objectName()] ~= "" or sgs.isRolePredictable()) then
+		if from and self:isEnemy(from) and (sgs.evaluateRoleTrends(from) ~= "neutral" or sgs.isRolePredictable()) then
 			if trick:inherits("ExNihilo") and self:getOverflow(from) == 0 then return null_card end
 			if trick:inherits("IronChain") and not self:isEquip("Vine", to) then return nil end
 			if self:isFriend(to) then
@@ -269,7 +289,7 @@ function SmartAI:askForNullification(trick, from, to, positive)
 				end
 			end
 		else
-			if self:isEnemy(to) and (sgs.ai_explicit[to:objectName()] ~= "" or sgs.isRolePredictable()) then return null_card else return end
+			if self:isEnemy(to) and (sgs.evaluateRoleTrends(to) ~= "neutral" or sgs.isRolePredictable()) then return null_card else return end
 		end
 	end
 end

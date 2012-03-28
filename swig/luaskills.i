@@ -75,6 +75,7 @@ public:
 
 	LuaFunction enabled_at_play;
 	LuaFunction enabled_at_response;
+	LuaFunction enabled_at_nullification;
 };
 
 class OneCardViewAsSkill: public ViewAsSkill{
@@ -445,7 +446,6 @@ bool LuaViewAsSkill::isEnabledAtNullification(const Player *player) const{
 		return result;
 	}
 }
-
 // ---------------------
 
 void LuaSkillCard::pushSelf(lua_State *L) const{

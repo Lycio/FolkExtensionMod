@@ -178,14 +178,13 @@ QWidget *ServerDialog::createAdvancedTab(){
     scene_checkbox->setChecked(Config.EnableScene);	//changjing
     //changjing
 
+    max_hp_label = new QLabel(tr("Max HP scheme"));
+
     max_hp_scheme_combobox = new QComboBox;
     max_hp_scheme_combobox->addItem(tr("Sum - 3"));
     max_hp_scheme_combobox->addItem(tr("Minimum"));
     max_hp_scheme_combobox->addItem(tr("Average"));
     max_hp_scheme_combobox->setCurrentIndex(Config.MaxHpScheme);
-    max_hp_scheme_combobox->setEnabled(Config.Enable2ndGeneral);
-    connect(second_general_checkbox, SIGNAL(toggled(bool)), max_hp_scheme_combobox, SLOT(setEnabled(bool)));
-
     second_general_checkbox->setChecked(Config.Enable2ndGeneral);
 
 
@@ -223,14 +222,12 @@ QWidget *ServerDialog::createAdvancedTab(){
     layout->addWidget(contest_mode_checkbox);
     layout->addWidget(forbid_same_ip_checkbox);
     layout->addWidget(disable_chat_checkbox);
-    layout->addWidget(free_choose_checkbox);
-    layout->addWidget(free_assign_checkbox);
+    layout->addLayout(HLay(free_choose_checkbox, free_assign_checkbox));
     layout->addWidget(free_assign_self_checkbox);
     layout->addLayout(HLay(new QLabel(tr("Upperlimit for general")), maxchoice_spinbox));
     layout->addWidget(second_general_checkbox);
-    layout->addLayout(HLay(new QLabel(tr("Max HP scheme")), max_hp_scheme_combobox));
-    layout->addWidget(basara_checkbox);
-    layout->addWidget(hegemony_checkbox);
+    layout->addLayout(HLay(max_hp_label, max_hp_scheme_combobox));
+    layout->addLayout(HLay(basara_checkbox, hegemony_checkbox));
     layout->addWidget(scene_checkbox);		//changjing
     layout->addWidget(announce_ip_checkbox);
     layout->addLayout(HLay(new QLabel(tr("Address")), address_edit));
@@ -240,6 +237,12 @@ QWidget *ServerDialog::createAdvancedTab(){
 
     QWidget *widget = new QWidget;
     widget->setLayout(layout);
+
+    max_hp_label->setVisible(Config.Enable2ndGeneral);
+    connect(second_general_checkbox, SIGNAL(toggled(bool)), max_hp_label, SLOT(setVisible(bool)));
+    max_hp_scheme_combobox->setVisible(Config.Enable2ndGeneral);
+    connect(second_general_checkbox, SIGNAL(toggled(bool)), max_hp_scheme_combobox, SLOT(setVisible(bool)));
+
     return widget;
 }
 
@@ -633,7 +636,7 @@ QGroupBox *ServerDialog::createGameModeBox(){
     for(int i=0; i<item_list.length(); i++){
         QObject *item = item_list.at(i);
 
-        QVBoxLayout *side = i < item_list.length()/2 ? left : right;
+        QVBoxLayout *side = i < item_list.length()/2 - 2 ? left : right;
 
         if(item->isWidgetType()){
             QWidget *widget = qobject_cast<QWidget *>(item);
@@ -916,6 +919,7 @@ bool ServerDialog::config(){
     }
 
     Config.BanPackages = ban_packages.toList();
+    Config.BanPackages << "Special3v3";
     Config.setValue("BanPackages", Config.BanPackages);
 
     if(Config.ContestMode){

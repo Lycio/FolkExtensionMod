@@ -26,6 +26,7 @@ class PoisonPeach: public Peach{
 public:
     Q_INVOKABLE PoisonPeach(Card::Suit suit, int number);
     virtual QString getSubtype() const;
+    virtual QString getEffectPath(bool is_male) const;
     virtual void onEffect(const CardEffectStruct &effect) const;
     virtual bool isAvailable(const Player *player) const;
 };

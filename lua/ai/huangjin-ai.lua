@@ -71,7 +71,7 @@ SmartAI.exclude = function(self, players, card)
 				should_insert = self.player:distanceTo(player) <= limit
 			end
 
-			if card:inherits("Snatch") or card:inherits("Dismantlement") and player:hasSkill("shangshi") then should_insert = false end
+			if (card:inherits("Snatch") or card:inherits("Dismantlement")) and player:hasSkill("shangshi") then should_insert = false end
 			if should_insert then
 				table.insert(excluded, player)
 			end

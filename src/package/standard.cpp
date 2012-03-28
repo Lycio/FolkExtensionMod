@@ -6,6 +6,7 @@
 #include "clientplayer.h"
 #include "engine.h"
 #include "client.h"
+#include "exppattern.h"
 
 QString BasicCard::getType() const{
     return "basic";
@@ -226,11 +227,12 @@ const DelayedTrick *DelayedTrick::CastFrom(const Card *card){
     DelayedTrick *trick = NULL;
     Card::Suit suit = card->getSuit();
     int number = card->getNumber();
-    if(card->isRed() && !card->inherits("Disaster")){
+    if(card->inherits("DelayedTrick"))
+        return qobject_cast<const DelayedTrick *>(card);
+    else if(card->getSuit() == Card::Diamond){
         trick = new Indulgence(suit, number);
         trick->addSubcard(card->getId());
-    }else if(card->inherits("DelayedTrick"))
-        return qobject_cast<const DelayedTrick *>(card);
+    }
     else if(card->isBlack() && (card->inherits("BasicCard") || card->inherits("EquipCard"))){
         trick = new SupplyShortage(suit, number);
         trick->addSubcard(card->getId());
@@ -347,96 +349,7 @@ EquipCard::Location Horse::location() const{
         return OffensiveHorseLocation;
 }
 
-class HandcardPattern: public CardPattern{
-public:
-    virtual bool match(const Player *player, const Card *card) const{
-        return ! player->hasEquip(card);
-    }
-};
 
-class AllCardPattern: public CardPattern{
-public:
-    virtual bool match(const Player *player, const Card *card) const{
-        return true;
-    }
-};
-
-class SuitPattern: public CardPattern{
-public:
-    SuitPattern(Card::Suit suit)
-        :suit(suit)
-    {
-    }
-
-    virtual bool match(const Player *player, const Card *card) const{
-        return ! player->hasEquip(card) && card->getSuit() == suit;
-    }
-
-private:
-    Card::Suit suit;
-};
-
-class AllSuitPattern: public CardPattern{
-public:
-    AllSuitPattern(Card::Suit suit)
-        :suit(suit)
-    {
-    }
-
-    virtual bool match(const Player *player, const Card *card) const{
-        return card->getSuit() == suit;
-    }
-
-private:
-    Card::Suit suit;
-};
-
-class SlashPattern: public CardPattern{
-public:
-    virtual bool match(const Player *player, const Card *card) const{
-        return ! player->hasEquip(card) && card->inherits("Slash");
-    }
-};
-
-class NamePattern: public CardPattern{
-public:
-    NamePattern(const QString &name)
-        :name(name)
-    {
-
-    }
-
-    virtual bool match(const Player *player, const Card *card) const{
-        return ! player->hasEquip(card) && card->objectName() == name;
-    }
-
-private:
-    QString name;
-};
-
-class PAPattern: public CardPattern{
-public:
-    virtual bool match(const Player *player, const Card *card) const{
-        return ! player->hasEquip(card) &&
-                (card->inherits("Peach") || card->inherits("Analeptic"));
-    }
-};
-
-
-class ColorPattern: public CardPattern{
-public:
-    ColorPattern(const QString &color)
-        :color(color){
-    }
-
-    virtual bool match(const Player *player, const Card *card) const{
-        return ! player->hasEquip(card) &&
-                ((card->isBlack() && color == "black") ||
-                (card->isRed() && color == "red"));
-    }
-private:
-    QString color;
-};
 StandardPackage::StandardPackage()
     :Package("standard")
 {
@@ -452,10 +365,10 @@ StandardPackage::StandardPackage()
     patterns[".red"] = new ExpPattern(".|.|.|hand|red");
 
     patterns[".."] = new ExpPattern(".");
-    patterns[".S"] = new ExpPattern(".|spade");
-    patterns[".C"] = new ExpPattern(".|club");
-    patterns[".H"] = new ExpPattern(".|heart");
-    patterns[".D"] = new ExpPattern(".|diamond");
+    patterns["..S"] = new ExpPattern(".|spade");
+    patterns["..C"] = new ExpPattern(".|club");
+    patterns["..H"] = new ExpPattern(".|heart");
+    patterns["..D"] = new ExpPattern(".|diamond");
 
     patterns["slash"] = new ExpPattern("Slash");
     patterns["jink"] = new ExpPattern("Jink");

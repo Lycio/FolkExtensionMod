@@ -247,6 +247,8 @@ bool LiuliCard::targetFilter(const QList<const Player *> &targets, const Player 
     int card_id = subcards.first();
     if(Self->getWeapon() && Self->getWeapon()->getId() == card_id)
         return Self->distanceTo(to_select) <= 1;
+    else if(Self->getOffensiveHorse() && Self->getOffensiveHorse()->getId() == card_id)
+        return Self->distanceTo(to_select) <= (Self->getWeapon()?Self->getWeapon()->getRange():1);
     else
         return true;
 }
@@ -290,5 +292,16 @@ CheatCard::CheatCard(){
 void CheatCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const{
     if(Config.FreeChoose)
         room->obtainCard(source, subcards.first());
+}
+
+ChangeCard::ChangeCard(){
+    target_fixed = true;
+}
+
+void ChangeCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const{
+    if(Config.FreeChoose){
+        QString name = Self->tag["GeneralName"].toString();
+        room->transfigure(source, name, false, true);
+    }
 }
 

@@ -11,26 +11,6 @@ public:
 	virtual CardType getTypeId() const;
 };
 
-class Slash:public BasicCard{
-public:
-    Slash(Card::Suit suit, int number);
-    DamageStruct::Nature getNature() const;
-    void setNature(DamageStruct::Nature nature);
-
-    virtual QString getSubtype() const;
-    virtual void use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const;
-    virtual void onEffect(const CardEffectStruct &effect) const;
-
-    virtual bool targetsFeasible(const QList<const Player *> &targets, const Player *Self) const;
-    virtual bool targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const;
-    virtual bool isAvailable(const Player *player) const;
-
-    static bool IsAvailable(const Player *player);
-
-protected:
-    DamageStruct::Nature nature;
-};
-
 class TrickCard:public Card{
 public:
 	TrickCard(Suit suit, int number, bool aggressive);
@@ -49,11 +29,11 @@ private:
 class DelayedTrick:public TrickCard{
 
 public:
-    DelayedTrick(Suit suit, int number, bool movable = false);
-    static const DelayedTrick *CastFrom(const Card *card);
+	DelayedTrick(Suit suit, int number, bool movable = false);
+	static const DelayedTrick *CastFrom(const Card *card);
 
 private:
-    bool movable;
+	bool movable;
 };
 
 class EquipCard:public Card{
@@ -87,6 +67,7 @@ protected:
 class Weapon:public EquipCard{
 public:
 	Weapon(Suit suit, int number, int range);
+	int getRange();
 	virtual QString getSubtype() const;
 
 	virtual Location location() const;
@@ -134,4 +115,17 @@ class DefensiveHorse: public Horse{
 public:
 	DefensiveHorse(Card::Suit suit, int number, int correct = +1);
 	virtual QString getSubtype() const;
+};
+
+class Slash: public BasicCard{
+
+public:
+	Slash(Card::Suit suit, int number);
+	DamageStruct::Nature getNature() const;
+	void setNature(DamageStruct::Nature nature);
+
+	static bool IsAvailable(const Player *player);
+	
+protected:
+	DamageStruct::Nature nature;
 };

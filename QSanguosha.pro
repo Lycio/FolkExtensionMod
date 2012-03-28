@@ -38,6 +38,7 @@ SOURCES += src/main.cpp \
 	src/dialog/roleassigndialog.cpp \
 	src/dialog/scenario-overview.cpp \
 	src/dialog/halldialog.cpp \
+	src/package/package.cpp \
 	src/package/exppattern.cpp \
 	src/package/firepackage.cpp \
 	src/package/god.cpp \
@@ -55,7 +56,9 @@ SOURCES += src/main.cpp \
 	src/package/wisdompackage.cpp \
 	src/package/yitianpackage.cpp \
 	src/package/yjcm-package.cpp \
+	src/package/yjcm2012-package.cpp \
 	src/package/bgm-package.cpp \
+	src/package/special3v3-package.cpp \
         src/package/qhs-package.cpp \
         src/package/YJ1st-package.cpp \
         src/package/TBdiy-package.cpp \
@@ -63,13 +66,12 @@ SOURCES += src/main.cpp \
         src/package/ghost.cpp \
         src/package/huangjinpackage.cpp \
         src/package/ChangbanSlope.cpp \
-        src/package/chibi-card.cpp \
-        src/package/special3v3-package.cpp \
+        src/package/Yan-package.cpp \
+	src/scenario/scenario.cpp \
 	src/scenario/boss-mode-scenario.cpp \
 	src/scenario/couple-scenario.cpp \
 	src/scenario/fancheng-scenario.cpp \
 	src/scenario/guandu-scenario.cpp \
-	src/scenario/scenario.cpp \
 	src/scenario/scenerule.cpp \
 	src/scenario/miniscenarios.cpp \
 	src/scenario/zombie-mode-scenario.cpp \
@@ -130,7 +132,7 @@ SOURCES += src/main.cpp \
 	src/lua/lbaselib.c \
 	src/lua/lauxlib.c \
 	src/lua/lapi.c \
-        swig/sanguosha_wrap.cxx
+	swig/sanguosha_wrap.cxx
 
 HEADERS += src/client/aux-skills.h \
 	src/client/client.h \
@@ -177,7 +179,9 @@ HEADERS += src/client/aux-skills.h \
 	src/package/wisdompackage.h \
 	src/package/yitianpackage.h \
 	src/package/yjcm-package.h \
+	src/package/yjcm2012-package.h \
 	src/package/bgm-package.h \
+	src/package/special3v3-package.h \
         src/package/qhs-package.h \
         src/package/YJ1st-package.h \
         src/package/TBdiy-package.h \
@@ -185,8 +189,7 @@ HEADERS += src/client/aux-skills.h \
         src/package/ghost.h \
         src/package/huangjinpackage.h \
         src/package/ChangbanSlope.h \
-        src/package/chibi-card.h \
-        src/package/special3v3-package.h \
+        src/package/Yan-package.h \
 	src/scenario/boss-mode-scenario.h \
 	src/scenario/couple-scenario.h \
 	src/scenario/fancheng-scenario.h \
@@ -247,7 +250,7 @@ HEADERS += src/client/aux-skills.h \
 	src/lua/ldebug.h \
 	src/lua/lcode.h \
 	src/lua/lauxlib.h \
-        src/lua/lapi.h
+	src/lua/lapi.h
 	
 FORMS += src/dialog/cardoverview.ui \
 	src/dialog/configdialog.ui \
@@ -294,7 +297,4 @@ OTHER_FILES += \
 	acknowledgement/main.qml \
 	acknowledgement/list.png \
 	acknowledgement/back.png
-
-
-
 

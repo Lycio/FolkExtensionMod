@@ -88,6 +88,7 @@ RoomScene::RoomScene(QMainWindow *main_window)
         dashboard->setPlayer(Self);
         connect(Self, SIGNAL(general_changed()), dashboard, SLOT(updateAvatar()));
         connect(Self, SIGNAL(general2_changed()), dashboard, SLOT(updateSmallAvatar()));
+        connect(ClientInstance, SIGNAL(do_filter()), dashboard, SLOT(doFilter()));
         connect(dashboard, SIGNAL(card_selected(const Card*)), this, SLOT(enableTargets(const Card*)));
         connect(dashboard, SIGNAL(card_to_use()), this, SLOT(doOkButton()));
 
@@ -140,7 +141,7 @@ RoomScene::RoomScene(QMainWindow *main_window)
     connect(ClientInstance, SIGNAL(seats_arranged(QList<const ClientPlayer*>)), SLOT(arrangeSeats(QList<const ClientPlayer*>)));
     connect(ClientInstance, SIGNAL(status_changed(Client::Status)), this, SLOT(updateStatus(Client::Status)));
     connect(ClientInstance, SIGNAL(avatars_hiden()), this, SLOT(hideAvatars()));
-    connect(ClientInstance, SIGNAL(hp_changed(QString,int,DamageStruct::Nature)), SLOT(changeHp(QString,int,DamageStruct::Nature)));
+    connect(ClientInstance, SIGNAL(hp_changed(QString,int,DamageStruct::Nature,bool)), SLOT(changeHp(QString,int,DamageStruct::Nature,bool)));
     connect(ClientInstance, SIGNAL(pile_cleared()), this, SLOT(clearPile()));
     connect(ClientInstance, SIGNAL(player_killed(QString)), this, SLOT(killPlayer(QString)));
     connect(ClientInstance, SIGNAL(player_revived(QString)), this, SLOT(revivePlayer(QString)));
@@ -537,6 +538,83 @@ QList<QPointF> RoomScene::getPhotoPositions() const{
     static int four=0;
     static int five=0;
     static int six=0;
+    static int six_3v3=0;
+    static int seven=0;
+    static int eight=0;
+    static int nine=0;
+    static int cxw=0;//circle view correct data
+    static int stw=1;//standard view correct data
+
+    int player_count = photos.length() + 1;
+    switch(player_count){
+    case 4: four = 1; break;
+    case 5: five = 1; break;
+    case 6: if(ServerInfo.GameMode == "06_3v3")
+                six_3v3 = 1;
+            else
+                six = 1;
+            break;
+    case 7: seven = 1; break;
+    case 8: eight = 1; break;
+    case 9: nine = 1; break;
+    }
+
+    if(Config.value("CircularView").toBool()){
+        cxw=1;
+        stw=0;
+    }
+
+    static const QPointF pos[] = {
+        QPointF((-630+stw*129)+(cxw*five*50)+(cxw*six_3v3*50)+(cxw*six*100)+(cxw*seven*100)+(cxw*eight*50)+(cxw*nine*20), (-70+stw)-(cxw*four*80)), // 0:zhugeliang
+        QPointF((-630+stw*129)+(cxw*five*50)+(cxw*six_3v3*50)+(cxw*eight*50)+(cxw*nine*20), (-270-stw*3)+(cxw*five*150)), // 1:wolong
+        QPointF((-487+stw*131)+(cxw*six*80)+(cxw*seven*5)+(cxw*nine*45), (-316+stw*22)+(cxw*six*15)+(cxw*seven*30)), // 2:shenzhugeliang
+        QPointF((-344+stw*133)+(cxw*five*15)+(cxw*seven*50)-(cxw*eight*50)+(cxw*nine*65), (-320+stw*26)), // 3:lusu
+        QPointF((-201+stw*135),(-324+stw*30)), // 4:dongzhuo
+        QPointF(( -58+stw*137)-(cxw*five*15)-(cxw*seven*50)+(cxw*eight*50)-(cxw*nine*65), (-320+stw*26)), // 5:caocao
+        QPointF((  85+stw*139)-(cxw*six*80)-(cxw*seven*5)-(cxw*nine*45), (-316+stw*22)+(cxw*six*15)+(cxw*seven*30)), // 6:shuangxiong
+        QPointF(( 228+stw*141)-(cxw*five*50)-(cxw*six_3v3*50)-(cxw*eight*50)-(cxw*nine*20), (-270-stw*3)+(cxw*five*150)), // 7:shenguanyu
+        QPointF(( 228+stw*141)-(cxw*five*50)-(cxw*six_3v3*50)-(cxw*six*100)-(cxw*seven*100)-(cxw*eight*50)-(cxw*nine*20), (-70+stw)-(cxw*four*80)), // 8:xiaoqiao
+    };
+
+    static int indices_table[][9] = {
+        {4 }, // 2
+        {3, 5}, // 3
+        {2-cxw*2, 4, 6+cxw*2}, // 4
+        {1, 3, 5, 7}, // 5
+        {0, 2, 4, 6, 8}, // 6
+        {1-cxw, 2, 3, 5, 6, 7+cxw}, // 7
+        {1-cxw, 2-cxw, 3, 4, 5, 6+cxw, 7+cxw}, // 8
+        {0, 1, 2, 3, 5, 6, 7, 8}, // 9
+        {0, 1, 2, 3, 4, 5, 6, 7, 8} // 10
+    };
+
+    static int indices_table_3v3[][5] = {
+        {0, 3, 4, 5, 8}, // lord
+        {0, 1, 3, 4, 5}, // loyalist (right), same with rebel (right)
+        {3, 4, 5, 7, 8}, // rebel (left), same with loyalist (left)
+        {0, 3, 4, 5, 8}, // renegade, same with lord
+        {0, 1, 3, 4, 5}, // rebel (right)
+        {3, 4, 5, 7, 8}, // loyalist (left)
+    };
+
+    QList<QPointF> positions;
+    int *indices;
+    if(ServerInfo.GameMode == "06_3v3" && !Self->getRole().isEmpty())
+        indices = indices_table_3v3[Self->getSeat() - 1];
+    else
+        indices = indices_table[photos.length() - 1];
+
+    int i;
+    for(i=0; i<photos.length(); i++){
+        int index = indices[i];
+        positions << pos[index];
+    }
+
+    return positions;
+    /*
+    static int four=0;
+    static int five=0;
+    static int six=0;
     static int seven=0;
     static int eight=0;
     static int nine=0;
@@ -640,6 +718,7 @@ QList<QPointF> RoomScene::getPhotoPositions() const{
 
 
     return positions;
+    */
 }
 
 void RoomScene::changeTextEditBackground(){
@@ -1432,6 +1511,25 @@ void RoomScene::removeWidgetFromSkillDock(QWidget *widget){
 }
 
 void RoomScene::acquireSkill(const ClientPlayer *player, const QString &skill_name){
+    QGraphicsObject *dest = getAnimationObject(player->objectName());
+    QGraphicsTextItem *item = new QGraphicsTextItem(Sanguosha->translate(skill_name), NULL, this);
+    item->setFont(Config.BigFont);
+
+    QGraphicsDropShadowEffect *drop = new QGraphicsDropShadowEffect;
+    drop->setBlurRadius(5);
+    drop->setOffset(0);
+    drop->setColor(Qt::yellow);
+    item->setGraphicsEffect(drop);
+
+    QPropertyAnimation *move = new QPropertyAnimation(item, "pos");
+    QRectF rect = item->boundingRect();
+    move->setStartValue(QPointF(- rect.width()/2, - rect.height()/2));
+    move->setEndValue(dest->scenePos());
+    move->setDuration(1500);
+
+    move->start(QAbstractAnimation::DeleteWhenStopped);
+    connect(move, SIGNAL(finished()), item, SLOT(deleteLater()));
+
     QString type = "#AcquireSkill";
     QString from_general = player->getGeneralName();
     QString arg = skill_name;
@@ -1509,7 +1607,7 @@ void RoomScene::updateRoleComboBox(const QString &new_role){
 }
 
 void RoomScene::enableTargets(const Card *card){
-    if(card && Self->isJilei(card)){
+    if(card && (Self->isJilei(card) || Self->isLocked(card))){
         ok_button->setEnabled(false);
         return;
     }
@@ -1700,10 +1798,12 @@ void RoomScene::useSelectedCard(){
 
 void RoomScene::onSelectChange()
 {
+    /*
     QGraphicsItem * photo = qobject_cast<QGraphicsItem*>(sender());
     if(!photo)return;
     if(photo->isSelected())animations->emphasize(photo);
     else animations->effectOut(photo);
+    */
 }
 void RoomScene::onEnabledChange()
 {
@@ -2333,7 +2433,7 @@ void RoomScene::startInXs(){
     if(fill_robots) fill_robots->hide();
 }
 
-void RoomScene::changeHp(const QString &who, int delta, DamageStruct::Nature nature){
+void RoomScene::changeHp(const QString &who, int delta, DamageStruct::Nature nature, bool losthp){
     // update
     Photo *photo = name2photo.value(who, NULL);
     if(photo)
@@ -2345,6 +2445,11 @@ void RoomScene::changeHp(const QString &who, int delta, DamageStruct::Nature nat
     doAnimation("hpChange",list);
 
     if(delta < 0){
+        if(losthp){
+            Sanguosha->playAudio("hplost");
+            return;
+        }
+
         QString damage_effect;
         switch(delta){
         case -1: {
@@ -2381,10 +2486,8 @@ void RoomScene::changeHp(const QString &who, int delta, DamageStruct::Nature nat
             doAnimation("fire", QStringList() << who);
         else if(nature == DamageStruct::Thunder)
             doAnimation("lightning", QStringList() << who);
-        else if(nature == DamageStruct::Wind)
-            doAnimation("typhoon", QStringList() << who);
 
-    }else if(delta > 0){
+    }else{
         QString type = "#Recover";
         QString from_general = ClientInstance->getPlayer(who)->getGeneralName();
         QString n = QString::number(delta);
@@ -2512,11 +2615,11 @@ void RoomScene::addRestartButton(QDialog *dialog){
     QPushButton *return_button = new QPushButton(tr("Return to main menu"));
     QHBoxLayout *hlayout = new QHBoxLayout;
     hlayout->addStretch();
-    hlayout->addWidget(return_button);
     hlayout->addWidget(restart_button);
 
     QPushButton *save_button = new QPushButton(tr("Save record"));
     hlayout->addWidget(save_button);
+    hlayout->addWidget(return_button);
 
     QVBoxLayout *layout = qobject_cast<QVBoxLayout *>(dialog->layout());
     if(layout)
@@ -2539,6 +2642,46 @@ void RoomScene::saveReplayRecord(){
     if(!filename.isEmpty()){
         ClientInstance->save(filename);
     }
+}
+
+ScriptExecutor::ScriptExecutor(QWidget *parent)
+    :QDialog(parent)
+{
+    setWindowTitle(tr("Script execution"));
+
+    QVBoxLayout *vlayout = new QVBoxLayout;
+
+    vlayout->addWidget(new QLabel(tr("Please input the script that should be executed at server side:\n P = you, R = your room")));
+
+    QTextEdit *box = new QTextEdit;
+    box->setObjectName("scriptBox");
+    vlayout->addWidget(box);
+
+    QHBoxLayout *hlayout = new QHBoxLayout;
+    hlayout->addStretch();
+
+    QPushButton *ok_button = new QPushButton(tr("OK"));
+    hlayout->addWidget(ok_button);
+
+    vlayout->addLayout(hlayout);
+
+    connect(ok_button, SIGNAL(clicked()), this, SLOT(accept()));
+    connect(this, SIGNAL(accepted()), this, SLOT(doScript()));
+
+    setLayout(vlayout);
+}
+
+void ScriptExecutor::doScript(){
+    QTextEdit *box = findChild<QTextEdit *>("scriptBox");
+    if(box == NULL)
+        return;
+
+    QString script = box->toPlainText();
+    QByteArray data = script.toAscii();
+    data = qCompress(data);
+    script = data.toBase64();
+
+    ClientInstance->request("useCard :SCRIPT:" + script);
 }
 
 DeathNoteDialog::DeathNoteDialog(QWidget *parent)
@@ -2695,6 +2838,11 @@ void RoomScene::makeReviving(){
         int index = items.indexOf(item);
         ClientInstance->request("useCard :REVIVE:" + victims.at(index)->objectName());
     }
+}
+
+void RoomScene::doScript(){
+    ScriptExecutor *dialog = new ScriptExecutor(main_window);
+    dialog->exec();
 }
 
 void RoomScene::fillTable(QTableWidget *table, const QList<const ClientPlayer *> &players){
@@ -2898,7 +3046,11 @@ void RoomScene::doGongxin(const QList<int> &card_ids, bool enable_heart){
 void RoomScene::createStateItem(){
     bool circular = Config.value("CircularView", false).toBool();
 
-    QPixmap state("image/system/state.png");
+    QPixmap state;
+    if(circular)
+        state = QPixmap("image/system/state2.png");
+    else
+        state = QPixmap("image/system/state.png");
 
     state_item = addPixmap(state);//QPixmap("image/system/state.png"));
     state_item->setPos(-110, -80);
@@ -3283,22 +3435,21 @@ void RoomScene::doMovingAnimation(const QString &name, const QStringList &args){
     connect(group, SIGNAL(finished()), item, SLOT(deleteLater()));
 }
 
+#include "playercarddialog.h"
+
 void RoomScene::animateHpChange(const QString &name, const QStringList &args)
 {
     QString who = args.at(0);
-    if(who == Self->objectName())
+    const ClientPlayer *player = ClientInstance->getPlayer(who);
+    int delta = - args.at(1).toInt();
+    int hp = qMax(0, player->getHp() + delta);
+    int index = 5;
+    if(player->getHp() + delta < player->getMaxHP())
+        index = qBound(0, hp, 5);
+
+    if(player == Self)
     {
-        int delta = - args.at(1).toInt();
-
-        int hp = Self->getHp() + delta;
         int max_hp = Self->getMaxHP();
-
-        int index = hp < max_hp ?
-                    qMin(hp,5) : 5;
-
-        QString path = max_hp > 6 ?
-                    QString("image/system/magatamas/small-%1.png").arg(index) :
-                    QString("image/system/magatamas/%1.png").arg(index);
 
         qreal width = max_hp > 6 ? 14 : 22;
         qreal total_width = width*max_hp;
@@ -3307,7 +3458,9 @@ void RoomScene::animateHpChange(const QString &name, const QStringList &args)
 
         for(int i=0;i<delta;i++)
         {
-            Pixmap *aniMaga = new Pixmap(path);
+            Pixmap *aniMaga = new Pixmap;
+            QPixmap *qpixmap = max_hp > 6 ? MagatamaWidget::GetSmallMagatama(index) : MagatamaWidget::GetMagatama(index);
+            aniMaga->setPixmap(*qpixmap);
             addItem(aniMaga);
             aniMaga->show();
             i+=hp-delta;
@@ -3330,8 +3483,6 @@ void RoomScene::animateHpChange(const QString &name, const QStringList &args)
 
             group->start(QAbstractAnimation::DeleteWhenStopped);
 
-
-
             i-=hp-delta;
         }
 
@@ -3339,18 +3490,8 @@ void RoomScene::animateHpChange(const QString &name, const QStringList &args)
     }
 
     Photo *photo = name2photo[who];
-    const Player *player = photo->getPlayer();
-    int delta = - args.at(1).toInt();
-
-    int hp = qMax(0, player->getHp() + delta);
-
-    int index = 5;
-    if(player->getHp() + delta < player->getMaxHP())
-        index = qBound(0, hp, 5);
-
     for(int i=0;i<delta;i++)
     {
-
         i+=player->getHp();
         Pixmap *aniMaga = new Pixmap(QString("image/system/magatamas/small-%1.png").arg(index));
         addItem(aniMaga);
@@ -3378,8 +3519,6 @@ void RoomScene::animateHpChange(const QString &name, const QStringList &args)
 
         i-=player->getHp();
     }
-
-
 }
 
 void RoomScene::animatePopup(const QString &name, const QStringList &args)
@@ -3971,7 +4110,7 @@ void RoomScene::reLayout(QMatrix matrix)
 
     alignTo(reverse_button,pos,"xlyb");
     pos.rx()+=reverse_button->width();
-    pos.rx()+=skip;
+    pos.rx()+=skip*2;
 
 
     if(free_discard)
@@ -3984,7 +4123,7 @@ void RoomScene::reLayout(QMatrix matrix)
     pos = QPoint(dashboard->boundingRect().width()-dashboard->getRightPosition(),0);
 
     pos.rx()-= padding_left;
-    pos.ry()+= padding_top;
+    pos.ry()+=padding_top;
 
     alignTo(discard_button,pos,"xryb");
     pos.rx()-=discard_button->width();
@@ -3995,8 +4134,8 @@ void RoomScene::reLayout(QMatrix matrix)
     pos.rx()-=skip;
 
     alignTo(ok_button,pos,"xryb");
-    pos.rx()+=ok_button->width();
-    pos.rx()+=skip;
+    pos.rx()-=ok_button->width();
+    pos.rx()-=skip;
     //ok_button->move(-10,-10);
 
 
@@ -4087,6 +4226,7 @@ void RoomScene::alignTo(QGraphicsItem* object, QPoint pos, const QString &flags)
 
     object->setPos(to);
 }
+
 
 void RoomScene::appendChatEdit(QString txt){
     chat_edit->setText(chat_edit->text()+" "+txt);
