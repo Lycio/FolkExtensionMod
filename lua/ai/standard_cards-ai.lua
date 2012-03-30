@@ -93,7 +93,7 @@ function SmartAI:useCardSlash(card, use)
 	local no_distance = self.slash_distance_limit
 	if card:getSkillName() == "wushen" then no_distance = true end
 	if card:getSkillName() == "gongqi" then no_distance = true end
-	if card:getSkillName() == "lihuo" or (self.player:hasSkill("lihuo") and card:inherits("FireSlash")) then self.slash_targets = 2 end
+	if self.player:hasSkill("lihuo") and card:inherits("FireSlash") then self.slash_targets = 2 end
 	if (self.player:getHandcardNum() == 1
 	and self.player:getHandcards():first():inherits("Slash")
 	and self.player:getWeapon()
@@ -279,8 +279,7 @@ end
 sgs.ai_skill_cardask["slash-jink"] = function(self, data, pattern, target)
 	if sgs.ai_skill_cardask.nullfilter(self, data, pattern, target) and not target:hasSkill("qianxi") then return "." end
 	--if not target then self.room:writeToConsole(debug.traceback()) end
-	local currentplayer = self.room:getCurrent()
-	if currentplayer:objectName() == self.player:objectName() then return "." end
+	if target:objectName() == self.player:objectName() then return "." end
 	if not target then return end
 	if self:isFriend(target) then
 		if target:hasSkill("rende") and self.player:hasSkill("jieming") then return "." end

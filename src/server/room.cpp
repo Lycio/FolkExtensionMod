@@ -506,13 +506,13 @@ void Room::detachSkillFromPlayer(ServerPlayer *player, const QString &skill_name
     if(skill && skill->isVisible()){
         foreach(const Skill *skill, Sanguosha->getRelatedSkills(skill_name))
             detachSkillFromPlayer(player, skill->objectName());
-    }
 
-    LogMessage log;
-    log.type = "#LoseSkill";
-    log.from = player;
-    log.arg = skill_name;
-    sendLog(log);
+        LogMessage log;
+        log.type = "#LoseSkill";
+        log.from = player;
+        log.arg = skill_name;
+        sendLog(log);
+    }
 }
 
 bool Room::obtainable(const Card *card, ServerPlayer *player){

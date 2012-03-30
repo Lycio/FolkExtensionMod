@@ -83,103 +83,18 @@ QiceCard::QiceCard(){
     will_throw = true;
 }
 
-QiceDialog *QiceDialog::GetInstance(){
-    static QiceDialog *instance;
-    if(instance == NULL)
-        instance = new QiceDialog;
-
-    return instance;
-}
-
-QiceDialog::QiceDialog()
-{
-    setWindowTitle(Sanguosha->translate("qice"));
-
-    group = new QButtonGroup(this);
-
-    QHBoxLayout *layout = new QHBoxLayout;
-    layout->addWidget(createRight());
-
-    setLayout(layout);
-
-    connect(group, SIGNAL(buttonClicked(QAbstractButton*)), this, SLOT(selectCard(QAbstractButton*)));
-}
-
-void QiceDialog::popup(){
-    foreach(QAbstractButton *button, group->buttons()){
-        const Card *card = map[button->objectName()];
-        button->setEnabled(card->isAvailable(Self));
-    }
-
-    Self->tag.remove("Qice");
-    exec();
-}
-
-void QiceDialog::selectCard(QAbstractButton *button){
-    CardStar card = map.value(button->objectName());
-    Self->tag["Qice"] = QVariant::fromValue(card);
-
-    accept();
-}
-
-QGroupBox *QiceDialog::createRight(){
-    QGroupBox *box = new QGroupBox(Sanguosha->translate("ndtrick"));
-    QHBoxLayout *layout = new QHBoxLayout;
-
-    QGroupBox *box1 = new QGroupBox(Sanguosha->translate("single_target"));
-    QVBoxLayout *layout1 = new QVBoxLayout;
-
-    QGroupBox *box2 = new QGroupBox(Sanguosha->translate("multiple_targets"));
-    QVBoxLayout *layout2 = new QVBoxLayout;
-
-
-    QList<const Card *> cards = Sanguosha->findChildren<const Card *>();
-    foreach(const Card *card, cards){
-        if(card->isNDTrick() && !map.contains(card->objectName())){
-            Card *c = Sanguosha->cloneCard(card->objectName(), Card::NoSuit, 0);
-            c->setSkillName("qice");
-            c->setParent(this);
-
-            QVBoxLayout *layout = c->inherits("SingleTargetTrick") ? layout1 : layout2;
-            layout->addWidget(createButton(c));
-        }
-    }
-
-    box->setLayout(layout);
-    box1->setLayout(layout1);
-    box2->setLayout(layout2);
-
-    layout1->addStretch();
-    layout2->addStretch();
-
-    layout->addWidget(box1);
-    layout->addWidget(box2);
-    return box;
-}
-
-QAbstractButton *QiceDialog::createButton(const Card *card){
-    QCommandLinkButton *button = new QCommandLinkButton(Sanguosha->translate(card->objectName()));
-    button->setObjectName(card->objectName());
-    button->setToolTip(card->getDescription());
-
-    map.insert(card->objectName(), card);
-    group->addButton(button);
-
-    return button;
-}
-
 bool QiceCard::targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const{
-    CardStar card = Self->tag.value("Qice").value<CardStar>();
+    CardStar card = Self->tag.value("qice").value<CardStar>();
     return card && card->targetFilter(targets, to_select, Self) && !Self->isProhibited(to_select, card);
 }
 
 bool QiceCard::targetFixed() const{
-    CardStar card = Self->tag.value("Qice").value<CardStar>();
+    CardStar card = Self->tag.value("qice").value<CardStar>();
     return card && card->targetFixed();
 }
 
 bool QiceCard::targetsFeasible(const QList<const Player *> &targets, const Player *Self) const{
-    CardStar card = Self->tag.value("Qice").value<CardStar>();
+    CardStar card = Self->tag.value("qice").value<CardStar>();
     return card && card->targetsFeasible(targets, Self);
 }
 
@@ -187,11 +102,9 @@ const Card *QiceCard::validate(const CardUseStruct *card_use) const{
     Room *room = card_use->from->getRoom();
     room->playSkillEffect("qice");
     Card *use_card = Sanguosha->cloneCard(user_string, Card::NoSuit, 0);
-    foreach(int id, this->getSubcards()){
-        use_card->addSubcard(id);
-    }
     use_card->setSkillName("qice");
-    room->throwCard(this);
+    foreach(int id, this->getSubcards())
+        use_card->addSubcard(id);
     return use_card;
 }
 
@@ -201,7 +114,7 @@ public:
     }
 
     virtual QDialog *getDialog() const{
-        return QiceDialog::GetInstance();
+        return GuhuoDialog::GetInstance("qice", false);
     }
 
     virtual bool viewFilter(const QList<CardItem *> &selected, const CardItem *to_select) const{
@@ -212,7 +125,7 @@ public:
         if(cards.length() < Self->getHandcardNum())
             return NULL;
 
-        CardStar c = Self->tag.value("Qice").value<CardStar>();
+        CardStar c = Self->tag.value("qice").value<CardStar>();
         if(c){
             QiceCard *card = new QiceCard;
             card->setUserString(c->objectName());
@@ -351,7 +264,13 @@ public:
         frequency = Compulsory;
     }
 
+    virtual int getPriority() const{
+        return 3;
+    }
+
     virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &) const{
+        if(!player->faceUp())
+            return false;
         Room *room = player->getRoom();
 
         LogMessage log;
@@ -712,8 +631,8 @@ public:
                 player->tag["Invokelihuo"] = true;
         }
         else if(player->tag.value("Invokelihuo", false).toBool()){
-            room->loseHp(player, 1);
             player->tag["Invokelihuo"] = false;
+            room->loseHp(player, 1);
         }
         return false;
     }
@@ -772,6 +691,8 @@ public:
     virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
         Room *room = player->getRoom();
         ServerPlayer *chengpu = room->findPlayerBySkillName(objectName());
+        if(!chengpu)
+            return false;
         if(event == PhaseChange &&
                 chengpu->getPhase() == Player::Finish &&
                 !chengpu->isKongcheng() &&

@@ -498,12 +498,11 @@ public:
     }
 
     virtual int getCorrect(const Player *from, const Player *to) const{
-        if(from->hasSkill("yandanqi") && from->getWeapon())
+        if(from->hasSkill(objectName()) && from->getWeapon())
             return -1;
-        else if(to->hasSkill("yandanqi") && to->getArmor())
+        else if(to->hasSkill(objectName()) && to->getArmor())
             return 1;
-        else
-            return 0;
+        return 0;
     }
 };
 
@@ -881,6 +880,8 @@ YanPackage::YanPackage()
     yanzhonghui->addSkill(new YanTianhui);
     yanzhonghui->addSkill(new YanYizhi);
     yanzhonghui->addSkill(new YanJifeng);
+
+    //General *yanpuyuan = new General(this, "yanpuyuan", "yan", 3);
 
     General *shendiaochan = new General(this, "shendiaochan", "god", 3, false, true);
     shendiaochan->addSkill(new YanJiuse);
