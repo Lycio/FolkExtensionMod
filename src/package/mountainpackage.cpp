@@ -132,6 +132,7 @@ public:
         Room *room = zhanghe->getRoom();
 
         switch(zhanghe->getPhase()){
+        case Player::RoundStart:
         case Player::Start:
         case Player::Finish:
         case Player::NotActive: return false;
@@ -1111,14 +1112,15 @@ public:
     }
 
     virtual bool triggerable(const ServerPlayer *target) const{
-        return PhaseChangeSkill::triggerable(target) && target->getPhase() == Player::Start;
+        return PhaseChangeSkill::triggerable(target) && target->getPhase() == Player::RoundStart;
     }
 
     virtual bool onPhaseChange(ServerPlayer *zuoci) const{
-        QString skill_name = Huashen::SelectSkill(zuoci, false);
-        if(!skill_name.isEmpty())
-            zuoci->getRoom()->acquireSkill(zuoci, skill_name);
-
+        if(zuoci->askForSkillInvoke("huashen")){
+            QString skill_name = Huashen::SelectSkill(zuoci, false);
+            if(!skill_name.isEmpty())
+                zuoci->getRoom()->acquireSkill(zuoci, skill_name);
+        }
         return false;
     }
 };
@@ -1138,7 +1140,8 @@ public:
     }
 
     virtual bool onPhaseChange(ServerPlayer *zuoci) const{
-        Huashen::SelectSkill(zuoci);
+        if(zuoci->askForSkillInvoke("huashen"))
+            Huashen::SelectSkill(zuoci);
 
         return false;
     }
