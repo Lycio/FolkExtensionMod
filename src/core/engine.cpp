@@ -74,7 +74,8 @@ Engine::Engine()
                   << "Disaster"
                   << "JoyEquip"
                   << "DishaCard"
-                  << "QHSEquip";
+                  << "QHSEquip"
+                  << "Hide";
 
     foreach(QString name, package_names)
         addPackage(name);
@@ -331,6 +332,10 @@ int Engine::getGeneralCount(bool include_banned) const{
     return total;
 }
 
+QList<Card *> Engine::getCards() const{
+    return cards;
+}
+
 const Card *Engine::getCard(int index) const{
     if(index < 0 || index >= cards.length())
         return NULL;
@@ -376,14 +381,14 @@ QString Engine::getVersionName() const{
 }
 
 QString Engine::getMODName() const{
-    return "FolkExtensionMod_ver_0.47_beta2";
+    return "FolkExtensionMod_ver_0.48";
 }
 
 QStringList Engine::getExtensions() const{
     QStringList extensions;
     QList<const Package *> packages = findChildren<const Package *>();
     foreach(const Package *package, packages){
-        if(package->inherits("Scenario") || package->objectName()=="Special3v3")
+        if(package->inherits("Scenario") || package->objectName() == "Special3v3" || package->objectName() == "Hide")
             continue;
 
         extensions << package->objectName();
@@ -682,6 +687,9 @@ QList<int> Engine::getRandomCards() const{
     QList<int> list;
     foreach(Card *card, cards){
         if(exclude_disaters && card->inherits("Disaster"))
+            continue;
+
+        if(card->inherits("AdouMark"))
             continue;
 
         if(!ban_package.contains(card->getPackage()))

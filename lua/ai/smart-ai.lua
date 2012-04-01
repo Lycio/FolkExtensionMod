@@ -1180,13 +1180,16 @@ function SmartAI:objectiveLevel(player)
 				if player:isLord() then
 					if not sgs.isLordHealthy(self.room) then return 0
 					else return 3 end
+				elseif sgs.evaluatePlayerRole(player) == "renegade" then
+					return 3
 				else
 					return 5
 				end
 			else
 				if player:isLord() then
-					if not sgs.isLordHealthy(self.room) then return 0
-					else return 3 end
+					if not sgs.isLordHealthy(self.room) then return 3
+					else return 5 end
+				elseif sgs.isLordHealthy(self.room) then return 3
 				else
 					return 5
 				end
@@ -1936,6 +1939,7 @@ function sgs.ai_skill_cardask.nullfilter(self, data, pattern, target)
 	if self:getDamagedEffects(self) then return "." end
 	if target and target:getWeapon() and target:getWeapon():inherits("IceSword") and self.player:getCards("he"):length() > 2 then return end
 	if self:needBear() and self.player:getLostHp() < 2 then return "." end
+	if self.player:hasSkill("wumou") and self.player:getMark("@wrath") < 6 and self.player:getHp() > 2 then return "." end
 	if self.player:hasSkill("tianxiang") then
 		local dmgStr = {damage = 1, nature = 0}
 		local willTianxiang = sgs.ai_skill_use["@@tianxiang"](self, dmgStr)

@@ -56,13 +56,13 @@ void Settings::init(){
                 << "sp" << "sp_cards" << "BGM"
                 << "joy" << "joy_equip"
                 << "QHS" << "YJ1st" << "ghost" << "huangjin"  << "TBdiy" << "Yan"
-                << "ChangbanSlope" << "DishaCard" << "QHSEquip";
+                << "ChangbanSlope" << "DishaCard" << "QHSEquip" << "Hide";
 
         setValue("BanPackages", banlist);
     }
 
     BanPackages = value("BanPackages").toStringList();
-    BanPackages << "Special3v3";
+    BanPackages << "Special3v3" << "Hide";
 
     ContestMode = value("ContestMode", false).toBool();
     FreeChoose = value("FreeChoose", false).toBool();

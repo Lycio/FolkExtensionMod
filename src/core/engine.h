@@ -72,6 +72,7 @@ public:
 
     int getCardCount() const;
     const Card *getCard(int index) const;
+    QList<Card *> getCards() const;
 
     QStringList getLords() const;
     QStringList getRandomLords() const;

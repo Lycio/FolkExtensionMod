@@ -848,6 +848,152 @@ public:
     }
 };
 
+class YanJiuzi: public GameStartSkill{
+public:
+    YanJiuzi():GameStartSkill("yanjiuzi"){
+
+    }
+
+    virtual int getPriority() const{
+        return -1;
+    }
+
+    virtual void onGameStart(ServerPlayer *player) const{
+        Card *adou = NULL;
+        foreach(Card *card, Sanguosha->getCards()){
+            if(card->inherits("AdouMark")){
+                adou = card;
+                break;
+            }
+        }
+        player->getRoom()->moveCardTo(adou, player, Player::Equip, true);
+    }
+};
+
+YanTuoguCard::YanTuoguCard(){
+
+}
+
+bool YanTuoguCard::targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const{
+    return !to_select->getArmor() && targets.isEmpty();
+}
+
+void YanTuoguCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const{
+    ServerPlayer *from = source, *to = targets.first();
+    foreach(ServerPlayer *p, room->getOtherPlayers(source)){
+        if(p->getArmor() && p->getArmor()->objectName() == "adou_mark"){
+            from = p;
+            break;
+        }
+    }
+    const Card *adou = from->getArmor();
+    room->moveCardTo(adou, to, Player::Equip, true);
+}
+
+class YanTuoguViewAsSkill: public ZeroCardViewAsSkill{
+public:
+    YanTuoguViewAsSkill():ZeroCardViewAsSkill("yantuogu"){
+
+    }
+
+    virtual bool isEnabledAtPlay(const Player *player) const{
+        if(Self->getArmor() && Self->getArmor()->objectName() == "adou_mark")
+            return !player->hasUsed("YanTuoguCard");
+        else{
+            bool can_invoke = false;
+            foreach(const Player *p, player->getSiblings()){
+                if(p->getArmor() && p->getArmor()->objectName() == "adou_mark"){
+                    can_invoke = true;
+                    break;
+                }
+            }
+            return can_invoke && !player->hasUsed("YanTuoguCard");
+        }
+    }
+
+    virtual bool isEnabledAtResponse(const Player *player, const QString &pattern) const{
+        return false;
+    }
+
+    virtual const Card *viewAs() const{
+        return new YanTuoguCard;
+    }
+};
+
+class YanTuogu: public TriggerSkill{
+public:
+    YanTuogu():TriggerSkill("yantuogu"){
+        events << CardGot << CardLost ;
+        view_as_skill = new YanTuoguViewAsSkill;
+    }
+
+    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+        Room *room = player->getRoom();
+        CardMoveStar move = data.value<CardMoveStar>();
+        const Card *card = Sanguosha->getCard(move->card_id);
+        if(!card->inherits("AdouMark"))
+            return false;
+        if(event == CardGot && move->to_place == Player::Equip){
+            if(player->hasSkill("longdan"))
+                room->detachSkillFromPlayer(player, "longdan");
+        }else if(event == CardLost && move->from_place == Player::Equip){
+            room->acquireSkill(player, "longdan");
+        }
+        return false;
+    }
+};
+
+class YanLongtai: public TriggerSkill{
+public:
+    YanLongtai():TriggerSkill("yanlongtai"){
+        events << CardEffected ;
+    }
+
+    virtual bool triggerable(const ServerPlayer *) const{
+        return true;
+    }
+
+    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+        Room *room = player->getRoom();
+        ServerPlayer *mifuren = room->findPlayerBySkillName(objectName());
+        if(!mifuren)
+            return false;
+        CardEffectStruct effect = data.value<CardEffectStruct>();
+        if(!effect.card->isNDTrick())
+            return false;
+        if(effect.to->getArmor() && effect.to->getArmor()->objectName() == "adou_mark"){
+            const Card *card = room->askForCard(mifuren, ".|.|.|hand|red", "@yanlongtai:"+effect.to->getGeneralName(), data);
+            if(card)
+                return true;
+        }
+        return false;
+    }
+};
+
+class YanToujing: public TriggerSkill{
+public:
+    YanToujing():TriggerSkill("yantoujing"){
+        events << CardLost;
+        frequency = Compulsory;
+    }
+
+    virtual bool triggerable(const ServerPlayer *) const{
+        return true;
+    }
+
+    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+        Room *room = player->getRoom();
+        ServerPlayer *mifuren = room->findPlayerBySkillName(objectName());
+        if(!mifuren)
+            return false;
+        CardMoveStar move = data.value<CardMoveStar>();
+        const Card *card = Sanguosha->getCard(move->card_id);
+        if(card->inherits("AdouMark") && move->to_place == Player::DiscardedPile)
+            room->loseHp(mifuren, mifuren->getHp());
+        return false;
+    }
+};
+
 YanPackage::YanPackage()
     :Package("Yan")
 {
@@ -895,9 +1041,16 @@ YanPackage::YanPackage()
     shenxiaoqiao->addSkill(new YanHuimou);
     shenxiaoqiao->addSkill(new YanFenshang);
 
+    General *yanmifuren = new General(this, "yanmifuren", "shu", 3, false, true);
+    yanmifuren->addSkill(new YanJiuzi);
+    yanmifuren->addSkill(new YanTuogu);
+    yanmifuren->addSkill(new YanLongtai);
+    yanmifuren->addSkill(new YanToujing);
+
     addMetaObject<YanJiushaCard>();
     addMetaObject<YanJiuseCard>();
     addMetaObject<YanCangshanCard>();
+    addMetaObject<YanTuoguCard>();
 
     patterns["sudden_strike"] = new ExpPattern("SuddenStrike");
     patterns["cover"] = new ExpPattern("Cover");

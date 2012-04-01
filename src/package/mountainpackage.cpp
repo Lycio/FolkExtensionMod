@@ -1165,6 +1165,24 @@ public:
     }
 };
 
+class Jiuzi: public TriggerSkill{
+public:
+    Jiuzi():TriggerSkill("#jiuzi"){
+        events << GameStart;
+    }
+
+    virtual int getPriority() const{
+        return 3;
+    }
+
+    virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &) const{
+        if(!player->askForSkillInvoke("yanjiuzi"))
+            return false;
+        player->getRoom()->transfigure(player, "yanmifuren", true, true);
+        return false;
+    }
+};
+
 MountainPackage::MountainPackage()
     :Package("mountain")
 {
@@ -1183,7 +1201,8 @@ MountainPackage::MountainPackage()
     General *liushan = new General(this, "liushan$", "shu", 3);
     liushan->addSkill(new Xiangle);
     liushan->addSkill(new Fangquan);
-    liushan->addSkill(new Ruoyu);
+    liushan->addSkill(new Ruoyu);    
+    liushan->addSkill(new Jiuzi);
 
     General *jiangwei = new General(this, "jiangwei", "shu");
     jiangwei->addSkill(new Tiaoxin);

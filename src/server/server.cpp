@@ -919,7 +919,7 @@ bool ServerDialog::config(){
     }
 
     Config.BanPackages = ban_packages.toList();
-    Config.BanPackages << "Special3v3";
+    Config.BanPackages << "Special3v3" << "Hide";
     Config.setValue("BanPackages", Config.BanPackages);
 
     if(Config.ContestMode){

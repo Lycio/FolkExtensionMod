@@ -19,11 +19,9 @@ QStringList RoomThread3v3::getGeneralsWithoutExtension() const{
 
     const Package *stdpack = Sanguosha->findChild<const Package *>("standard");
     const Package *windpack = Sanguosha->findChild<const Package *>("wind");
-    const Package *sp3v3pack = Sanguosha->findChild<const Package *>("Special3v3");
 
     generals = stdpack->findChildren<const General *>();
-    generals << windpack->findChildren<const General *>()
-             << sp3v3pack->findChildren<const General *>();
+    generals << windpack->findChildren<const General *>();
 
     // remove hidden generals
     QMutableListIterator<const General *> itor(generals);
@@ -36,7 +34,17 @@ QStringList RoomThread3v3::getGeneralsWithoutExtension() const{
 
     generals.removeOne(Sanguosha->getGeneral("yuji"));
 
-    Q_ASSERT(generals.length() == 33);
+  //  if(Config.New3v3){
+        QStringList list_remove, list_add;
+        list_remove << "zhangjiao" << "caoren" << "lumeng" << "zhoutai" << "weiyan" ;
+        list_add << "sunjian" << "menghuo" << "xuhuang" << "pangde" << "zhugejin" ;
+        foreach(QString general_name, list_remove)
+            generals.removeOne(Sanguosha->getGeneral(general_name));
+        foreach(QString general_name, list_add)
+            generals << Sanguosha->getGeneral(general_name);
+  //  }
+
+    Q_ASSERT(generals.length() == 32);
 
     QStringList general_names;
     foreach(const General *general, generals)
