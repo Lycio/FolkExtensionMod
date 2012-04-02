@@ -263,3 +263,36 @@ sgs.ai_skill_playerchosen.yanfenshang = function(self, targets)
 	end
 	return target
 end
+
+sgs.ai_skill_invoke.yanjiuzi = false
+
+sgs.ai_skill_cardask["@yanlongtai"] = function(self, data, pattern, target)
+	local effect = data:toCardEffect()
+	local cd = effect.card
+	local invoke, cd_good = false, false
+	if cd:inherits("ExNihilo") or cd:inherits("AmazingGrace") or cd:inherits("GodSalvation") then cd_good = true end
+	if self:isFriend(effect.to) then
+		if cd_good == true then 
+			invoke = false 
+		else
+			invoke = true
+		end
+	else
+		if cd_good == true then
+			invoke = true
+		else
+			invoke = false
+		end
+	end
+	if invoke == false then return "." end
+	
+	local cards = self.player:getCards("he")
+	cards = sgs.QList2Table(cards)
+	
+	for _, card in ipairs(cards) do
+		if card:isRed() then 
+			return card:toString()
+		end 
+	end
+	return "."
+end

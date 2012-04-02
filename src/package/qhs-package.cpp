@@ -15,7 +15,7 @@
 #include "god.h"
 #include "generaloverview.h"
 #include "standard-equips.h"
-/*
+
 class YinshihBuff: public TriggerSkill{
 public:
     YinshihBuff():TriggerSkill("#yinshih_buff"){
@@ -36,7 +36,7 @@ public:
 
         if(effect.card->inherits("BasicCard")){
 
-            if(not (effect.to->inMyAttackRange(effect.from)) && (effect.from->hasSkill(objectName()))){
+            if((!effect.to->inMyAttackRange(effect.from)) && (effect.from->hasSkill(objectName()))){
                 LogMessage log;
                 log.type = "#yinshih";
                 log.from = effect.from;
@@ -48,7 +48,7 @@ public:
                 return true;
             }
 
-            if((effect.to->hasSkill(objectName()) && not (effect.to->inMyAttackRange(effect.from)))){
+            if((effect.to->hasSkill(objectName()) && (!effect.to->inMyAttackRange(effect.from)))){
                 LogMessage log;
                 log.type = "#yinshih";
                 log.from = effect.to;
@@ -88,7 +88,7 @@ public:
     }
 
     virtual bool triggerable(const ServerPlayer *target) const{
-        return target->getRoom()->findPlayerBySkillName("shuijingh");
+        return true;
     }
 
     virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
@@ -98,15 +98,20 @@ public:
         if(!simahuih)
             return false;
 
-        if(event != FinishJudge){
+        QString reason;
+        if(event == HpRecover)
+            reason = "recover";
+        else if(event == HpLost)
+            reason = "lost";
+        else if(event == Predamaged)
+            reason = "damage";
 
+        if(event != FinishJudge){
             LogMessage log;
             log.type = "#shuijingh";
-            log.arg = player->getGeneralName();
+            log.from = player;
+            log.arg = reason;
             room->sendLog(log);
-
-            room->setTag("ShuijinghTarget", QVariant::fromValue(player));
-
 
             if(simahuih->askForSkillInvoke(objectName())){
                 room->playSkillEffect(objectName());
@@ -118,7 +123,12 @@ public:
 
                 room->judge(judge);
 
-                const Card *card = room->askForCard(simahuih, QString(".%1").arg(judge.card->getSuitString().at(0).toUpper()), "@shuijingh1");
+                QString pattern = QString(".|%1|.|hand|.").arg(judge.card->getSuitString());
+                QString prompt = QString("@shuijingh:::%1").arg(judge.card->getSuitString());
+
+                room->setTag("ShuijinghTarget", QVariant::fromValue(player));
+                player->setFlags(reason);
+                const Card *card = room->askForCard(simahuih, pattern, prompt);
                 room->playSkillEffect(objectName());
                 if(card){
                     if(event == HpRecover){
@@ -132,8 +142,6 @@ public:
                         log.from = simahuih;
                         log.card_str = card->toString();
                         room->sendLog(log);
-
-                        return false;
                     }
                     if(event == HpLost){
                         int lost = data.toInt();
@@ -145,8 +153,6 @@ public:
                         log.from = simahuih;
                         log.card_str = card->toString();
                         room->sendLog(log);
-
-                        return false;
                     }
                     if(event == Predamaged){
                         DamageStruct damage = data.value<DamageStruct>();
@@ -158,23 +164,19 @@ public:
                         log.from = simahuih;
                         log.card_str = card->toString();
                         room->sendLog(log);
-
-                        return false;
                     }
                 }
                 else{
-
                     LogMessage log;
                     log.type = "$shuijingh4";
                     log.from = simahuih;
                     room->sendLog(log);
-
-                    return false;
                 }
+                room->removeTag("ShuijinghTarget");
+                player->setFlags("-"+reason);
             }
         }
         return false;
-
     }
 };
 
@@ -203,8 +205,6 @@ void FenbeihCard::onEffect(const CardEffectStruct &effect) const{
     log.type = "#fenbeih";
     log.from = effect.from;
     room->sendLog(log);
-
-
 }
 
 class FenbeihViewAsSkill: public ZeroCardViewAsSkill{
@@ -306,16 +306,12 @@ public:
                 log.from = zuocih;
                 log.arg = Sanguosha->getCard(ydid)->getSuitString();
                 room->sendLog(log);
-
-                return false;
-
             }
         }
         else
             if(event == PhaseChange && zuocih->getPhase() == Player::Start){
                 room->setPlayerMark(zuocih, "yindunhbuff", 0);
-                zuocih->clearPrivatePiles();
-                return false;
+                room->throwCard(zuocih->getPile("yindunh_pile").first());
             }
         return false;
     }
@@ -406,7 +402,7 @@ public:
 
         if(event == PhaseChange && player->getPhase() == Player::Finish && player->hasSkill("fangshuh_buff")){
             room->detachSkillFromPlayer(player, "fangshuh_buff");
-            player->clearPrivatePiles();
+            room->throwCard(player->getPile("fangshuh_pile").first());
             return false;
         }else if(event == CardLost && player->hasSkill("fangshuh_buff")){
             CardMoveStar move = data.value<CardMoveStar>();
@@ -445,7 +441,7 @@ public:
         return false;
     }
 };
-
+/*
 class Xiurenh: public TriggerSkill{
 public:
     Xiurenh():TriggerSkill("xiurenh"){
@@ -2223,21 +2219,13 @@ protected:
 QHSPackage::QHSPackage()
     :Package("QHS")
 {
-    /*
+
     General *simahuih = new General(this, "simahuih", "qun", 3);
     simahuih->addSkill(new Yinshih);
     simahuih->addSkill(new YinshihBuff);
     simahuih->addSkill(new Shuijingh);
 
     related_skills.insertMulti("yinshih", "#yinshih_buff");
-
-    General *jipingh = new General(this, "jipingh", "qun", 3);
-    jipingh->addSkill(new Zhenzhih);
-    jipingh->addSkill(new Lianyuh);
-    jipingh->addSkill(new Huanhunh);
-    jipingh->addSkill(new MarkAssignSkill("@huanhunh", 1));
-
-    related_skills.insertMulti("huanhunh", "#@huanhuanh-1");
 
     General *zuocih = new General(this, "zuocih", "qun", 3);
     zuocih->addSkill(new Fenbeih);
@@ -2246,7 +2234,7 @@ QHSPackage::QHSPackage()
     zuocih->addSkill(new Fangshuh);
 
     related_skills.insertMulti("yindunh", "#yindunh_buff");
-
+    /*
     General *ganfurenh = new General(this, "ganfurenh", "shu", 3, false);
     ganfurenh->addSkill(new Shushenh);
     ganfurenh->addSkill(new Xiurenh);
@@ -2310,6 +2298,14 @@ QHSPackage::QHSPackage()
     General *xunyouh = new General(this, "xunyouh", "wei", 3);
     xunyouh->addSkill(new Baichuh);
 
+    General *jipingh = new General(this, "jipingh", "qun", 3);
+    jipingh->addSkill(new Zhenzhih);
+    jipingh->addSkill(new Lianyuh);
+    jipingh->addSkill(new Huanhunh);
+    jipingh->addSkill(new MarkAssignSkill("@huanhunh", 1));
+
+    related_skills.insertMulti("huanhunh", "#@huanhuanh-1");
+
     skills << new Fangshuhbuff;
 
     addMetaObject<FenbeihCard>();
@@ -2330,6 +2326,10 @@ QHSPackage::QHSPackage()
     maomaoh->addSkill(new Duboh);
 
     addMetaObject<DubohCard>();
+    addMetaObject<FenbeihCard>();
+    addMetaObject<FangshuhCard>();
+
+    skills << new Fangshuhbuff;
 }
 
 ADD_PACKAGE(QHS)

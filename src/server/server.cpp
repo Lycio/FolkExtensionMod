@@ -135,6 +135,7 @@ QWidget *ServerDialog::createPackageTab(){
 
     QWidget *widget = new QWidget;
     QHBoxLayout *layout = new QHBoxLayout;
+
     layout->addWidget(box1);
     layout->addWidget(box2);
 
@@ -485,6 +486,21 @@ void ServerDialog::edit1v1Banlist(){
     dialog->exec();
 }
 
+QGroupBox *ServerDialog::createChangbanSlopeBox(){
+    QGroupBox *box = new QGroupBox(tr("ChangbanSlope options"));
+    box->setEnabled(Config.GameMode == "05_2v3");
+
+    QVBoxLayout *vlayout = new QVBoxLayout;
+
+    RandomKingdoms_checkbox = new QCheckBox(tr("Random_Kingdoms"));
+    RandomKingdoms_checkbox->setChecked(Config.value("ChangbanSlope/Random_Kingdoms", false).toBool());
+
+    vlayout->addWidget(RandomKingdoms_checkbox);
+    box->setLayout(vlayout);
+
+    return box;
+}
+
 QGroupBox *ServerDialog::create3v3Box(){
     QGroupBox *box = new QGroupBox(tr("3v3 options"));
     box->setEnabled(Config.GameMode == "06_3v3");
@@ -492,6 +508,7 @@ QGroupBox *ServerDialog::create3v3Box(){
     QVBoxLayout *vlayout = new QVBoxLayout;
 
     standard_3v3_radiobutton = new QRadioButton(tr("Standard mode"));
+    new_3v3_radiobutton = new QRadioButton(tr("New Mode"));
     QRadioButton *extend = new QRadioButton(tr("Extension mode"));
     QPushButton *extend_edit_button = new QPushButton(tr("General selection ..."));
     extend_edit_button->setEnabled(false);
@@ -517,14 +534,18 @@ QGroupBox *ServerDialog::create3v3Box(){
     }
 
     vlayout->addWidget(standard_3v3_radiobutton);
+    vlayout->addWidget(new_3v3_radiobutton);
     vlayout->addLayout(HLay(extend, extend_edit_button));
     vlayout->addWidget(exclude_disaster_checkbox);
     vlayout->addLayout(HLay(new QLabel(tr("Role choose")), role_choose_combobox));
     box->setLayout(vlayout);
 
     bool using_extension = Config.value("3v3/UsingExtension", false).toBool();
+    bool using_new_mode = Config.value("3v3/UsingNewMode", false).toBool();
     if(using_extension)
         extend->setChecked(true);
+    else if(using_new_mode)
+        new_3v3_radiobutton->setChecked(true);
     else
         standard_3v3_radiobutton->setChecked(true);
 
@@ -548,7 +569,13 @@ QGroupBox *ServerDialog::createGameModeBox(){
             button->setObjectName(itor.key());
             mode_group->addButton(button);
 
-            if(itor.key() == "06_3v3"){
+            if(itor.key() == "05_2v3"){
+                // add ChangbanSlope options
+                QGroupBox *box = createChangbanSlopeBox();
+                connect(button, SIGNAL(toggled(bool)), box, SLOT(setEnabled(bool)));
+
+                item_list << button << box;
+            }else if(itor.key() == "06_3v3"){
                 // add 3v3 options
                 QGroupBox *box = create3v3Box();
                 connect(button, SIGNAL(toggled(bool)), box, SLOT(setEnabled(bool)));
@@ -902,10 +929,15 @@ bool ServerDialog::config(){
     Config.setValue("AnnounceIP", Config.AnnounceIP);
     Config.setValue("Address", Config.Address);
 
+    Config.beginGroup("ChangbanSlope");
+    Config.setValue("Random_Kingdoms", RandomKingdoms_checkbox->isChecked());
+    Config.endGroup();
+
     Config.beginGroup("3v3");
-    Config.setValue("UsingExtension", ! standard_3v3_radiobutton->isChecked());
+    Config.setValue("UsingExtension", !standard_3v3_radiobutton->isChecked() && !new_3v3_radiobutton->isChecked());
     Config.setValue("RoleChoose", role_choose_combobox->itemData(role_choose_combobox->currentIndex()).toString());
     Config.setValue("ExcludeDisaster", exclude_disaster_checkbox->isChecked());
+    Config.setValue("UsingNewMode", new_3v3_radiobutton->isChecked());
     Config.endGroup();
 
     QSet<QString> ban_packages;

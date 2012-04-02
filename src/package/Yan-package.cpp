@@ -962,9 +962,18 @@ public:
         if(!effect.card->isNDTrick())
             return false;
         if(effect.to->getArmor() && effect.to->getArmor()->objectName() == "adou_mark"){
-            const Card *card = room->askForCard(mifuren, ".|.|.|hand|red", "@yanlongtai:"+effect.to->getGeneralName(), data);
-            if(card)
+            const Card *card = room->askForCard(mifuren, ".|.|.|.|red",
+                                                QString("@yanlongtai:%1::%2").arg(effect.to->getGeneralName()).arg(effect.card->objectName()), data);
+            if(card){
+                LogMessage log;
+                log.type = "#YanLongtaiLog";
+                log.from = mifuren;
+                log.to << effect.to;
+                log.arg = effect.card->objectName();
+                log.arg2 = objectName();
+                room->sendLog(log);
                 return true;
+            }
         }
         return false;
     }
@@ -973,7 +982,7 @@ public:
 class YanToujing: public TriggerSkill{
 public:
     YanToujing():TriggerSkill("yantoujing"){
-        events << CardLost;
+        events << CardLost ;
         frequency = Compulsory;
     }
 
@@ -990,6 +999,31 @@ public:
         const Card *card = Sanguosha->getCard(move->card_id);
         if(card->inherits("AdouMark") && move->to_place == Player::DiscardedPile)
             room->loseHp(mifuren, mifuren->getHp());
+        return false;
+    }
+};
+
+class YanToujingDeath: public TriggerSkill{
+public:
+    YanToujingDeath():TriggerSkill("#yantoujingdeath"){
+        events << Death;
+        frequency = Compulsory;
+    }
+
+    virtual bool triggerable(const ServerPlayer *target) const{
+        return target->hasSkill(objectName());
+    }
+
+    virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &) const{
+        Room *room = player->getRoom();
+        ServerPlayer *target = room->askForPlayerChosen(player, room->getOtherPlayers(player), "yantoujing");
+        LogMessage log;
+        log.type = "#YanToujingLog";
+        log.from = player;
+        log.to << target;
+        log.arg = "yantoujing";
+        room->sendLog(log);
+        room->acquireSkill(target, "longdan");
         return false;
     }
 };
@@ -1046,6 +1080,9 @@ YanPackage::YanPackage()
     yanmifuren->addSkill(new YanTuogu);
     yanmifuren->addSkill(new YanLongtai);
     yanmifuren->addSkill(new YanToujing);
+    yanmifuren->addSkill(new YanToujingDeath);
+
+    related_skills.insertMulti("yantoujing", "#yantoujingdeath");
 
     addMetaObject<YanJiushaCard>();
     addMetaObject<YanJiuseCard>();

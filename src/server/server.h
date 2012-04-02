@@ -83,6 +83,7 @@ private:
     QLayout *createButtonLayout();
 
     QGroupBox *createGameModeBox();
+    QGroupBox *createChangbanSlopeBox();
     QGroupBox *create3v3Box();
 
     QLineEdit *server_name_edit;
@@ -111,7 +112,10 @@ private:
     QCheckBox *role_predictable_checkbox;
     QCheckBox *ai_chat_checkbox;
     QSpinBox *ai_delay_spinbox;
+
+    QCheckBox *RandomKingdoms_checkbox;
     QRadioButton *standard_3v3_radiobutton;
+    QRadioButton *new_3v3_radiobutton;
     QComboBox *role_choose_combobox;
     QCheckBox *exclude_disaster_checkbox;
 

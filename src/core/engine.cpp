@@ -42,7 +42,20 @@ Engine::Engine()
     Sanguosha = this;
 
     QStringList package_names;
-    package_names << "Standard"
+    package_names << "StandardCard"
+                  << "StandardExCard"
+                  << "Maneuvering"
+                  << "SPCard"
+                  << "YitianCard"
+                  << "Nostalgia"
+                  << "Joy"
+                  << "Disaster"
+                  << "JoyEquip"
+                  << "DishaCard"
+                  << "QHSEquip"
+                  << "Hide"
+
+                  << "Standard"
                   << "Wind"
                   << "Fire"
                   << "Thicket"
@@ -62,20 +75,7 @@ Engine::Engine()
                   << "TBdiy"
                   << "Yan"
                   << "ChangbanSlope"
-                  << "Test"
-
-                  << "StandardCard"
-                  << "StandardExCard"
-                  << "Maneuvering"
-                  << "SPCard"
-                  << "YitianCard"
-                  << "Nostalgia"
-                  << "Joy"
-                  << "Disaster"
-                  << "JoyEquip"
-                  << "DishaCard"
-                  << "QHSEquip"
-                  << "Hide";
+                  << "Test" ;
 
     foreach(QString name, package_names)
         addPackage(name);
@@ -673,10 +673,12 @@ QStringList Engine::getRandomGenerals(int count, const QSet<QString> &ban_set) c
 }
 
 QList<int> Engine::getRandomCards() const{
-    bool exclude_disaters = false;
+    bool exclude_disaters = false, using_new_3v3 = false;
 
-    if(Config.GameMode == "06_3v3")
+    if(Config.GameMode == "06_3v3"){
         exclude_disaters = Config.value("3v3/ExcludeDisasters", true).toBool();
+        using_new_3v3 = Config.value("3v3/UsingNewMode", false).toBool();
+    }
 
     if(Config.GameMode == "04_1v3")
         exclude_disaters = true;
@@ -693,6 +695,8 @@ QList<int> Engine::getRandomCards() const{
             continue;
 
         if(!ban_package.contains(card->getPackage()))
+            list << card->getId();
+        else if(card->getPackage() == "Special3v3" && using_new_3v3)
             list << card->getId();
     }
 

@@ -1827,9 +1827,12 @@ void Room::run(){
 
         generals.removeOne(Sanguosha->getGeneral("yuji"));
 
-        QStringList kingdoms;
-        kingdoms << "wei" << "shu" << "wu" << "qun";
-        QString kingdom = kingdoms.at(qrand() % 4);
+        QString kingdom = "wei";
+        if(Config.value("ChangbanSlope/Random_Kingdoms", false).toBool()){
+            QStringList kingdoms;
+            kingdoms << "wei" << "shu" << "wu" << "qun";
+            kingdom = kingdoms.at(qrand() % 4);
+        }
 
         QStringList names;
         foreach(const General *general, generals){

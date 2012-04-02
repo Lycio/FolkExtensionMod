@@ -26,6 +26,8 @@ sgs.weapon_range.JiaSuo = 1
 sgs.weapon_range.LuofengBow = 1
 
 function SmartAI:slashIsEffective(slash, to)
+	if to:hasSkill("yinshih") and not to:inMyAttackRange(self.player) then return false end
+	if self.player:hasSkill("yinshih") and not self.player:inMyAttackRange(to) then return false end
     if to:hasSkill("zuixiang") and to:isLocked(slash) then return false end
 	if to:hasSkill("heiyan") then 
 		if slash:isBlack() then return false end

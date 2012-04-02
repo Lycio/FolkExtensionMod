@@ -23,6 +23,7 @@ SOURCES += src/main.cpp \
 	src/core/player.cpp \
 	src/core/settings.cpp \
 	src/core/skill.cpp \
+        src/core/statistics.cpp \
 	src/dialog/cardeditor.cpp \
 	src/dialog/cardoverview.cpp \
 	src/dialog/choosegeneraldialog.cpp \
@@ -67,6 +68,7 @@ SOURCES += src/main.cpp \
         src/package/huangjinpackage.cpp \
         src/package/ChangbanSlope.cpp \
         src/package/Yan-package.cpp \
+        src/package/hide-package.cpp \
 	src/scenario/scenario.cpp \
 	src/scenario/boss-mode-scenario.cpp \
 	src/scenario/couple-scenario.cpp \
@@ -147,6 +149,7 @@ HEADERS += src/client/aux-skills.h \
 	src/core/player.h \
 	src/core/settings.h \
 	src/core/skill.h \
+        src/core/statistics.h \
 	src/dialog/cardeditor.h \
 	src/dialog/cardoverview.h \
 	src/dialog/choosegeneraldialog.h \
@@ -190,6 +193,7 @@ HEADERS += src/client/aux-skills.h \
         src/package/huangjinpackage.h \
         src/package/ChangbanSlope.h \
         src/package/Yan-package.h \
+        src/package/hide-package.h \
 	src/scenario/boss-mode-scenario.h \
 	src/scenario/couple-scenario.h \
 	src/scenario/fancheng-scenario.h \
