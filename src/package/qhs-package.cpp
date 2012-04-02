@@ -123,12 +123,12 @@ public:
 
                 room->judge(judge);
 
-                QString pattern = QString(".|%1|.|hand|.").arg(judge.card->getSuitString());
-                QString prompt = QString("@shuijingh:::%1").arg(judge.card->getSuitString());
+                QString suit = judge.card->getSuitString();
+                QStringList condition_list;
+                condition_list << player->getGeneralName() << suit << reason;
+                room->setTag("Shuijingh", QVariant(condition_list.join("+")));
 
-                room->setTag("ShuijinghTarget", QVariant::fromValue(player));
-                player->setFlags(reason);
-                const Card *card = room->askForCard(simahuih, pattern, prompt);
+                const Card *card = room->askForCard(simahuih, QString(".|%1|.|hand|.").arg(suit), "@shuijingh");
                 room->playSkillEffect(objectName());
                 if(card){
                     if(event == HpRecover){
@@ -172,8 +172,7 @@ public:
                     log.from = simahuih;
                     room->sendLog(log);
                 }
-                room->removeTag("ShuijinghTarget");
-                player->setFlags("-"+reason);
+                room->removeTag("Shuijingh");
             }
         }
         return false;
@@ -256,7 +255,7 @@ public:
     virtual bool isProhibited(const Player *from, const Player *to, const Card *card) const{
         if(!to->getPile("yindunh_pile").isEmpty()){
             QString suit_str = Sanguosha->getCard(to->getPile("yindunh_pile").first())->getSuitString();
-            return (card->getSuitString() == suit_str && to->getMark("yindunhbuff") == 1);
+            return card->getSuitString() == suit_str;
         }
         else
             return false;
@@ -288,8 +287,6 @@ public:
             if(!card->subcardsLength()==0 && room->askForSkillInvoke(zuocih, "yindunh")){
                 room->playSkillEffect("yindunh");
 
-                room->setPlayerMark(zuocih, "yindunhbuff", 1);
-
                 QList<int> discards;
                 foreach(int card_id, card->getSubcards()){
                     if(room->getCardPlace(card_id)==Player::DiscardedPile)
@@ -298,7 +295,8 @@ public:
 
                 room->fillAG(discards, zuocih);
                 int ydid = room->askForAG(zuocih, discards, true, "yindunh");
-                zuocih->addToPile("yindunh_pile", ydid, true);
+                if(ydid != -1)
+                    zuocih->addToPile("yindunh_pile", ydid, true);
                 zuocih->invoke("clearAG");
 
                 LogMessage log;
@@ -309,8 +307,7 @@ public:
             }
         }
         else
-            if(event == PhaseChange && zuocih->getPhase() == Player::Start){
-                room->setPlayerMark(zuocih, "yindunhbuff", 0);
+            if(event == PhaseChange && zuocih->getPhase() == Player::Start && !zuocih->getPile("yindunh_pile").isEmpty()){
                 room->throwCard(zuocih->getPile("yindunh_pile").first());
             }
         return false;

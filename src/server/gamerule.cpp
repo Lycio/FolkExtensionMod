@@ -229,9 +229,6 @@ bool GameRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
     case HpLost:{
             int lose = data.toInt();
 
-            if(room->getCurrent()->hasSkill("jueqing"))
-                return true;
-
             LogMessage log;
             log.type = "#LoseHp";
             log.from = player;

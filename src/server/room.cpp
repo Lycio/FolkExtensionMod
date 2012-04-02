@@ -1803,14 +1803,11 @@ void Room::run(){
 
         startGame();
     }else if(mode == "05_2v3"){
-
         QList<const General *> generals;
+        QStringList packages;
+        packages << "standard" << "wind" << "fire" << "thicket" << "mountain" << "sp" << "BMG" ;
         foreach(const Package *package, Sanguosha->findChildren<const Package *>()){
-            if(package == Sanguosha->findChild<const Package *>("standard") ||
-                    package == Sanguosha->findChild<const Package *>("wind") ||
-                    package == Sanguosha->findChild<const Package *>("fire") ||
-                    package == Sanguosha->findChild<const Package *>("thicket") ||
-                    package == Sanguosha->findChild<const Package *>("mountain"))
+            if(packages.contains(package->objectName()))
                 generals << package->findChildren<const General *>();
             else
                 continue;
@@ -1825,7 +1822,10 @@ void Room::run(){
                 itor.remove();
         }
 
-        generals.removeOne(Sanguosha->getGeneral("yuji"));
+        QStringList ban_list;
+        ban_list << "caiwenji" << "sp_caiwenji" << "zuoci" << "zuocif" << "yuji" ;
+        foreach(QString name, ban_list)
+            generals.removeOne(Sanguosha->getGeneral(name));
 
         QString kingdom = "wei";
         if(Config.value("ChangbanSlope/Random_Kingdoms", false).toBool()){

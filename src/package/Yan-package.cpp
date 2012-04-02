@@ -522,7 +522,7 @@ public:
         if(!player->getEquips().isEmpty())
             return false;
         CardEffectStruct effect = data.value<CardEffectStruct>();
-        if(effect.from->objectName() != player->objectName() && effect.card->isNDTrick()){
+        if(effect.from && effect.from->objectName() != player->objectName() && effect.card->isNDTrick()){
             LogMessage log;
             log.type = "$YanYizhiLog";
             log.from = player;

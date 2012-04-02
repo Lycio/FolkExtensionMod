@@ -440,7 +440,7 @@ SPPackage::SPPackage()
     sp_diaochan->addSkill("lijian");
     sp_diaochan->addSkill("biyue");
 
-    General *sp_sunshangxiang = new General(this, "sp_sunshangxiang", "shu", 3, false, true);
+    General *sp_sunshangxiang = new General(this, "sp_sunshangxiang", "shu", 3, false);
     sp_sunshangxiang->addSkill("jieyin");
     sp_sunshangxiang->addSkill("xiaoji");
 
@@ -459,21 +459,21 @@ SPPackage::SPPackage()
     sp_guanyu->addSkill("wusheng");
     sp_guanyu->addSkill(new Danji);
 
-    General *sp_caiwenji = new General(this, "sp_caiwenji", "wei", 3, false, true);
+    General *sp_caiwenji = new General(this, "sp_caiwenji", "wei", 3, false);
     sp_caiwenji->addSkill("beige");
     sp_caiwenji->addSkill("duanchang");
 
-    General *sp_machao = new General(this, "sp_machao", "qun", 4, true, true);
+    General *sp_machao = new General(this, "sp_machao", "qun", 4, true);
     sp_machao->addSkill("mashu");
     sp_machao->addSkill("tieji");
 
-    General *sp_jiaxu = new General(this, "sp_jiaxu", "wei", 3, true, true);
+    General *sp_jiaxu = new General(this, "sp_jiaxu", "wei", 3, true);
     sp_jiaxu->addSkill("wansha");
     sp_jiaxu->addSkill("luanwu");
     sp_jiaxu->addSkill("weimu");
     sp_jiaxu->addSkill("#@chaos-1");
 
-    General *sp_pangde = new General(this, "sp_pangde", "wei", 4, true, true);
+    General *sp_pangde = new General(this, "sp_pangde", "wei", 4, true);
     sp_pangde->addSkill("mengjin");
     sp_pangde->addSkill("mashu");
 

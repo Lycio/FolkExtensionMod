@@ -273,6 +273,7 @@ public:
             jink = new DummyCard;
             jink->addSubcard(first_jink);
             jink->addSubcard(second_jink);
+            jink->setSkillName(reason);
         }
 
         return jink;

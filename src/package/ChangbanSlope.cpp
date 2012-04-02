@@ -162,7 +162,12 @@ CBYuXueCard::CBYuXueCard(){
 }
 
 void CBYuXueCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const{
-    QList<int> angers = source->getPile("Angers");
+    QList<int> angers = source->getPile("Angers"), redAngers;
+    foreach(int anger, angers){
+        if(Sanguosha->getCard(anger)->isRed())
+            redAngers << anger;
+    }
+
     ServerPlayer *target = source;
     foreach(ServerPlayer *p, room->getAllPlayers()){
         if(p->hasFlag("dying")){
@@ -171,8 +176,8 @@ void CBYuXueCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer
         }
     }
 
-    room->fillAG(angers, source);
-    int card_id = room->askForAG(source, angers, true, "cbyuxue");
+    room->fillAG(redAngers, source);
+    int card_id = room->askForAG(source, redAngers, true, "cbyuxue");
     source->invoke("clearAG");
     if(card_id != -1){
         const Card *redAnger = Sanguosha->getCard(card_id);
