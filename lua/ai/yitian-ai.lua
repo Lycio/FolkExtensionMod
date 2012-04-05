@@ -458,9 +458,12 @@ sgs.ai_skill_playerchosen.shaoying = function(self, targets)
 	local tos = {}
 	for _, target in sgs.qlist(targets) do
 		if self:isEnemy(target) then table.insert(tos, target) end
+	end 
+	
+	if #tos > 0 then
+		self:sort(tos, "hp")
+		return tos[1]
 	end
-	self:sort(tos, "hp")
-	return tos[1]
 end
 
 sgs.ai_skill_invoke.gongmou = true

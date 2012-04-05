@@ -136,7 +136,7 @@ void Dashboard::createRight(){
     handcard_pixmap->hide();
 
     mark_item = new QGraphicsTextItem(right);
-    mark_item->setPos(-128, 0);
+    mark_item->setPos(-128 - getButtonWidgetWidth(), 0);
     mark_item->setDefaultTextColor(Qt::white);
 
     action_item = NULL;
@@ -359,7 +359,7 @@ void Dashboard::installDelayedTrick(CardItem *card){
 }
 
 QRectF Dashboard::boundingRect() const{
-    qreal width = left->boundingRect().width() + middle->rect().width() + getButtonWidgetWidth() + right->boundingRect().width();
+    qreal width = left->boundingRect().width() + middle->rect().width() + right->boundingRect().width();
     qreal height = middle->rect().height();
     return QRectF(0, 0, width, height);
 }
@@ -368,7 +368,7 @@ void Dashboard::setMiddleWidth(int middle_width){
     int left_width = left_pixmap.width();
     qreal middle_height = middle->rect().height();
 
-    middle->setRect(0, 0, middle_width, middle_height);
+    middle->setRect(0, 0, middle_width + getButtonWidgetWidth(), middle_height);
     middle->setX(left_width);
     if(button_widget)
         button_widget->setX(left_width + middle_width);
@@ -468,7 +468,7 @@ void Dashboard::drawHp(QPainter *painter) const{
 
     qreal total_width = magatama->width() * max_hp;
     qreal skip = (121 - total_width)/ (max_hp + 1);
-    qreal start_x = left_pixmap.width() + middle->rect().width() + getButtonWidgetWidth();
+    qreal start_x = left_pixmap.width() + middle->rect().width();
 
     int i;
     for(i=0; i<hp; i++)
@@ -645,7 +645,7 @@ void Dashboard::adjustCards(const QList<CardItem *> &list, int y){
     if(list.isEmpty())
         return;
 
-    int max_width = middle->rect().width();
+    int max_width = middle->rect().width() - getButtonWidgetWidth();
     int start_x = left->boundingRect().width();
 
     if(list.length() == 1){
