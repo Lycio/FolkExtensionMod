@@ -115,12 +115,13 @@ end
 sgs.ai_skill_invoke.diyzhaolie = true
 
 --doudan
+--[[
 sgs.ai_skill_use["@@diydoudan"] = function(self, prompt)
 	if (self.player:getHp() > 2 and self.player:getHandcardNum() > 2) or self.player:getNextAlive():getCards("j"):contains("Lightning") or (self.player:getHp() <= 1 and (self:getCardsNum("Peach") < 1 or self:getCardsNum("Analeptic") < 1)) then
 		return ("@DiyDouDanCard=.->.")
 	end
 end
---[[
+
 sgs.ai_skill_choice.diydoudan = function(self, choices)
 	local cdids = room:getTag("DouDanCards"):toIntList()
 	local has_Jink, has_Nullification, has_Peach, has_Analeptic, has_Slash = false, false, false, false, false

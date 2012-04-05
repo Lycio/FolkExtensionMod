@@ -1028,6 +1028,264 @@ public:
     }
 };
 
+class YanHuixuan: public TriggerSkill{
+public:
+    YanHuixuan():TriggerSkill("yanhuixuan"){
+        events << CardResponsed;
+        frequency = Frequent;
+    }
+
+    virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
+        CardStar card_star = data.value<CardStar>();
+        if(card_star->inherits("Slash"))
+            player->setFlags(objectName());
+
+        return false;
+    }
+};
+
+class YanHuixuanSkip: public PhaseChangeSkill{
+public:
+    YanHuixuanSkip():PhaseChangeSkill("#yanhuixuan-skip"){
+    }
+
+    virtual int getPriority() const{
+        return 3;
+    }
+
+    virtual bool onPhaseChange(ServerPlayer *player) const{
+        if(player->getPhase() == Player::Start){
+            player->setFlags("-yanhuixuan");
+            if(player->getMark("@huixuan") > 0)
+                player->loseMark("@huixuan", 1);
+        }else if(player->getPhase() == Player::Discard){
+            if(!player->hasFlag("yanhuixuan") &&
+                    player->getSlashCount() == 0 &&
+                    player->askForSkillInvoke("yanhuixuan") &&
+                    player->getRoom()->askForDiscard(player, "yanhuixuan", 1, false, true)){
+                player->getRoom()->acquireSkill(player, "yanhuixuan-buff");
+                player->gainMark("@huixuan", 1);
+                return true;
+            }
+        }
+        return false;
+    }
+};
+
+class YanHuixuanBuff: public TriggerSkill{
+public:
+    YanHuixuanBuff():TriggerSkill("yanhuixuan-buff"){
+        events << SlashMissed;
+    }
+
+    virtual bool triggerable(const ServerPlayer *target) const{
+        return !target->hasSkill(objectName());
+    }
+
+    virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
+        Room *room = player->getRoom();
+        ServerPlayer *lengyanju = room->findPlayerBySkillName(objectName());
+        if(!lengyanju || lengyanju->getMark("@huixuan") == 0)
+            return false;
+        SlashEffectStruct ses = data.value<SlashEffectStruct>();
+        const Card *card = room->askForCard(lengyanju, ".|.|.|.|red", "@yanhuixuan:"+ses.to->objectName(), data);
+        if(card){
+            Slash *slash = new Slash(card->getSuit(), card->getNumber());
+            slash->addSubcard(card);
+            slash->setSkillName(objectName());
+
+            LogMessage log;
+            log.type = "#YanHuixuanLog";
+            log.from = lengyanju;
+            log.to << ses.from;
+            log.arg = ses.to->getGeneralName();
+            log.arg2 = "yanhuixuan";
+            room->sendLog(log);
+
+            CardUseStruct use;
+            use.card = slash;
+            use.from = ses.from;
+            use.to << ses.to;
+            room->useCard(use, false);
+        }
+
+        return false;
+    }
+};
+
+class YanDaohun: public TriggerSkill{
+public:
+    YanDaohun():TriggerSkill("yandaohun"){
+        events << CardLost << FinishJudge;
+        frequency = Frequent;
+    }
+
+    virtual int getPriority() const{
+        return -1;
+    }
+
+    virtual bool triggerable(const ServerPlayer *target) const{
+        return ! target->hasSkill(objectName());
+    }
+
+    const Card *getBlade(const Card *card) const{
+        const Card *blade;
+
+        foreach(int card_id, card->getSubcards()){
+            const Card *c = Sanguosha->getCard(card_id);
+            if(c->inherits("Blade"))
+                blade = c;
+        }
+
+        return blade;
+    }
+
+    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+        Room *room = player->getRoom();
+        ServerPlayer *lengyanju = room->findPlayerBySkillName(objectName());
+        if(!lengyanju)
+            return false;
+        const Card *blade = NULL;
+
+        if(event == CardLost){
+            CardMoveStar cms = data.value<CardMoveStar>();
+            if(cms->to_place == Player::DiscardedPile && cms->from->objectName() != lengyanju->objectName()){
+                const Card *card = Sanguosha->getCard(cms->card_id);
+                if(card->inherits("Blade"))
+                    blade = card;
+            }
+        }else if(event == FinishJudge){
+            JudgeStar judge = data.value<JudgeStar>();
+            if(room->getCardPlace(judge->card->getEffectiveId()) == Player::DiscardedPile
+               && judge->card->inherits("Blade"))
+               blade = judge->card;
+        }
+        if(blade == NULL)
+            return false;
+
+        if(lengyanju->askForSkillInvoke(objectName(), data)){
+            QList<ServerPlayer *> tos;
+            ServerPlayer *to = lengyanju;
+            foreach(ServerPlayer *p, room->getAllPlayers())
+                if(!p->getWeapon())
+                    tos << p;
+            if(tos.isEmpty())
+                lengyanju->obtainCard(blade);
+            else{
+                to = room->askForPlayerChosen(lengyanju, tos, objectName());
+                room->moveCardTo(blade, to, Player::Equip, true);
+            }
+        }
+
+        return false;
+    }
+};
+
+class YanLongyin: public TriggerSkill{
+public:
+    YanLongyin():TriggerSkill("yanlongyin"){
+        events << Predamage;
+    }
+
+    virtual bool triggerable(const ServerPlayer *player) const{
+        return player->getGeneralName().contains("guanyu") ||
+                (player->getWeapon() && player->getWeapon()->objectName() == "blade");
+    }
+
+    virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
+        Room *room = player->getRoom();
+        ServerPlayer *lengyanju = room->findPlayerBySkillName(objectName());
+        if(!lengyanju)
+            return false;
+        DamageStruct ds = data.value<DamageStruct>();
+        if(ds.card && ds.card->inherits("Slash") && ds.card->isRed() &&
+                lengyanju->askForSkillInvoke(objectName(), data)){
+            JudgeStruct judge;
+            judge.pattern = QRegExp("(.*):(.*):(.*)");
+            judge.who = lengyanju;
+            judge.reason = objectName();
+            room->judge(judge);
+
+            if(judge.card->getSuit() == Card::Heart){
+                ds.damage ++;
+                data = QVariant::fromValue(ds);
+            }
+            else
+                lengyanju->obtainCard(judge.card);
+        }
+
+        return false;
+    }
+};
+
+class YanGuiling: public TriggerSkill{
+public:
+    YanGuiling():TriggerSkill("yanguiling"){
+        events << Death;
+    }
+
+    virtual bool triggerable(const ServerPlayer *player) const{
+        return player->hasSkill(objectName());
+    }
+
+    virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
+        Room *room = player->getRoom();
+        DamageStar ds = data.value<DamageStar>();
+        if(!ds->from || ds->from->isDead())
+            return false;
+        LogMessage log;
+        log.type = "#YanGuilingLog";
+        log.from = player;
+        log.arg = objectName();
+        room->sendLog(log);
+        room->acquireSkill(ds->from, "yanguiling-buff");
+        ds->from->gainMark("@guiling", 1);
+        if(ds->from->getWeapon())
+            room->throwCard(ds->from->getWeapon());
+
+        return false;
+    }
+};
+
+class YanGuilingBuff: public TriggerSkill{
+public:
+    YanGuilingBuff():TriggerSkill("yanguiling-buff"){
+        events << SlashMissed << CardUsed;
+    }
+
+    virtual bool triggerable(const ServerPlayer *player) const{
+        return player->getMark("@guiling") > 0;
+    }
+
+    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+        Room *room = player->getRoom();
+        if(event == SlashMissed){
+            SlashEffectStruct effect = data.value<SlashEffectStruct>();
+            if((effect.to->hasSkill("kongcheng") && effect.to->isKongcheng()))
+                return false;
+
+            const Card *card = room->askForCard(player, "slash", "@guiling-slash:" + effect.to->objectName());
+            if(card){
+                if(player->hasFlag("drank"))
+                    room->setPlayerFlag(player, "-drank");
+
+                CardUseStruct use;
+                use.card = card;
+                use.from = player;
+                use.to << effect.to;
+                room->useCard(use, false);
+            }
+        }else if(event == CardUsed){
+            CardUseStruct use = data.value<CardUseStruct>();
+            if(use.card->inherits("Weapon")){
+                room->throwCard(use.card);
+                return true;
+            }
+        }
+        return false;
+    }
+};
+
 YanPackage::YanPackage()
     :Package("Yan")
 {
@@ -1084,10 +1342,21 @@ YanPackage::YanPackage()
 
     related_skills.insertMulti("yantoujing", "#yantoujingdeath");
 
+    General *yanlengyanju = new General(this, "yanlengyanju", "yan", 3);
+    yanlengyanju->addSkill(new YanHuixuan);
+    yanlengyanju->addSkill(new YanHuixuanSkip);
+    yanlengyanju->addSkill(new YanDaohun);
+    yanlengyanju->addSkill(new YanLongyin);
+    yanlengyanju->addSkill(new YanGuiling);
+
+    related_skills.insertMulti("yanhuixuan", "#yanhuixuan-skip");
+
     addMetaObject<YanJiushaCard>();
     addMetaObject<YanJiuseCard>();
     addMetaObject<YanCangshanCard>();
     addMetaObject<YanTuoguCard>();
+
+    skills << new YanHuixuanBuff << new YanGuilingBuff;
 
     patterns["sudden_strike"] = new ExpPattern("SuddenStrike");
     patterns["cover"] = new ExpPattern("Cover");

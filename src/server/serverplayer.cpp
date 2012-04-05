@@ -841,6 +841,8 @@ void ServerPlayer::gainAnExtraTurn(ServerPlayer *clearflag){
     room->removeTag("Zhichi");
     if(clearflag)
         clearflag->clearFlags();
+    if(clearflag)
+        clearflag->clearHistory();
     room->getThread()->trigger(TurnStart, this);
     room->setCurrent(current);
 }

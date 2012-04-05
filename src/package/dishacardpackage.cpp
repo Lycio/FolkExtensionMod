@@ -228,6 +228,7 @@ public:
                 log.type = "#JiaSuoLog";
                 log.from = player;
                 player->getRoom()->sendLog(log);
+                player->clearHistory();
                 player->skip(Player::Play);
                 player->setMark("skippedPlaying", 1);
                 return false;

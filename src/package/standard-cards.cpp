@@ -43,8 +43,6 @@ void Slash::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &t
         log.type = "#UnsetDrank";
         log.from = source;
         room->sendLog(log);
-
-        room->setPlayerFlag(source, "-drank");
     }
 }
 
@@ -59,6 +57,7 @@ void Slash::onEffect(const CardEffectStruct &card_effect) const{
     effect.to = card_effect.to;
     effect.drank = effect.from->hasFlag("drank");
 
+    room->setPlayerFlag(effect.from, "-drank");
     room->slashEffect(effect);
 }
 
@@ -487,7 +486,6 @@ public:
                     jink->setSkillName(objectName());
                     room->provide(jink);
                     room->setEmotion(player, "good");
-                    room->broadcastInvoke("playAudio", objectName());
 
                     return true;
                 }else
@@ -918,6 +916,7 @@ bool Indulgence::targetFilter(const QList<const Player *> &targets, const Player
 }
 
 void Indulgence::takeEffect(ServerPlayer *target) const{
+    target->clearHistory();
     target->skip(Player::Play);
 }
 

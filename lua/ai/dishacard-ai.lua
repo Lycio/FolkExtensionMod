@@ -26,8 +26,7 @@ sgs.weapon_range.JiaSuo = 1
 sgs.weapon_range.LuofengBow = 1
 
 function SmartAI:slashIsEffective(slash, to)
-	if to:hasSkill("yinshih") and not to:inMyAttackRange(self.player) then return false end
-	if self.player:hasSkill("yinshih") and not self.player:inMyAttackRange(to) then return false end
+	if (to:hasSkill("yinshih") and not to:canSlash(self.player)) or (self.player:hasSkill("yinshih") and not to:canSlash(self.player)) then return false end
     if to:hasSkill("zuixiang") and to:isLocked(slash) then return false end
 	if to:hasSkill("heiyan") then 
 		if slash:isBlack() then return false end
@@ -219,6 +218,8 @@ end
 function SmartAI:askForSinglePeach(dying)
 	local card_str
 
+	if (dying:hasSkill("yinshih") and not dying:canSlash(self.player)) or (self.player:hasSkill("yinshih") and not dying:canSlash(self.player)) then return "." end
+	
 	if self:isFriend(dying) then
 		local buqu = dying:getPile("buqu")
 		if not buqu:isEmpty() then
@@ -271,11 +272,6 @@ end
 
 function SmartAI:useCardBloodSlash(...)
 	self:useCardSlash(...)
-end
-
-function SmartAI:useCardPoisonPeach(card, use)
-	if not self.player:hasSkill("yiji") then return end
-	use.card = card
 end
 
 function sgs.ai_slash_weaponfilter.luofeng_bow(to, self)

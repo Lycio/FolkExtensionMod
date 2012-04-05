@@ -276,14 +276,14 @@ void JuejiCard::onEffect(const CardEffectStruct &effect) const{
     }
 }
 
-class JuejiViewAsSkill: public OneCardViewAsSkill{
+class Jueji: public OneCardViewAsSkill{
 public:
-    JuejiViewAsSkill():OneCardViewAsSkill("jueji"){
+    Jueji():OneCardViewAsSkill("jueji"){
 
     }
 
     virtual bool isEnabledAtPlay(const Player *player) const{
-        return false;
+        return player->hasUsed("JuejiCard");
     }
 
     virtual bool viewFilter(const CardItem *to_select) const{
@@ -294,25 +294,6 @@ public:
         JuejiCard *card = new JuejiCard;
         card->addSubcard(card_item->getCard());
         return card;
-    }
-};
-
-class Jueji: public PhaseChangeSkill{
-public:
-    Jueji():PhaseChangeSkill("jueji"){
-        view_as_skill = new JuejiViewAsSkill;
-    }
-
-    virtual int getPriority() const{
-        return 3;
-    }
-
-    virtual bool onPhaseChange(ServerPlayer *target) const{
-        if(target->getPhase() == Player::Play){
-            Room *room = target->getRoom();
-            return room->askForUseCard(target, "@@jueji", "@jueji-pindian");
-        }else
-            return false;
     }
 };
 
@@ -601,8 +582,19 @@ public:
             Room *room = target->getRoom();
             bool used = room->askForUseCard(target, "@@lianli", "@lianli-card");
             if(used){
-                if(target->getKingdom() != "shu")
-                    room->setPlayerProperty(target, "kingdom", "shu");
+                ServerPlayer *spouse = NULL;
+                foreach(ServerPlayer *p, room->getAlivePlayers()){
+                    if(p->getMark("@tied") > 0 && p != target){
+                        spouse = p;
+                        break;
+                    }
+                }
+
+                if(spouse){
+                    QString kingdom = spouse->getKingdom();
+                    if(target->getKingdom() != kingdom)
+                        room->setPlayerProperty(target, "kingdom", kingdom);
+                }
             }else{
                 if(target->getKingdom() != "wei")
                     room->setPlayerProperty(target, "kingdom", "wei");
@@ -678,32 +670,6 @@ public:
 };
 
 // -------- end of Lianli related skills
-
-QiaocaiCard::QiaocaiCard(){
-    once = true;
-}
-
-void QiaocaiCard::onEffect(const CardEffectStruct &effect) const{
-    QList<const Card *> cards = effect.to->getJudgingArea();
-    foreach(const Card *card, cards){
-        effect.from->obtainCard(card);
-    }
- }
-
-class Qiaocai: public ZeroCardViewAsSkill{
-public:
-    Qiaocai():ZeroCardViewAsSkill("qiaocai"){
-
-    }
-
-    virtual bool isEnabledAtPlay(const Player *player) const{
-        return player->getMark("@tied") == 0 && ! player->hasUsed("QiaocaiCard");
-    }
-
-    virtual const Card *viewAs() const{
-        return new QiaocaiCard;
-    }
-};
 
 class Jinshen: public ProhibitSkill{
 public:
@@ -1078,11 +1044,25 @@ public:
         if(!damage.from->hasSkill(objectName()))
             return false;
 
+        if(damage.to->isChained())
+            return false;
+
+        if(damage.nature != DamageStruct::Fire)
+            return false;
+
         ServerPlayer *luboyan = damage.from;
-        if(!damage.to->isChained() && damage.nature == DamageStruct::Fire
-           && luboyan->askForSkillInvoke(objectName(), data))
-        {
-            Room *room = luboyan->getRoom();
+        Room *room = luboyan->getRoom();
+        QList<ServerPlayer *> targets;
+        foreach(ServerPlayer *p, room->getAlivePlayers()){
+            if(damage.to->distanceTo(p) == 1)
+                targets << p;
+        }
+        if(targets.isEmpty())
+            return false;
+
+        if(luboyan->askForSkillInvoke(objectName(), data)){
+
+            ServerPlayer *target = room->askForPlayerChosen(luboyan, targets, objectName());
 
             JudgeStruct judge;
             judge.pattern = QRegExp("(.*):(heart|diamond):(.*)");
@@ -1097,7 +1077,7 @@ public:
                 DamageStruct shaoying_damage;
                 shaoying_damage.nature = DamageStruct::Fire;
                 shaoying_damage.from = luboyan;
-                shaoying_damage.to = player->getNextAlive();
+                shaoying_damage.to = target;
 
                 room->damage(shaoying_damage);
             }
@@ -1904,7 +1884,6 @@ YitianPackage::YitianPackage()
     xiahoujuan->addSkill(new LianliClear);
     xiahoujuan->addSkill(new Tongxin);
     xiahoujuan->addSkill(new Skill("liqian", Skill::Compulsory));
-    xiahoujuan->addSkill(new Qiaocai);
 
     related_skills.insertMulti("lianli", "#lianli-start");
     related_skills.insertMulti("lianli", "#lianli-slash");
@@ -1964,7 +1943,6 @@ YitianPackage::YitianPackage()
     addMetaObject<ChengxiangCard>();
     addMetaObject<JuejiCard>();
     addMetaObject<LianliCard>();
-    addMetaObject<QiaocaiCard>();
     addMetaObject<LianliSlashCard>();
     addMetaObject<GuihanCard>();
     addMetaObject<LexueCard>();

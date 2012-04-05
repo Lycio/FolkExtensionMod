@@ -202,6 +202,7 @@ public:
                         targets.removeOne(p);
                 }
                 if(targets.isEmpty()){
+                    player->clearHistory();
                     player->skip(Player::Play);
                     return true;
                 }else{                           
@@ -213,6 +214,7 @@ public:
                     room->sendLog(log);
                     Slash *slash = new Slash(Card::NoSuit, 0);
                     room->cardEffect(slash, player, target);
+                    player->clearHistory();
                     player->skip(Player::Play);
                     return true;
                 }

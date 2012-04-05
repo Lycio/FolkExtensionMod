@@ -1686,14 +1686,20 @@ void Room::assignGeneralsForPlayers(const QList<ServerPlayer *> &to_assign){
 void Room::chooseGenerals(){
 
     // for lord.
+    const int nonlord_prob = 5;
     if(!Config.EnableHegemony)
     {
         QStringList lord_list;
+        ServerPlayer *the_lord = getLord();
         if(mode == "08same")
             lord_list = Sanguosha->getRandomGenerals(Config.value("MaxChoice", 5).toInt());
+        else if(the_lord->getState() == "robot")
+            if(qrand()%100 < nonlord_prob)
+                lord_list = Sanguosha->getRandomGenerals(1);
+            else
+                lord_list = Sanguosha->getLords();
         else
             lord_list = Sanguosha->getRandomLords();
-        ServerPlayer *the_lord = getLord();
         QString general = askForGeneral(the_lord, lord_list);
         the_lord->setGeneralName(general);
         if(!Config.EnableBasara)broadcastProperty(the_lord, "general", general);
@@ -2980,11 +2986,6 @@ void Room::doGuanxing(ServerPlayer *zhuge, const QList<int> &cards, bool up_only
     bool length_equal = top_cards.length() + bottom_cards.length() == cards.length();
     bool result_equal = top_cards.toSet() + bottom_cards.toSet() == cards.toSet();
     if(!length_equal || !result_equal){
-        QString top_str = Card::IdsToStrings(top_cards).join("+");
-        QString bottom_str = Card::IdsToStrings(bottom_cards).join("+");
-
-        //qDebug("Guanxing error: %s %s", qPrintable(top_str), qPrintable(bottom_str));
-
         top_cards = cards;
         bottom_cards.clear();
     }

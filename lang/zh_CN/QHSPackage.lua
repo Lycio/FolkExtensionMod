@@ -261,6 +261,19 @@ return {
 	["#DuboLog"] = "%from 赢了这次赌博，将获得所有赌博牌",
 	["dubopile"] = "赌注",
 	
+	["xujih"] = "徐姬",
+	["#xujih"] = "忠贞烈女",
+	["cv:xujih"] = " ",
+	["designer:xujih"] = "皇叔",
+	["illustrator:xujih"] = " ",
+	["zhongzhenh"] = "忠贞",
+	[":zhongzhenh"] = "<b>锁定技，</b>你不能成为【铁索连环】的目标；当你的武将牌横置时，摸牌阶段你额外摸X张牌（X为场上武将牌横置的角色数）",
+	["#ZhongzhenhDrawLog"] = "%from 的锁定技【%arg2】被触发，%from 额外摸了 %arg 张牌",
+	["baohenh"] = "报恨",
+	[":baohenh"] = "每当你使用非延时类锦囊（铁索连环除外）指定一名角色为目标时，你可将该角色的武将牌横置或重置",
+	["weicongh"] = "伪从",
+	[":weicongh"] = "回合开始阶段，你可以将你的武将牌横置，若如此做，你与其它武将牌横置的角色距离始终为1直到回合结束",
+	
 	["QHS_Equip"] = "测试装备",
 	
 	["tianlangh"] = "封印的-天狼",

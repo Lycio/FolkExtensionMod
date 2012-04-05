@@ -296,3 +296,50 @@ sgs.ai_skill_cardask["@yanlongtai"] = function(self, data, pattern, target)
 	end
 	return "."
 end
+
+sgs.ai_skill_invoke.yanhuixuan = function(self, data)
+	return self.player:getHandcardNum() > self.player:getHp()
+end
+
+sgs.ai_skill_cardask["@yanhuixuan"] = function(self, data, pattern, target)
+	local effect = data:toCardEffect()
+	local target = effect.to
+	if self:isFriend(target) or target:objectName() == self.player:objectName() then return "." end
+		
+	local cards = self.player:getCards("he")
+	cards = sgs.QList2Table(cards)
+	
+	for _, card in ipairs(cards) do
+		if card:isRed() and not card:inherits("Peach") then 
+			return card:toString()
+		end 
+	end
+	return "."
+end
+
+sgs.ai_skill_playerchosen.yandaohun = function(self, targets)
+	local target
+	for _, player in sgs.qlist(targets) do
+		if (self:isFriend(player)) then
+			target = player
+		end
+	end
+	return target
+end
+
+sgs.ai_skill_invoke.yanlogyin = function(self, data)
+	local damage = data:toDamage()
+	return self:isEnemy(damage.to)
+end
+
+sgs.ai_skill_cardask["@guiling-slash"] = function(self, data, pattern, target)
+	if target and self:isFriend(target) and not (target:hasSkill("leiji") and self:getCardsNum("Jink", target, "h") > 0) then
+		return "."
+	end
+	for _, slash in ipairs(self:getCards("Slash")) do
+		if self:slashIsEffective(slash, target) then 
+			return slash:toString()
+		end 
+	end
+	return "."
+end

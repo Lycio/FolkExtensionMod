@@ -64,7 +64,8 @@ end
 --xiuzhen
 sgs.ai_skill_invoke.xiuzhen = function(self, data)
 	local damage = data:toDamage()
-	return not self:isFriend(damage.from)
+	if damage.from then	return not self:isFriend(damage.from) end
+	return false
 end
 
 SmartAI.exclude = function(self, players, card)
