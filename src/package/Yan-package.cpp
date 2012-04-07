@@ -1285,7 +1285,201 @@ public:
         return false;
     }
 };
+/*
+class YanShenbing: public MasochismSkill{
+public:
+    YanShenbing():MasochismSkill("yanshenbing"){
+        frequency = Frequent;
+    }
 
+    static void AcquireGenerals(ServerPlayer *shenluxun, int n){
+        QStringList list = GetAvailableGenerals(shenluxun);
+        qShuffle(list);
+
+        QStringList acquired = list.mid(0, n);
+        QVariantList yings = shenluxun->tag["Yings"].toList();
+        foreach(QString ying, acquired){
+            yings << ying;
+            const General *general = Sanguosha->getGeneral(ying);
+            foreach(const TriggerSkill *skill, general->getTriggerSkills()){
+                shenluxun->getRoom()->getThread()->addTriggerSkill(skill);
+            }
+        }
+
+        shenluxun->tag["Yings"] = yings;
+
+        shenluxun->invoke("animate", "ying:" + acquired.join(":"));
+
+        LogMessage log;
+        log.type = "#GetYing";
+        log.from = shenluxun;
+        log.arg = QString::number(n);
+        log.arg2 = QString::number(yings.length());
+        shenluxun->getRoom()->sendLog(log);
+    }
+
+    static QStringList GetAvailableGenerals(ServerPlayer *shenluxun){
+        QSet<QString> all = Sanguosha->getLimitedGeneralNames().toSet();
+        QSet<QString> ying_set, room_set;
+        QVariantList yings = shenluxun->tag["Yings"].toList();
+        foreach(QVariant ying, yings)
+            ying_set << ying.toString();
+
+        Room *room = shenluxun->getRoom();
+        QList<const ServerPlayer *> players = room->findChildren<const ServerPlayer *>();
+        foreach(const ServerPlayer *player, players){
+            room_set << player->getGeneralName();
+            if(player->getGeneral2())
+                room_set << player->getGeneral2Name();
+        }
+
+        static QSet<QString> banned;
+        if(banned.isEmpty()){
+            banned << "shenluxun" << "zuoci" << "zuocif" << "guzhielai" << "dengshizai" << "caochong" << "jiangboyue" << "zhugejin";
+        }
+
+        return (all - banned - ying_set - room_set).toList();
+    }
+
+    static QString SelectGenral(ServerPlayer *shenluxun, bool acquire_instant = true){
+        Room *room = shenluxun->getRoom();
+
+        QString huashen_skill = shenluxun->tag["HuashenSkill"].toString();
+        if(!huashen_skill.isEmpty()){
+            room->detachSkillFromPlayer(shenluxun, huashen_skill);
+            shenluxun->clearPrivatePiles();
+            if(shenluxun->getHp() <= 0 )
+                room->loseHp(shenluxun,0);
+        }
+
+        QVariantList huashens = shenluxun->tag["Yings"].toList();
+        if(huashens.isEmpty())
+            return QString();
+
+        QStringList huashen_generals;
+        foreach(QVariant huashen, huashens)
+            huashen_generals << huashen.toString();
+
+        QStringList skill_names;
+        QString skill_name;
+        AI* ai = shenluxun->getAI();
+        if(ai){
+            QHash<QString, const General*>hash;
+            foreach(QString general_name, huashen_generals){
+                const General* general = Sanguosha->getGeneral(general_name);
+                foreach(const Skill *skill, general->getVisibleSkillList()){
+                    if(skill->isLordSkill() || skill->getFrequency() == Skill::Limited
+                            || skill->getFrequency() == Skill::Wake)
+                        continue;
+
+                    if(!skill_names.contains(skill->objectName())){
+                        hash[skill->objectName()] = general;
+                        skill_names << skill->objectName();
+                    }
+                }
+            }
+            skill_name = ai->askForChoice("huashen", skill_names.join("+"));
+            const General* general = hash[skill_name];
+            QString kingdom = general->getKingdom();
+            if(shenluxun->getKingdom() != kingdom){
+                if(kingdom == "god")
+                    kingdom = room->askForKingdom(shenluxun);
+                room->setPlayerProperty(shenluxun, "kingdom", kingdom);
+            }
+            if(shenluxun->getGeneral()->isMale() != general->isMale())
+                room->setPlayerProperty(shenluxun, "general", general->isMale() ? "shenluxun" : "shenluxunf");
+        }
+        else{
+            QString general_name = room->askForGeneral(shenluxun, huashen_generals);
+            const General *general = Sanguosha->getGeneral(general_name);
+            QString kingdom = general->getKingdom();
+            if(shenluxun->getKingdom() != kingdom){
+                if(kingdom == "god")
+                    kingdom = room->askForKingdom(shenluxun);
+                room->setPlayerProperty(shenluxun, "kingdom", kingdom);
+            }
+            if(shenluxun->getGeneral()->isMale() != general->isMale())
+                room->setPlayerProperty(shenluxun, "general", general->isMale() ? "shenluxun" : "shenluxunf");
+
+            foreach(const Skill *skill, general->getVisibleSkillList()){
+                if(skill->isLordSkill() || skill->getFrequency() == Skill::Limited
+                   || skill->getFrequency() == Skill::Wake)
+                    continue;
+
+                skill_names << skill->objectName();
+            }
+
+            if(skill_names.isEmpty())
+                return QString();
+
+            if(skill_names.length() == 1)
+                skill_name = skill_names.first();
+            else
+                skill_name = room->askForChoice(shenluxun, "huashen", skill_names.join("+"));
+        }
+
+        shenluxun->tag["HuashenSkill"] = skill_name;
+
+        if(acquire_instant)
+            room->acquireSkill(shenluxun, skill_name);
+
+        return skill_name;
+    }
+
+    virtual void onDamaged(ServerPlayer *shenluxun, const DamageStruct &damage) const{
+        int n = damage.damage;
+        if(n == 0)
+            return;
+
+        if(shenluxun->askForSkillInvoke(objectName())){
+            Huashen::AcquireGenerals(shenluxun, n);
+        }
+    }
+
+    virtual QDialog *getDialog() const{
+        static HuashenDialog *dialog;
+
+        if(dialog == NULL)
+            dialog = new HuashenDialog;
+
+        return dialog;
+    }
+};
+
+HuashenDialog::HuashenDialog()
+{
+    setWindowTitle(Sanguosha->translate("huashen"));
+}
+
+void HuashenDialog::popup(){
+    QVariantList huashen_list = Self->tag["Huashens"].toList();
+    QList<const General *> huashens;
+    foreach(QVariant huashen, huashen_list)
+        huashens << Sanguosha->getGeneral(huashen.toString());
+
+    fillGenerals(huashens);
+
+    show();
+}
+
+class Xinsheng: public MasochismSkill{
+public:
+    Xinsheng():MasochismSkill("xinsheng"){
+        frequency = Frequent;
+    }
+
+    virtual void onDamaged(ServerPlayer *shenluxun, const DamageStruct &damage) const{
+        int n = damage.damage;
+        if(n == 0)
+            return;
+
+        if(shenluxun->askForSkillInvoke(objectName())){
+            Huashen::PlayEffect(shenluxun, objectName());
+            Huashen::AcquireGenerals(shenluxun, n);
+        }
+    }
+};
+*/
 YanPackage::YanPackage()
     :Package("Yan")
 {

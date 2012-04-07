@@ -178,6 +178,7 @@ void LijianCard::use(Room *room, ServerPlayer *, const QList<ServerPlayer *> &ta
     ServerPlayer *from = targets.at(1);
 
     Duel *duel = new Duel(Card::NoSuit, 0);
+    duel->setSkillName("lijian");
     duel->setCancelable(false);
 
     CardUseStruct use;

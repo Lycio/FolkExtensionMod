@@ -350,19 +350,19 @@ public:
 GhostPackage::GhostPackage()
     :Package("ghost")
 {
-    General *guizhangfei = new General(this, "guizhangfei", "shu", 4);
+    General *guizhangfei = new General(this, "guizhangfei", "yan", 4);
     guizhangfei->addSkill(new Skill("longyin", Skill::Compulsory));
     guizhangfei->addSkill(new Skill("huxiao", Skill::Compulsory));
 
-    General *guilvbu = new General(this, "guilvbu", "qun", 4);
+    General *guilvbu = new General(this, "guilvbu", "yan", 4);
     guilvbu->addSkill(new Sheji);
     guilvbu->addSkill(new Skill("juelu", Skill::Compulsory));
 
-    General *guiguanyu = new General(this, "guiguanyu", "shu", 4);
+    General *guiguanyu = new General(this, "guiguanyu", "yan", 4);
     guiguanyu->addSkill(new Wumo);
     guiguanyu->addSkill(new Tuodao);
 
-    General *guihuaxiong = new General(this, "guihuaxiong", "qun", 4);
+    General *guihuaxiong = new General(this, "guihuaxiong", "yan", 4);
     guihuaxiong->addSkill(new Xiaoshou);
 
     General *guisimahui = new General(this, "guisimahui", "qun", 3);
@@ -373,7 +373,7 @@ GhostPackage::GhostPackage()
     General *shamoke = new General(this, "shamoke", "shu", 4);
     shamoke->addSkill(new Qinwang);
 
-    General *guizhuge = new General(this, "guizhuge", "shu", 3);
+    General *guizhuge = new General(this, "guizhuge", "yan", 3);
     guizhuge->addSkill(new Zhuangshen);
     guizhuge->addSkill(new Qimen);
 

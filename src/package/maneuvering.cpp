@@ -85,7 +85,7 @@ void Analeptic::onEffect(const CardEffectStruct &effect) const{
         room->setPlayerFlag(effect.to, "drank");
     }
 }
-
+/*
 class FanSkill: public WeaponSkill{
 public:
     FanSkill():WeaponSkill("fan"){
@@ -108,10 +108,39 @@ public:
         return false;
     }
 };
+*/
+class FanSkill: public OneCardViewAsSkill{
+public:
+    FanSkill():OneCardViewAsSkill("fan"){
+
+    }
+
+    virtual bool isEnabledAtPlay(const Player *player) const{
+        return Slash::IsAvailable(player);
+    }
+
+    virtual bool isEnabledAtResponse(const Player *player, const QString &pattern) const{
+        return  pattern == "slash";
+    }
+
+    virtual bool viewFilter(const CardItem *to_select) const{
+        return to_select->getFilteredCard()->objectName() == "slash";
+    }
+
+    virtual const Card *viewAs(CardItem *card_item) const{
+        const Card *slash = card_item->getFilteredCard();
+
+        FireSlash *fslash = new FireSlash(slash->getSuit(), slash->getNumber());
+        fslash->setSkillName(objectName());
+        fslash->addSubcard(slash);
+
+        return fslash;
+    }
+};
 
 Fan::Fan(Suit suit, int number):Weapon(suit, number, 4){
     setObjectName("fan");
-    skill = new FanSkill;
+    attach_skill = true;
 }
 
 class GudingBladeSkill: public WeaponSkill{
@@ -443,6 +472,8 @@ ManeuveringPackage::ManeuveringPackage()
         card->setParent(this);
 
     type = CardPack;
+
+    skills << new FanSkill;
 }
 
 ADD_PACKAGE(Maneuvering)

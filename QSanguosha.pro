@@ -31,8 +31,7 @@ SOURCES += src/main.cpp \
 	src/dialog/connectiondialog.cpp \
 	src/dialog/customassigndialog.cpp \
 	src/dialog/distanceviewdialog.cpp \
-	src/dialog/generaloverview.cpp \
-	src/dialog/generalselector.cpp \
+        src/dialog/generaloverview.cpp \
 	src/dialog/mainwindow.cpp \
 	src/dialog/packagingeditor.cpp \
 	src/dialog/playercarddialog.cpp \
@@ -86,6 +85,7 @@ SOURCES += src/main.cpp \
 	src/server/roomthread3v3.cpp \
 	src/server/server.cpp \
 	src/server/serverplayer.cpp \
+        src/server/generalselector.cpp \
 	src/ui/button.cpp \
 	src/ui/cardcontainer.cpp \
 	src/ui/carditem.cpp \
@@ -101,6 +101,7 @@ SOURCES += src/main.cpp \
 	src/ui/sprite.cpp \
 	src/ui/startscene.cpp \
 	src/ui/window.cpp \
+        src/ui/irregularbutton.cpp \
 	src/util/detector.cpp \
 	src/util/nativesocket.cpp \
 	src/util/recorder.cpp \
@@ -157,8 +158,7 @@ HEADERS += src/client/aux-skills.h \
 	src/dialog/connectiondialog.h \
 	src/dialog/customassigndialog.h \
 	src/dialog/distanceviewdialog.h \
-	src/dialog/generaloverview.h \
-	src/dialog/generalselector.h \
+        src/dialog/generaloverview.h \
 	src/dialog/halldialog.h \
 	src/dialog/mainwindow.h \
 	src/dialog/packagingeditor.h \
@@ -212,6 +212,7 @@ HEADERS += src/client/aux-skills.h \
 	src/server/server.h \
 	src/server/serverplayer.h \
 	src/server/structs.h \
+        src/server/generalselector.h \
 	src/ui/button.h \
 	src/ui/cardcontainer.h \
 	src/ui/carditem.h \
@@ -227,6 +228,7 @@ HEADERS += src/client/aux-skills.h \
 	src/ui/sprite.h \
 	src/ui/startscene.h \
 	src/ui/window.h \
+        src/ui/irregularbutton.h \
 	src/util/detector.h \
 	src/util/nativesocket.h \
 	src/util/recorder.h \
@@ -277,7 +279,11 @@ win32{
 	RC_FILE += resource/icon.rc
 }
 
-LIBS += -L. -lm
+macx{
+    ICON = resource/icon/sgs.icns
+}
+
+LIBS += -L.
 
 CONFIG(audio){
 	DEFINES += AUDIO_SUPPORT
@@ -301,4 +307,3 @@ OTHER_FILES += \
 	acknowledgement/main.qml \
 	acknowledgement/list.png \
 	acknowledgement/back.png
-

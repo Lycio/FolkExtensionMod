@@ -311,7 +311,7 @@ public:
 
         if(event == HpRecover){
             RecoverStruct recover = data.value<RecoverStruct>();
-            if(recover.who && recover.who != player){
+            if(recover.who && recover.who->isAlive() && recover.who != player){
                 recover.who->drawCards(recover.recover);
 
                 LogMessage log;

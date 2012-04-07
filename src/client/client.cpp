@@ -112,6 +112,7 @@ Client::Client(QObject *parent, const QString &filename)
     callbacks["askForAG"] = &Client::askForAG;
     callbacks["takeAG"] = &Client::takeAG;
     callbacks["clearAG"] = &Client::clearAG;
+    callbacks["disableAG"] = &Client::disableAG;
 
     // Disha
     callbacks["askForRebound"] = &Client::askForRebound;
@@ -1298,6 +1299,10 @@ void Client::takeAG(const QString &take_str){
 
 void Client::clearAG(const QString &){
     emit ag_cleared();
+}
+
+void Client::disableAG(const QString &disable_str){
+    emit ag_disabled(disable_str == "true");
 }
 
 void Client::askForSinglePeach(const QString &ask_str){

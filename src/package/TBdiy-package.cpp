@@ -734,7 +734,7 @@ public:
         }else if(event == Damage){
             DamageStruct damage = data.value<DamageStruct>();
             if(damage.card && damage.card->getSkillName() == objectName()){
-                if(damage.from == skillowner){
+                if(damage.from && damage.from->objectName() == skillowner->objectName()){
                     skillowner->drawCards(2);
                     room->acquireSkill(skillowner, "paoxiao", true);
                 }else

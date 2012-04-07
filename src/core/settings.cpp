@@ -17,8 +17,14 @@ static const qreal ViewWidth = 1280 * 0.8;
 static const qreal ViewHeight = 800 * 0.8;
 
 Settings::Settings()
-    :QSettings("config.ini", QSettings::IniFormat),
-    Rect(-ViewWidth/2, -ViewHeight/2, ViewWidth, ViewHeight)
+
+#ifdef Q_OS_WIN32
+    :QSettings("config.ini", QSettings::IniFormat)
+#else
+    :QSettings("QSanguosha.com", "QSanguosha")
+#endif
+
+     ,Rect(-ViewWidth/2, -ViewHeight/2, ViewWidth, ViewHeight)
 {
 }
 
@@ -56,7 +62,7 @@ void Settings::init(){
                 << "sp" << "sp_cards" << "BGM" << "YJCM2012" << "Special3v3"
                 << "joy" << "joy_equip"
                 << "QHS" << "YJ1st" << "ghost" << "huangjin"  << "TBdiy" << "Yan"
-                << "ChangbanSlope" << "DishaCard" << "QHSEquip" << "Hide";
+                << "ChangbanSlope" << "DishaCard" << "QHS_Equip" << "hide";
 
         setValue("BanPackages", banlist);
     }
@@ -124,11 +130,12 @@ void Settings::init(){
     hegemony_ban.append(basara_ban);
     hegemony_ban << "xiahoujuan" << "zhugejin";
     foreach(QString general, Sanguosha->getLimitedGeneralNames()){
-        if(Sanguosha->getGeneral(general)->getKingdom() == "god" && !hegemony_ban.contains(general))
+        if((Sanguosha->getGeneral(general)->getKingdom() == "god" || Sanguosha->getGeneral(general)->getKingdom() == "yan") &&
+                !hegemony_ban.contains(general))
             hegemony_ban << general;
     }
 
-    pairs_ban << "shencaocao" << "dongzhuo" << "zuoci" << "zhoutai" << "+luboyan"
+    pairs_ban << "shencaocao" << "dongzhuo" << "zuoci" << "zhoutai" << "liaohua" << "+luboyan"
               << "caocao+caochong" << "xushu+zhugeliang" << "simayi+caizhaoji" << "wisjiangwei+zhanggongqi"
                 << "zhenji+zhangjiao" << "zhenji+simayi" << "huanggai+yuanshao"
                 << "huanggai+wuguotai" << "dengshizai+caoren" << "dengshizai+shenlubu" << "dengshizai+bgm_diaochan"
@@ -186,4 +193,8 @@ void Settings::init(){
                 banlist << ban_general;
     }
     setValue("Banlist/Pairs", banlist);
+
+    QStringList forbid_packages;
+    forbid_packages << "Special3v3" << "hide";
+    setValue("ForbidPackages", forbid_packages.join("+"));
 }

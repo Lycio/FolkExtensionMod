@@ -98,10 +98,32 @@ bool QiceCard::targetsFeasible(const QList<const Player *> &targets, const Playe
     return card && card->targetsFeasible(targets, Self);
 }
 
+Card::Suit QiceCard::getSuit(QList<int> card_list) const{
+    QSet<QString> suit_set;
+    QSet<Card::Color> color_set;
+    foreach(int id, card_list){
+        const Card *cd = Sanguosha->getCard(id);
+        suit_set << cd->getSuitString();
+        color_set << cd->getColor();
+    }
+    if(color_set.size() == 2)
+        return Card::NoSuit;
+    else{
+        if(suit_set.size() == 1)
+            return Sanguosha->getCard(card_list.first())->getSuit();
+        else{
+            if(Sanguosha->getCard(card_list.first())->isBlack())
+                return Card::Spade;
+            else
+                return Card::Heart;
+        }
+    }
+}
+
 const Card *QiceCard::validate(const CardUseStruct *card_use) const{
     Room *room = card_use->from->getRoom();
     room->playSkillEffect("qice");
-    Card *use_card = Sanguosha->cloneCard(user_string, Card::NoSuit, 0);
+    Card *use_card = Sanguosha->cloneCard(user_string, getSuit(this->getSubcards()), 0);
     use_card->setSkillName("qice");
     foreach(int id, this->getSubcards())
         use_card->addSubcard(id);
@@ -171,7 +193,7 @@ public:
                 }
             }
 
-            if(same_color && damage.from)
+            if(same_color && damage.from && !damage.from->isKongcheng())
                 room->askForDiscard(damage.from, objectName(), 1);
         }
     }
@@ -400,22 +422,33 @@ public:
 class Shiyong: public TriggerSkill{
 public:
     Shiyong():TriggerSkill("shiyong"){
-        events << Damaged;
+        events << SlashEffected << Damaged;
         frequency = Compulsory;
     }
 
-    virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
-        DamageStruct damage = data.value<DamageStruct>();
+    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+        Room *room = player->getRoom();
 
-        if(damage.card && damage.card->inherits("Slash") && (damage.card->isRed() || damage.from->hasFlag("drank"))){
-            Room *room = player->getRoom();
-            LogMessage log;
-            log.type = "#TriggerSkill";
-            log.from = player;
-            log.arg = objectName();
-            room->sendLog(log);
+        if(event == SlashEffected){
+            SlashEffectStruct effect = data.value<SlashEffectStruct>();
+            if(effect.drank)
+                effect.to->setFlags("Dranked");
+        }
+        else{
+            DamageStruct damage = data.value<DamageStruct>();
+            if(damage.card && damage.card->inherits("Slash") &&
+                    (damage.card->isRed() || damage.to->hasFlag("Dranked"))){
+                if(damage.to->hasFlag("Dranked"))
+                    damage.to->setFlags("-Dranked");
 
-            room->loseMaxHp(player);
+                LogMessage log;
+                log.type = "#TriggerSkill";
+                log.from = player;
+                log.arg = objectName();
+                room->sendLog(log);
+
+                room->loseMaxHp(player);
+            }
         }
         return false;
     }
@@ -451,7 +484,7 @@ public:
 class Jiefan : public TriggerSkill{
 public:
     Jiefan():TriggerSkill("jiefan"){
-        events << Dying << SlashHit << SlashMissed;
+        events << Dying << SlashHit << SlashMissed << CardFinished;
     }
 
     virtual bool triggerable(const ServerPlayer *target) const{
@@ -465,7 +498,7 @@ public:
 
         if(event == Dying){
             DyingStruct dying = data.value<DyingStruct>();
-            if(!handang || !dying.savers.contains(handang) || !room->askForSkillInvoke(handang, objectName(), data))
+            if(!handang || !dying.savers.contains(handang) || dying.who->getHp() > 0 || handang->isNude() || !room->askForSkillInvoke(handang, objectName(), data))
                 return false;
 
             const Card *slash = room->askForCard(handang, "slash", "jiefan-slash:" + room->getCurrent()->objectName(), data);
@@ -497,8 +530,11 @@ public:
 
             return true;
         }
-        else
+        else if(event == SlashMissed)
             room->removeTag("JiefanTarget");
+        else
+            if(!room->getTag("JiefanTarget").isNull())
+                room->removeTag("JiefanTarget");
 
         return false;
     }
@@ -599,7 +635,7 @@ public:
     }
 
     virtual bool viewFilter(const CardItem *to_select) const{
-        return to_select->getFilteredCard()->inherits("Slash");
+        return to_select->getFilteredCard()->objectName() == "slash";
     }
 
     virtual const Card *viewAs(CardItem *card_item) const{
@@ -695,7 +731,7 @@ public:
             room->askForUseCard(chengpu, "@@chunlao", "@chunlao");
         }else if(event == Dying && !chengpu->getPile("wine").isEmpty()){
             DyingStruct dying = data.value<DyingStruct>();
-            if(chengpu->askForSkillInvoke(objectName(), data)){
+            if((dying.who->getHp() < 1) && (chengpu->askForSkillInvoke(objectName(), data))){
                 QList<int> cards = chengpu->getPile("wine");
                 room->fillAG(cards, chengpu);
                 int card_id = room->askForAG(chengpu, cards, true, objectName());

@@ -388,7 +388,7 @@ QStringList Engine::getExtensions() const{
     QStringList extensions;
     QList<const Package *> packages = findChildren<const Package *>();
     foreach(const Package *package, packages){
-        if(package->inherits("Scenario") || package->objectName() == "Special3v3" || package->objectName() == "Hide")
+        if(package->inherits("Scenario"))
             continue;
 
         extensions << package->objectName();
@@ -677,8 +677,9 @@ QList<int> Engine::getRandomCards() const{
     bool exclude_disaters = false, using_new_3v3 = false;
 
     if(Config.GameMode == "06_3v3"){
-        exclude_disaters = Config.value("3v3/ExcludeDisasters", true).toBool();
         using_new_3v3 = Config.value("3v3/UsingNewMode", false).toBool();
+        exclude_disaters = Config.value("3v3/ExcludeDisasters", true).toBool() ||
+                using_new_3v3;
     }
 
     if(Config.GameMode == "04_1v3")
@@ -695,9 +696,11 @@ QList<int> Engine::getRandomCards() const{
         if(card->inherits("AdouMark"))
             continue;
 
-        if(!ban_package.contains(card->getPackage()))
+        if(card->getPackage() == "Special3v3" && using_new_3v3){
             list << card->getId();
-        else if(card->getPackage() == "Special3v3" && using_new_3v3)
+            list.removeOne(98);
+        }
+        else if(!ban_package.contains(card->getPackage()))
             list << card->getId();
     }
 
