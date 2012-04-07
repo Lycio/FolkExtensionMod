@@ -5,6 +5,7 @@
 #include "package.h"
 #include "card.h"
 #include "skill.h"
+#include "generaloverview.h"
 
 class YanPackage: public Package{
     Q_OBJECT
@@ -50,6 +51,16 @@ public:
 
     virtual bool targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const;
     virtual void use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const;
+};
+
+class YanQiyingDialog: public GeneralOverview{
+    Q_OBJECT
+
+public:
+    YanQiyingDialog();
+
+public slots:
+    void popup();
 };
 
 #endif // YANPACKAGE_H

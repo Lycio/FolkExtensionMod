@@ -173,6 +173,19 @@ return {
 	["#YanGuilingLog"] = "%from 的锁定技【%arg】被触发",
 	["@guiling-slash"] = "你可以再使用一张【杀】发动青龙偃月刀的追杀效果",
 	
+	["shenluxun"] = "神陆逊",
+	["#shenluxun"] = "夷陵之火",
+	["cv:shenluxun"] = " ",
+	["designer:shenluxun"] = "浦原秀一",
+	["illustrator:shenluxun"] = "Azraol",
+	
+	["yanshenbing"] = "神兵",
+	[":yanshenbing"] ="每当你受到1点伤害后，你可以随机获得一张未加入游戏的武将牌置于你的武将牌上，称为“营”；你拥有所有“营”上的武将技能（主公技、觉醒技、限定技除外）",
+	["yanqiying"] = "弃营",
+	[":yanqiying"] = "<b>锁定技，</b>每当你回复1点体力时，你须弃置一张“营”",
+	["#GetYing"] = "%from 获得了营武将（%arg），现在共有 %arg2 个营武将",	
+	["#RemoveYing"] = "%from 弃置了营武将（%arg），现在共有 %arg2 个营武将",
+	
 	["@jiaozhan"] = "叫战",
 	["@shan"] = "扇",
 	["@huixuan"] = "回旋",

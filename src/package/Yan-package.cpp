@@ -1292,139 +1292,9 @@ public:
         frequency = Frequent;
     }
 
-    static void AcquireGenerals(ServerPlayer *shenluxun, int n){
-        QStringList list = GetAvailableGenerals(shenluxun);
-        qShuffle(list);
 
-        QStringList acquired = list.mid(0, n);
-        QVariantList yings = shenluxun->tag["Yings"].toList();
-        foreach(QString ying, acquired){
-            yings << ying;
-            const General *general = Sanguosha->getGeneral(ying);
-            foreach(const TriggerSkill *skill, general->getTriggerSkills()){
-                shenluxun->getRoom()->getThread()->addTriggerSkill(skill);
-            }
-        }
 
-        shenluxun->tag["Yings"] = yings;
 
-        shenluxun->invoke("animate", "ying:" + acquired.join(":"));
-
-        LogMessage log;
-        log.type = "#GetYing";
-        log.from = shenluxun;
-        log.arg = QString::number(n);
-        log.arg2 = QString::number(yings.length());
-        shenluxun->getRoom()->sendLog(log);
-    }
-
-    static QStringList GetAvailableGenerals(ServerPlayer *shenluxun){
-        QSet<QString> all = Sanguosha->getLimitedGeneralNames().toSet();
-        QSet<QString> ying_set, room_set;
-        QVariantList yings = shenluxun->tag["Yings"].toList();
-        foreach(QVariant ying, yings)
-            ying_set << ying.toString();
-
-        Room *room = shenluxun->getRoom();
-        QList<const ServerPlayer *> players = room->findChildren<const ServerPlayer *>();
-        foreach(const ServerPlayer *player, players){
-            room_set << player->getGeneralName();
-            if(player->getGeneral2())
-                room_set << player->getGeneral2Name();
-        }
-
-        static QSet<QString> banned;
-        if(banned.isEmpty()){
-            banned << "shenluxun" << "zuoci" << "zuocif" << "guzhielai" << "dengshizai" << "caochong" << "jiangboyue" << "zhugejin";
-        }
-
-        return (all - banned - ying_set - room_set).toList();
-    }
-
-    static QString SelectGenral(ServerPlayer *shenluxun, bool acquire_instant = true){
-        Room *room = shenluxun->getRoom();
-
-        QString huashen_skill = shenluxun->tag["HuashenSkill"].toString();
-        if(!huashen_skill.isEmpty()){
-            room->detachSkillFromPlayer(shenluxun, huashen_skill);
-            shenluxun->clearPrivatePiles();
-            if(shenluxun->getHp() <= 0 )
-                room->loseHp(shenluxun,0);
-        }
-
-        QVariantList huashens = shenluxun->tag["Yings"].toList();
-        if(huashens.isEmpty())
-            return QString();
-
-        QStringList huashen_generals;
-        foreach(QVariant huashen, huashens)
-            huashen_generals << huashen.toString();
-
-        QStringList skill_names;
-        QString skill_name;
-        AI* ai = shenluxun->getAI();
-        if(ai){
-            QHash<QString, const General*>hash;
-            foreach(QString general_name, huashen_generals){
-                const General* general = Sanguosha->getGeneral(general_name);
-                foreach(const Skill *skill, general->getVisibleSkillList()){
-                    if(skill->isLordSkill() || skill->getFrequency() == Skill::Limited
-                            || skill->getFrequency() == Skill::Wake)
-                        continue;
-
-                    if(!skill_names.contains(skill->objectName())){
-                        hash[skill->objectName()] = general;
-                        skill_names << skill->objectName();
-                    }
-                }
-            }
-            skill_name = ai->askForChoice("huashen", skill_names.join("+"));
-            const General* general = hash[skill_name];
-            QString kingdom = general->getKingdom();
-            if(shenluxun->getKingdom() != kingdom){
-                if(kingdom == "god")
-                    kingdom = room->askForKingdom(shenluxun);
-                room->setPlayerProperty(shenluxun, "kingdom", kingdom);
-            }
-            if(shenluxun->getGeneral()->isMale() != general->isMale())
-                room->setPlayerProperty(shenluxun, "general", general->isMale() ? "shenluxun" : "shenluxunf");
-        }
-        else{
-            QString general_name = room->askForGeneral(shenluxun, huashen_generals);
-            const General *general = Sanguosha->getGeneral(general_name);
-            QString kingdom = general->getKingdom();
-            if(shenluxun->getKingdom() != kingdom){
-                if(kingdom == "god")
-                    kingdom = room->askForKingdom(shenluxun);
-                room->setPlayerProperty(shenluxun, "kingdom", kingdom);
-            }
-            if(shenluxun->getGeneral()->isMale() != general->isMale())
-                room->setPlayerProperty(shenluxun, "general", general->isMale() ? "shenluxun" : "shenluxunf");
-
-            foreach(const Skill *skill, general->getVisibleSkillList()){
-                if(skill->isLordSkill() || skill->getFrequency() == Skill::Limited
-                   || skill->getFrequency() == Skill::Wake)
-                    continue;
-
-                skill_names << skill->objectName();
-            }
-
-            if(skill_names.isEmpty())
-                return QString();
-
-            if(skill_names.length() == 1)
-                skill_name = skill_names.first();
-            else
-                skill_name = room->askForChoice(shenluxun, "huashen", skill_names.join("+"));
-        }
-
-        shenluxun->tag["HuashenSkill"] = skill_name;
-
-        if(acquire_instant)
-            room->acquireSkill(shenluxun, skill_name);
-
-        return skill_name;
-    }
 
     virtual void onDamaged(ServerPlayer *shenluxun, const DamageStruct &damage) const{
         int n = damage.damage;
@@ -1436,31 +1306,7 @@ public:
         }
     }
 
-    virtual QDialog *getDialog() const{
-        static HuashenDialog *dialog;
 
-        if(dialog == NULL)
-            dialog = new HuashenDialog;
-
-        return dialog;
-    }
-};
-
-HuashenDialog::HuashenDialog()
-{
-    setWindowTitle(Sanguosha->translate("huashen"));
-}
-
-void HuashenDialog::popup(){
-    QVariantList huashen_list = Self->tag["Huashens"].toList();
-    QList<const General *> huashens;
-    foreach(QVariant huashen, huashen_list)
-        huashens << Sanguosha->getGeneral(huashen.toString());
-
-    fillGenerals(huashens);
-
-    show();
-}
 
 class Xinsheng: public MasochismSkill{
 public:
@@ -1480,6 +1326,172 @@ public:
     }
 };
 */
+
+class YanShenbing: public MasochismSkill{
+public:
+    YanShenbing():MasochismSkill("yanshenbing"){
+        frequency = Frequent;
+    }
+
+    static void AcquireGenerals(ServerPlayer *shenluxun){
+        Room *room = shenluxun->getRoom();
+        QStringList list = GetAvailableGenerals(shenluxun);
+        qShuffle(list);
+
+        QString general_name = list.first();
+        QVariantList yings = shenluxun->tag["Yings"].toList();
+        yings << general_name;
+        const General *general = Sanguosha->getGeneral(general_name);
+        foreach(const TriggerSkill *skill, general->getTriggerSkills()){
+            room->getThread()->addTriggerSkill(skill);
+        }
+
+        shenluxun->tag["Yings"] = yings;
+        shenluxun->invoke("animate", "huashen:" + general_name);
+
+        LogMessage log;
+        log.type = "#GetYing";
+        log.from = shenluxun;
+        log.arg = general_name;
+        log.arg2 = QString::number(yings.length());
+        room->sendLog(log);
+    }
+
+    static QStringList GetAvailableGenerals(ServerPlayer *shenluxun){
+        QSet<QString> all = Sanguosha->getLimitedGeneralNames().toSet();
+        QSet<QString> ying_set, room_set;
+        QVariantList yings = shenluxun->tag["Yings"].toList();
+        foreach(QVariant ying, yings)
+            ying_set << ying.toString();
+
+        Room *room = shenluxun->getRoom();
+        QList<const ServerPlayer *> players = room->findChildren<const ServerPlayer *>();
+        foreach(const ServerPlayer *player, players){
+            room_set << player->getGeneralName();
+            if(player->getGeneral2())
+                room_set << player->getGeneral2Name();
+        }
+
+        static QSet<QString> banned;
+        if(banned.isEmpty()){
+            banned << "shenluxun" << "zuoci" << "zuocif" << "guzhielai" << "dengshizai"
+                   << "caochong" << "jiangboyue" << "zhugejin" ;
+        }
+
+        return (all - banned - ying_set - room_set).toList();
+    }
+
+    static void RefreshSkills(ServerPlayer *shenluxun){
+        Room *room = shenluxun->getRoom();
+        QVariantList yings = shenluxun->tag["Yings"].toList();
+        foreach(QVariant ying, yings){
+            QString general_name = ying.toString();
+            const General *general = Sanguosha->getGeneral(general_name);
+            QList<const Skill *> skills = shenluxun->getVisibleSkillList();
+            foreach(const Skill *skill, general->getVisibleSkillList()){
+                if(skill->isLordSkill() || skill->getFrequency() == Skill::Limited
+                        || skill->getFrequency() == Skill::Wake)
+                    continue;
+
+                if(!skills.contains(skill)){
+                    room->acquireSkill(shenluxun, skill->objectName(), true);
+                }
+            }
+        }
+    }
+
+    virtual void onDamaged(ServerPlayer *shenluxun, const DamageStruct &damage) const{
+        int n = damage.damage, i;
+        if(n == 0)
+            return;
+
+        if(shenluxun->askForSkillInvoke(objectName())){
+            for(i=0; i<n; i++)
+                YanShenbing::AcquireGenerals(shenluxun);
+            YanShenbing::RefreshSkills(shenluxun);
+        }
+    }
+};
+
+class YanQiying: public TriggerSkill{
+public:
+    YanQiying():TriggerSkill("yanqiying"){
+        events << HpRecover;
+        frequency = Compulsory;
+    }
+
+    void RemoveGenral(ServerPlayer *shenluxun) const{
+        Room *room = shenluxun->getRoom();
+        QVariantList yings = shenluxun->tag["Yings"].toList();
+        QStringList ying_list;
+        foreach(QVariant ying, yings)
+            ying_list << ying.toString();
+
+        QString general_name = room->askForGeneral(shenluxun, ying_list);
+        yings.removeOne(QVariant(general_name));
+
+        LogMessage log;
+        log.type = "#RemoveYing";
+        log.from = shenluxun;
+        log.arg = general_name;
+        log.arg2 = QString::number(yings.length());
+        room->sendLog(log);
+
+        const General *general = Sanguosha->getGeneral(general_name);
+        QList<const Skill *> skills = shenluxun->getVisibleSkillList();
+        foreach(const Skill *skill, general->getVisibleSkillList()){
+            if(skill->isLordSkill() || skill->getFrequency() == Skill::Limited
+                    || skill->getFrequency() == Skill::Wake)
+                continue;
+
+            if(skills.contains(skill)){
+                room->detachSkillFromPlayer(shenluxun, skill->objectName());
+                if(skill->objectName() == "buqu" && shenluxun->getHp() < 0)
+                    room->loseHp(shenluxun, 0);
+            }
+        }
+        shenluxun->tag["Yings"] = yings;
+    }
+
+    virtual bool trigger(TriggerEvent , ServerPlayer *shenluxun, QVariant &data) const{
+        RecoverStruct recover = data.value<RecoverStruct>();
+        QVariantList yings = shenluxun->tag["Yings"].toList();
+        int n = recover.recover, i;
+        if(n == 0 || yings.isEmpty())
+            return false;
+        for(i=0; i<n; i++)
+            YanQiying::RemoveGenral(shenluxun);
+        YanShenbing::RefreshSkills(shenluxun);
+
+        return false;
+    }
+
+    virtual QDialog *getDialog() const{
+        static YanQiyingDialog *dialog;
+
+        if(dialog == NULL)
+            dialog = new YanQiyingDialog;
+
+        return dialog;
+    }
+};
+
+YanQiyingDialog::YanQiyingDialog()
+{
+    setWindowTitle(Sanguosha->translate("yanqiying"));
+}
+
+void YanQiyingDialog::popup(){
+    QVariantList ying_list = Self->tag["Yings"].toList();
+    QList<const General *> yings;
+    foreach(QVariant ying, ying_list)
+        yings << Sanguosha->getGeneral(ying.toString());
+
+    fillGenerals(yings);
+
+    show();
+}
+
 YanPackage::YanPackage()
     :Package("Yan")
 {
@@ -1515,6 +1527,24 @@ YanPackage::YanPackage()
 
     //General *yanpuyuan = new General(this, "yanpuyuan", "yan", 3);
 
+    General *yanlengyanju = new General(this, "yanlengyanju", "yan", 3);
+    yanlengyanju->addSkill(new YanHuixuan);
+    yanlengyanju->addSkill(new YanHuixuanSkip);
+    yanlengyanju->addSkill(new YanDaohun);
+    yanlengyanju->addSkill(new YanLongyin);
+    yanlengyanju->addSkill(new YanGuiling);
+
+    related_skills.insertMulti("yanhuixuan", "#yanhuixuan-skip");
+
+    General *yanmifuren = new General(this, "yanmifuren", "shu", 3, false, true);
+    yanmifuren->addSkill(new YanJiuzi);
+    yanmifuren->addSkill(new YanTuogu);
+    yanmifuren->addSkill(new YanLongtai);
+    yanmifuren->addSkill(new YanToujing);
+    yanmifuren->addSkill(new YanToujingDeath);
+
+    related_skills.insertMulti("yantoujing", "#yantoujingdeath");
+
     General *shendiaochan = new General(this, "shendiaochan", "god", 3, false, true);
     shendiaochan->addSkill(new YanJiuse);
     shendiaochan->addSkill(new YanManwu);
@@ -1527,23 +1557,9 @@ YanPackage::YanPackage()
     shenxiaoqiao->addSkill(new YanHuimou);
     shenxiaoqiao->addSkill(new YanFenshang);
 
-    General *yanmifuren = new General(this, "yanmifuren", "shu", 3, false, true);
-    yanmifuren->addSkill(new YanJiuzi);
-    yanmifuren->addSkill(new YanTuogu);
-    yanmifuren->addSkill(new YanLongtai);
-    yanmifuren->addSkill(new YanToujing);
-    yanmifuren->addSkill(new YanToujingDeath);
-
-    related_skills.insertMulti("yantoujing", "#yantoujingdeath");
-
-    General *yanlengyanju = new General(this, "yanlengyanju", "yan", 3);
-    yanlengyanju->addSkill(new YanHuixuan);
-    yanlengyanju->addSkill(new YanHuixuanSkip);
-    yanlengyanju->addSkill(new YanDaohun);
-    yanlengyanju->addSkill(new YanLongyin);
-    yanlengyanju->addSkill(new YanGuiling);
-
-    related_skills.insertMulti("yanhuixuan", "#yanhuixuan-skip");
+    General *shenluxun = new General(this, "shenluxun", "god", 4);
+    shenluxun->addSkill(new YanShenbing);
+    shenluxun->addSkill(new YanQiying);
 
     addMetaObject<YanJiushaCard>();
     addMetaObject<YanJiuseCard>();

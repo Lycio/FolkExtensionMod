@@ -54,7 +54,7 @@ ChengxiangCard::ChengxiangCard()
 }
 
 bool ChengxiangCard::targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const{
-    return targets.length() < subcardsLength() ;//&& to_select->isWounded();
+    return targets.length() < subcardsLength() ;
 }
 
 bool ChengxiangCard::targetsFeasible(const QList<const Player *> &targets, const Player *Self) const{
