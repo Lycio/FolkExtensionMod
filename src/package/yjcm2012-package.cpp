@@ -89,6 +89,9 @@ bool QiceCard::targetFilter(const QList<const Player *> &targets, const Player *
 }
 
 bool QiceCard::targetFixed() const{
+    if(ClientInstance->getStatus() == Client::Responsing)
+        return true;
+
     CardStar card = Self->tag.value("qice").value<CardStar>();
     return card && card->targetFixed();
 }
@@ -98,10 +101,10 @@ bool QiceCard::targetsFeasible(const QList<const Player *> &targets, const Playe
     return card && card->targetsFeasible(targets, Self);
 }
 
-Card::Suit QiceCard::getSuit(QList<int> card_list) const{
+Card::Suit QiceCard::getSuit(QList<int> cardid_list) const{
     QSet<QString> suit_set;
     QSet<Card::Color> color_set;
-    foreach(int id, card_list){
+    foreach(int id, cardid_list){
         const Card *cd = Sanguosha->getCard(id);
         suit_set << cd->getSuitString();
         color_set << cd->getColor();
@@ -110,9 +113,9 @@ Card::Suit QiceCard::getSuit(QList<int> card_list) const{
         return Card::NoSuit;
     else{
         if(suit_set.size() == 1)
-            return Sanguosha->getCard(card_list.first())->getSuit();
+            return Sanguosha->getCard(cardid_list.first())->getSuit();
         else{
-            if(Sanguosha->getCard(card_list.first())->isBlack())
+            if(Sanguosha->getCard(cardid_list.first())->isBlack())
                 return Card::Spade;
             else
                 return Card::Heart;
@@ -120,13 +123,36 @@ Card::Suit QiceCard::getSuit(QList<int> card_list) const{
     }
 }
 
+int QiceCard::getNumber(QList<int> cardid_list) const{
+    if(cardid_list.length() == 1)
+        return Sanguosha->getCard(cardid_list.first())->getNumber();
+    else
+        return 0;
+}
+
 const Card *QiceCard::validate(const CardUseStruct *card_use) const{
     Room *room = card_use->from->getRoom();
+    card_use->from->setFlags("QiceUsed");
     room->playSkillEffect("qice");
-    Card *use_card = Sanguosha->cloneCard(user_string, getSuit(this->getSubcards()), 0);
+    Card *use_card = Sanguosha->cloneCard(user_string, getSuit(this->getSubcards()), getNumber(this->getSubcards()));
     use_card->setSkillName("qice");
     foreach(int id, this->getSubcards())
         use_card->addSubcard(id);
+    return use_card;
+}
+
+const Card *QiceCard::validateInResposing(ServerPlayer *xunyou, bool *continuable) const{
+    *continuable = true;
+
+    Room *room = xunyou->getRoom();
+    room->playSkillEffect("qice");
+    xunyou->setFlags("QiceUsed");
+
+    Card *use_card = Sanguosha->cloneCard(user_string, getSuit(this->getSubcards()), getNumber(this->getSubcards()));
+    use_card->setSkillName("qice");
+    foreach(int id, this->getSubcards())
+        use_card->addSubcard(id);
+
     return use_card;
 }
 
@@ -147,6 +173,13 @@ public:
         if(cards.length() < Self->getHandcardNum())
             return NULL;
 
+        if(ClientInstance->getStatus() == Client::Responsing){
+            QiceCard *card = new QiceCard;
+            card->setUserString("nullification");
+            card->addSubcards(cards);
+            return card;
+        }
+
         CardStar c = Self->tag.value("qice").value<CardStar>();
         if(c){
             QiceCard *card = new QiceCard;
@@ -166,7 +199,10 @@ protected:
     }
 
     virtual bool isEnabledAtResponse(const Player *player, const QString &pattern) const{
-        return  false;
+        return pattern == "nullification" &&
+                !player->hasFlag("QiceUsed") &&
+                !player->isKongcheng() &&
+                player->getPhase() == Player::Play ;
     }
 };
 
