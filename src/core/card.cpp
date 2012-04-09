@@ -470,7 +470,7 @@ void Card::onMove(const CardMoveStruct &move) const{
 
 void Card::addSubcard(int card_id){
     if(card_id < 0)
-        qWarning(qPrintable(tr("Subcard must not be virtual card!")));
+        qWarning("%s", qPrintable(tr("Subcard must not be virtual card!")));
     else
         subcards << card_id;
 }
@@ -520,9 +520,11 @@ bool Card::canJilei() const{
 void Card::setFlags(const QString &flag) const{
     static char symbol_c = '-';
 
-    if(flag == ".")
+    if(flag.isEmpty())
+        return;
+    else if(flag == ".")
         flags.clear();
-    if(flag.startsWith(symbol_c))
+    else if(flag.startsWith(symbol_c))
         flags.removeOne(flag);
     else
         flags << flag;

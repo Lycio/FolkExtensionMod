@@ -209,7 +209,7 @@ RoomScene::RoomScene(QMainWindow *main_window)
         connect(ClientInstance, SIGNAL(ag_filled(QList<int>)), card_container, SLOT(fillCards(QList<int>)));
         connect(ClientInstance, SIGNAL(ag_taken(const ClientPlayer*,int)), this, SLOT(takeAmazingGrace(const ClientPlayer*,int)));
         connect(ClientInstance, SIGNAL(ag_cleared()), card_container, SLOT(clear()));
-        connect(ClientInstance, SIGNAL(ag_disabled(bool)), card_container, SLOT(disableCards(bool)));
+        connect(ClientInstance, SIGNAL(ag_disabled(bool)), card_container, SLOT(freezeCards(bool)));
 
         if(circular)
             card_container->moveBy(-120, 0);
@@ -3224,10 +3224,10 @@ void KOFOrderBox::killPlayer(const QString &general_name){
     }
 }
 
-#ifdef Q_OS_WIN32
+#ifdef CHAT_VOICE
 
-SpeakThread::SpeakThread(QObject *parent)
-    :QThread(parent), voice_obj(NULL)
+SpeakThread::SpeakThread()
+    :voice_obj(NULL)
 {
 
 }
@@ -3261,10 +3261,10 @@ void SpeakThread::speak(const QString &text){
 #endif
 
 void RoomScene::onGameStart(){
-#ifdef Q_OS_WIN32
+#ifdef CHAT_VOICE
 
     if(Config.value("EnableVoice", false).toBool()){
-        SpeakThread *thread = new SpeakThread(this);
+        SpeakThread *thread = new SpeakThread;
         connect(ClientInstance, SIGNAL(text_spoken(QString)), thread, SLOT(speak(QString)));
         connect(this, SIGNAL(destroyed()), thread, SLOT(finish()));
 

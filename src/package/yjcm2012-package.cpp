@@ -538,6 +538,7 @@ public:
                 return false;
 
             const Card *slash = room->askForCard(handang, "slash", "jiefan-slash:" + room->getCurrent()->objectName(), data);
+            slash->setFlags("jiefan-slash");
             room->setTag("JiefanTarget", data);
             if(slash){
                 CardUseStruct use;
@@ -767,7 +768,7 @@ public:
             room->askForUseCard(chengpu, "@@chunlao", "@chunlao");
         }else if(event == Dying && !chengpu->getPile("wine").isEmpty()){
             DyingStruct dying = data.value<DyingStruct>();
-            if((dying.who->getHp() < 1) && (chengpu->askForSkillInvoke(objectName(), data))){
+            while(dying.who->getHp() < 1 && chengpu->askForSkillInvoke(objectName(), data)){
                 QList<int> cards = chengpu->getPile("wine");
                 room->fillAG(cards, chengpu);
                 int card_id = room->askForAG(chengpu, cards, true, objectName());
@@ -782,7 +783,6 @@ public:
                     use.to << dying.who;
                     room->useCard(use);
                 }
-
             }
         }
         return false;

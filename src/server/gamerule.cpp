@@ -378,7 +378,7 @@ bool GameRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
                 room->setPlayerProperty(player, "chained", false);
 
                 // iron chain effect
-                QList<ServerPlayer *> chained_players = room->getOtherPlayers(player);
+                QList<ServerPlayer *> chained_players = room->getAllPlayers();
                 foreach(ServerPlayer *chained_player, chained_players){
                     if(chained_player->isChained()){
                         room->getThread()->delay();
@@ -480,16 +480,22 @@ bool GameRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
             effect.to->removeMark("qinggang");
 
             if(effect.slash->inherits("PunctureSlash")){
-                SlashEffectStruct punctureEffect;
-                punctureEffect.from = effect.from;
-                punctureEffect.to = effect.to->getNextAlive();
-                punctureEffect.slash = effect.slash;
-                punctureEffect.drank = effect.drank;
-                punctureEffect.nature = effect.nature;
-                if(punctureEffect.to != effect.from)
-                    room->slashEffect(punctureEffect);
-                else
-                    break;
+                SlashEffectStruct puncture;
+                puncture.from = effect.from;
+                puncture.to = effect.to->getNextAlive();
+                puncture.slash = effect.slash;
+                puncture.drank = effect.drank;
+                puncture.nature = effect.nature;
+                if(puncture.to != effect.from){
+                    LogMessage log;
+                    log.type = "$PunctureSlash";
+                    log.from = effect.to;
+                    log.to << effect.to->getNextAlive();
+                    log.card_str = effect.slash->toString();
+                    room->sendLog(log);
+
+                    room->slashEffect(puncture);
+                }
             }
 
             break;
@@ -1132,37 +1138,6 @@ bool ChangbanSlopeMode::trigger(TriggerEvent event, ServerPlayer *player, QVaria
                 room->transfigure(player, "cbzhangfei2", true, true);
             }
             return false;
-        }
-
-    case DamageComplete:{
-            bool chained = player->isChained();
-            if(chained){
-                DamageStruct damage = data.value<DamageStruct>();
-                if(damage.nature != DamageStruct::Normal){
-                    room->setPlayerProperty(player, "chained", false);
-
-                    // iron chain effect
-                    QList<ServerPlayer *> chained_players = room->getOtherPlayers(player);
-                    foreach(ServerPlayer *chained_player, chained_players){
-                        if(chained_player->isChained()){
-                            room->getThread()->delay();
-                            room->setPlayerProperty(chained_player, "chained", false);
-
-                            LogMessage log;
-                            log.type = "#IronChainDamage";
-                            log.from = chained_player;
-                            room->sendLog(log);
-
-                            DamageStruct chain_damage = damage;
-                            chain_damage.to = chained_player;
-                            chain_damage.chain = true;
-
-                            room->damage(chain_damage);
-                        }
-                    }
-                }
-            }
-            break;
         }
 
     case TurnStart:{

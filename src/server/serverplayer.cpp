@@ -135,8 +135,8 @@ void ServerPlayer::throwAllCards(){
         room->throwCard(trick);
 }
 
-void ServerPlayer::drawCards(int n, bool set_emotion){
-    room->drawCards(this, n);
+void ServerPlayer::drawCards(int n, bool set_emotion, const QString &reason){
+    room->drawCards(this, n, reason);
 
     if(set_emotion)
         room->setEmotion(this, "draw-card");
@@ -483,7 +483,6 @@ bool ServerPlayer::hasNullification() const{
 
         return !hasFlag("QiceUsed") && !isKongcheng() && getPhase() == Player::Play ;
     }
-
 
     foreach(const Card *card, handcards){
         if(card->objectName() == "nullification")

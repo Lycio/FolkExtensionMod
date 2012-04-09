@@ -465,7 +465,7 @@ public:
 class YanShenyou: public TriggerSkill{
 public:
     YanShenyou():TriggerSkill("yanshenyou"){
-        events << Predamage << Predamaged;
+        events << Damage << Damaged;
         frequency = Compulsory;
     }
 
@@ -475,16 +475,21 @@ public:
 
     virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
         Room *room = player->getRoom();
-        ServerPlayer *shenlubu = room->findPlayer("shenlubu");
-        if(!shenlubu)
+        ServerPlayer *shenlubu = NULL;
+        foreach(ServerPlayer *p, room->getAllPlayers()){
+            if(p->hasSkill("kuangbao") && p->getGeneralName() == "shenlubu")
+                shenlubu = p;
+        }
+
+        if(shenlubu == NULL)
             return false;
 
         DamageStruct damage = data.value<DamageStruct>();
-        if(event == Predamage){
+        if(event == Damage){
             if(shenlubu->getMark("@wrath") <= 0)
                 return false;
             shenlubu->loseMark("@wrath", qMin(shenlubu->getMark("@wrath"), damage.damage));
-        }else if(event == Predamaged){
+        }else if(event == Damaged){
             shenlubu->gainMark("@wrath", damage.damage);
         }
         return false;
@@ -1285,47 +1290,6 @@ public:
         return false;
     }
 };
-/*
-class YanShenbing: public MasochismSkill{
-public:
-    YanShenbing():MasochismSkill("yanshenbing"){
-        frequency = Frequent;
-    }
-
-
-
-
-
-    virtual void onDamaged(ServerPlayer *shenluxun, const DamageStruct &damage) const{
-        int n = damage.damage;
-        if(n == 0)
-            return;
-
-        if(shenluxun->askForSkillInvoke(objectName())){
-            Huashen::AcquireGenerals(shenluxun, n);
-        }
-    }
-
-
-
-class Xinsheng: public MasochismSkill{
-public:
-    Xinsheng():MasochismSkill("xinsheng"){
-        frequency = Frequent;
-    }
-
-    virtual void onDamaged(ServerPlayer *shenluxun, const DamageStruct &damage) const{
-        int n = damage.damage;
-        if(n == 0)
-            return;
-
-        if(shenluxun->askForSkillInvoke(objectName())){
-            Huashen::PlayEffect(shenluxun, objectName());
-            Huashen::AcquireGenerals(shenluxun, n);
-        }
-    }
-};
-*/
 
 class YanShenbing: public MasochismSkill{
 public:
@@ -1338,7 +1302,7 @@ public:
         QStringList list = GetAvailableGenerals(shenluxun);
         qShuffle(list);
 
-        QString general_name = list.first();
+        QString general_name = list.at(qrand() % list.length());
         QVariantList yings = shenluxun->tag["Yings"].toList();
         yings << general_name;
         const General *general = Sanguosha->getGeneral(general_name);
@@ -1374,8 +1338,8 @@ public:
 
         static QSet<QString> banned;
         if(banned.isEmpty()){
-            banned << "shenluxun" << "zuoci" << "zuocif" << "guzhielai" << "dengshizai"
-                   << "caochong" << "jiangboyue" << "zhugejin" ;
+            banned << "shenluxun" << "zuoci" << "zuocif" << "guzhielai"
+                   << "jiangboyue" << "zhugejin" ;
         }
 
         return (all - banned - ying_set - room_set).toList();
@@ -1557,7 +1521,7 @@ YanPackage::YanPackage()
     shenxiaoqiao->addSkill(new YanHuimou);
     shenxiaoqiao->addSkill(new YanFenshang);
 
-    General *shenluxun = new General(this, "shenluxun", "god", 4);
+    General *shenluxun = new General(this, "shenluxun", "god", 4, true, true);
     shenluxun->addSkill(new YanShenbing);
     shenluxun->addSkill(new YanQiying);
 

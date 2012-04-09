@@ -262,3 +262,11 @@ cbchanshe_skill.getTurnUseCard = function(self)
 	assert(skillcard)
 	return skillcard
 end
+
+--AI RolePredictable
+function sgs.isRolePredictable()
+	if sgs.GetConfig("RolePredictable", true) then return true end
+	local mode = string.lower(global_room:getMode())
+	if not mode:find("0") or mode:find("03p") or mode:find("02_1v1") or mode:find("04_1v3") or mode == "06_3v3" or mode:find("mini") or mode:find("05_2v3") then return true end
+	return false
+end

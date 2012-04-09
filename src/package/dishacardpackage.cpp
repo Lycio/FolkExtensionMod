@@ -71,6 +71,41 @@ bool PoisonPeach::isAvailable(const Player *player) const{
 }
 
 // Equip Card
+class YitianJianViewAsSkill: public ViewAsSkill{
+public:
+    YitianJianViewAsSkill():ViewAsSkill("yitian_jian"){
+
+    }
+
+    virtual bool isEnabledAtPlay(const Player *) const{
+        return false;
+    }
+
+    virtual bool isEnabledAtResponse(const Player *, const QString &pattern) const{
+        return pattern == "@yitian_jian";
+    }
+
+    virtual bool viewFilter(const QList<CardItem *> &selected, const CardItem *to_select) const{
+        if(selected.length() >= 2)
+            return false;
+
+        if(to_select->isEquipped())
+            return false;
+
+        return to_select->getFilteredCard()->inherits("Slash");
+    }
+
+    virtual const Card *viewAs(const QList<CardItem *> &cards) const{
+        if(cards.length() != 2)
+            return NULL;
+
+        DummyCard *card = new DummyCard;
+        card->setSkillName(objectName());
+        card->addSubcards(cards);
+        return card;
+    }
+};
+
 class YitianJianSkill: public WeaponSkill{
 public:
     YitianJianSkill():WeaponSkill("yitian_jian"){
@@ -81,53 +116,47 @@ public:
         return true;
     }
 
-    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+    virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
         Room *room = player->getRoom();
         ServerPlayer *weaponOwner = NULL;
         foreach(ServerPlayer *p, room->getAllPlayers()){
             if(p->getWeapon() && p->getWeapon()->inherits("YitianJian"))
                 weaponOwner = p;
         }
-        if(weaponOwner == NULL)
-            return false;
         DamageStruct damage = data.value<DamageStruct>();
-        if(!damage.to->isAlive())
+        if(weaponOwner == NULL || !damage.to->isAlive() || !weaponOwner->inMyAttackRange(damage.to))
             return false;
-        if(!weaponOwner->inMyAttackRange(damage.to))
-            return false;
-        int slashNum = 0;
-        foreach(const Card *cd, weaponOwner->getHandcards()){
-            if(cd->inherits("Slash"))
-                slashNum++;
-        }
-        if(slashNum < 2)
-            return false;
-        if(weaponOwner->askForSkillInvoke(objectName(), data)){
-            if(room->askForCard(weaponOwner, "slash", "@yitianjian_first") && room->askForCard(weaponOwner, "slash", "@yitianjian_second")){
-                weaponOwner->addMark("yitian_canuse");
+
+        CardStar card = room->askForCard(weaponOwner, "@yitian_jian", "@yitian_jian:" + damage.to->objectName(), data);
+        if(card){
+            QList<int> card_ids = card->getSubcards();
+            foreach(int card_id, card_ids){
+                LogMessage log;
+                log.type = "$DiscardCard";
+                log.from = weaponOwner;
+                log.card_str = QString::number(card_id);
+
+                room->sendLog(log);
             }
-            if(weaponOwner->getMark("yitian_canuse")){
-                room->setTag("Yitian_jianTarget", QVariant::fromValue(damage.to));
-                if(room->askForChoice(weaponOwner, objectName(), "todamage+torecover") == "torecover"){
-                    RecoverStruct recover;
-                    recover.who = weaponOwner;
-                    recover.recover = 1;
-                    room->recover(damage.to, recover);
-                }else{
-                    DamageStruct toDamage;
-                    toDamage.card = NULL;
-                    toDamage.chain = false;
-                    toDamage.damage = 1;
-                    toDamage.nature = damage.nature;
-                    toDamage.from = damage.from;
-                    toDamage.to = damage.to;
-                    room->damage(toDamage);
-                }
-                weaponOwner->removeMark("yitian_canuse");
-                room->removeTag("Yitian_jianTarget");
-                return false;
+            room->setTag("YitianjianTarget", QVariant::fromValue(damage.to));
+            if(room->askForChoice(weaponOwner, objectName(), "todamage+torecover") == "torecover"){
+                RecoverStruct recover;
+                recover.who = weaponOwner;
+                recover.recover = 1;
+                room->recover(damage.to, recover);
+            }else{
+                DamageStruct toDamage;
+                toDamage.card = NULL;
+                toDamage.chain = false;
+                toDamage.damage = 1;
+                toDamage.nature = damage.nature;
+                toDamage.from = damage.from;
+                toDamage.to = damage.to;
+                room->damage(toDamage);
             }
+            room->removeTag("YitianJianTarget");
         }
+
         return false;
     }
 };
@@ -137,6 +166,7 @@ YitianJian::YitianJian(Suit suit, int number)
 {
     setObjectName("yitian_jian");
     skill = new YitianJianSkill;
+    attach_skill = true;
 }
 
 class QixingBladeSkill: public WeaponSkill{
@@ -569,6 +599,8 @@ DishaCardPackage::DishaCardPackage()
     addMetaObject<BloodSlash>();
 
     type = CardPack;
+
+    skills << new YitianJianViewAsSkill;
 }
 
 ADD_PACKAGE(DishaCard)

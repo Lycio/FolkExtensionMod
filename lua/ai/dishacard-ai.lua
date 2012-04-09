@@ -220,8 +220,11 @@ function SmartAI:askForSinglePeach(dying)
 
 	if (dying:hasSkill("yinshih") and not dying:canSlash(self.player)) or (self.player:hasSkill("yinshih") and not dying:canSlash(self.player)) then return "." end
 	
-	if self:isFriend(dying) then
+	if self:isFriend(dying) then	
+		if (self.player:getWeapon() and self.player:getWeapon():objectName() == "jiasuo" and (self.player:objectName() ~= dying:objectName())) then return "." end
+		if self:needDeath(dying) then return "." end
 		local buqu = dying:getPile("buqu")
+		local weaklord = false
 		if not buqu:isEmpty() then
 			local same = false
 			for i, card_id in sgs.qlist(buqu) do
@@ -242,11 +245,9 @@ function SmartAI:askForSinglePeach(dying)
 					peach_str = cardtmp:toString()
 				end
 			end
-			if (self.player:getWeapon() and self.player:getWeapon():objectName() == "jiasuo") then
-				card_str = self:getCardId("Analeptic")
-			else				
-				card_str = self:getCardId("Analeptic") or peach_str
-			end
+			card_str = self:getCardId("Analeptic") or peach_str
+		elseif dying:isLord() then
+			card_str = self:getCardId("Peach")
 		else
 			local cardstmp = self:getCards("Peach")
 			local peach_str
@@ -255,7 +256,13 @@ function SmartAI:askForSinglePeach(dying)
 					peach_str = cardtmp:toString()
 				end
 			end
-			if not (self.player:getWeapon() and self.player:getWeapon():objectName() == "jiasuo") then
+			for _, friend in ipairs(self.friends_noself) do
+				if friend:getHp() == 1 and friend:isLord() and not friend:hasSkill("buqu") then  weaklord = true end
+			end
+			for _, enemy in ipairs(self.enemies) do
+				if enemy:getHp() == 1 and enemy:isLord() and not enemy:hasSkill("buqu") and self.player:getRole() == "renegade" then weaklord = true end
+			end
+			if not weaklord or self:getAllPeachNum() > 1 then
 				card_str = peach_str
 			end
 		end
@@ -278,18 +285,20 @@ function sgs.ai_slash_weaponfilter.luofeng_bow(to, self)
 	return to:getHandcardNum() > self.player:getHp()
 end
 
-sgs.ai_skill_invoke.yitian_jian = function(self, data)
-	local damage = data:toDamage()
-	if self:getCardsNum("Slash") < 2 then return false 
-	else
-		if self.player:inMyAttackRange(damage.to) then
-			return true
+sgs.ai_skill_cardask["@yitian_jian"] = function(self, data, pattern, target)
+	local slashs = {}
+	for _, cd in sgs.qlist(self.player:getCards("h")) do
+		if cd:inherits("Slash") then 
+			table.insert(slashs, cd)
 		end
 	end
+	if #slashs < 2 then return "." end
+	
+	return "$"..slashs[1]:getEffectiveId().."+"..slashs[2]:getEffectiveId()
 end
 
 sgs.ai_skill_choice.yitian_jian = function(self, choices)
-	local target = self.room:getTag("Yitian_jianTarget"):toPlayer()
+	local target = self.room:getTag("YitianjianTarget"):toPlayer()
 	if self:isFriend(target) then
 		return "torecover"
 	else
