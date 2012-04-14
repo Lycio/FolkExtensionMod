@@ -368,19 +368,19 @@ public:
         SlashEffectStruct effect = data.value<SlashEffectStruct>();
 
         Room *room = player->getRoom();
-        CardStar card = room->askForCard(player, "@axe", "@axe:" + effect.to->objectName());
+        CardStar card = room->askForCard(player, "@axe", "@axe:" + effect.to->objectName(), data);
         if(card){
-            QList<int> card_ids = card->getSubcards();
-            foreach(int card_id, card_ids){
-                LogMessage log;
-                log.type = "$DiscardCard";
-                log.from = player;
-                log.card_str = QString::number(card_id);
-
-                room->sendLog(log);
+            QStringList list_str;
+            foreach(int id, card->getSubcards()){
+                list_str << QString::number(id) ;
             }
-
             LogMessage log;
+            log.type = "$DiscardCard";
+            log.from = player;
+            log.card_str = list_str.join("+");
+            room->sendLog(log);
+
+            log.card_str.clear();
             log.type = "#AxeSkill";
             log.from = player;
             log.to << effect.to;
@@ -523,6 +523,22 @@ void AmazingGrace::use(Room *room, ServerPlayer *source, const QList<ServerPlaye
     foreach(int card_id, card_ids)
         ag_list << card_id;
     room->setTag("AmazingGrace", ag_list);
+
+    foreach(ServerPlayer *yangxiu, players){
+        if(yangxiu->hasSkill("danlao") && yangxiu->askForSkillInvoke("danlao")){
+            yangxiu->tag["Danlao"] = this->getEffectiveId();
+
+            room->playSkillEffect(objectName());
+            LogMessage log;
+            log.type = "#DanlaoAvoid";
+            log.from = yangxiu;
+            log.arg = this->objectName();
+            log.arg2 = "danlao";
+            room->sendLog(log);
+
+            yangxiu->drawCards(1);
+        }
+    }
 
     GlobalEffect::use(room, source, players);
 
@@ -957,14 +973,10 @@ void Lightning::takeEffect(ServerPlayer *target) const{
 
 // EX cards
 
-class IceSwordSkill: public TriggerSkill{
+class IceSwordSkill: public WeaponSkill{
 public:
-    IceSwordSkill():TriggerSkill("ice_sword"){
+    IceSwordSkill():WeaponSkill("ice_sword"){
         events << SlashHit;
-    }
-
-    virtual bool triggerable(const ServerPlayer *target) const{
-        return target->hasWeapon(objectName());
     }
 
     virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{

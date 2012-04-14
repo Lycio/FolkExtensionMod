@@ -616,7 +616,6 @@ public:
     }
 };
 
-/*
 class Xiurenh: public TriggerSkill{
 public:
     Xiurenh():TriggerSkill("xiurenh"){
@@ -628,29 +627,21 @@ public:
         return target->hasSkill(objectName());
     }
 
-    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+    virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
         Room *room = player->getRoom();
         if(player->hasFlag("xiurenused"))
             return false;
         DamageStruct damage = data.value<DamageStruct>();
 
-        if(!room->askForSkillInvoke(player, objectName()))
+        if(!room->askForSkillInvoke(player, objectName(), data))
             return false;
 
         room->playSkillEffect(objectName());
+        bool skill_effect = false;
         int i;
         for(i=0; i<2; i++){
             if(damage.to->isKongcheng()){
-                QString choice2 = room->askForChoice(player, objectName(), "rec1hp+dra2cd");
-
-                if(choice2 == "rec1hp"){
-                    RecoverStruct recover;
-                    recover.card = NULL;
-                    recover.who = player;
-                    recover.recover = 1;
-                    room->recover(player, recover, true);
-                }else
-                    player->drawCards(2);
+                skill_effect = true;
                 break;
             }else{
                 QString choice = room->askForChoice(damage.to, objectName(), "show+giveup");
@@ -660,20 +651,24 @@ public:
                     ServerPlayer *to = room->askForPlayerChosen(player, room->getOtherPlayers(damage.to), "xiurenh");
                     room->moveCardTo(card, to, Player::Hand, true);
                 }else{
-                    QString choice2 = room->askForChoice(player, objectName(), "rec1hp+dra2cd");
-
-                    if(choice2 == "rec1hp"){
-                        RecoverStruct recover;
-                        recover.card = NULL;
-                        recover.who = player;
-                        recover.recover = 1;
-                        room->recover(player, recover, true);
-                    }else
-                        player->drawCards(2);
+                    skill_effect = true;
                     break;
                 }
             }
         }
+        if(skill_effect){
+            QString choice2 = room->askForChoice(player, objectName(), "rec1hp+dra2cd");
+
+            if(choice2 == "rec1hp"){
+                RecoverStruct recover;
+                recover.card = NULL;
+                recover.who = player;
+                recover.recover = 1;
+                room->recover(player, recover, true);
+            }else
+                player->drawCards(2);
+        }
+
         player->setFlags("xiurenused");
         return true;
     }
@@ -690,11 +685,12 @@ public:
         return target->hasSkill(objectName());
     }
 
-    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+    virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
         Room *room = player->getRoom();
+        int x = qAbs(player->getHandcardNum() - player->getHp());
         DamageStruct damage = data.value<DamageStruct>();
 
-        int delta = qMin(damage.damage, qAbs(player->getHandcardNum()-player->getHp()));
+        int delta = qMin(damage.damage, x);
         damage.damage = delta;
         data = QVariant::fromValue(damage);
         room->playSkillEffect(objectName());
@@ -703,12 +699,13 @@ public:
         log.type = "#shushenh";
         log.from = player;
         log.arg = QString::number(delta);
+        log.arg2 = objectName();
         room->sendLog(log);
 
-        return false;
+        return x == 0 ? true : false ;
     }
 };
-
+/*
 class Keshih: public TriggerSkill{
 public:
     Keshih():TriggerSkill("keshih"){
@@ -2172,7 +2169,7 @@ QHSPackage::QHSPackage()
 
     related_skills.insertMulti("yindunh", "#yindunh_buff");
 
-    General *mayunluh = new General(this, "mayunluh", "qun", 4, false);
+    General *mayunluh = new General(this, "mayunluh", "qun", 3, false);
     mayunluh->addSkill(new Mengyunh);
     mayunluh->addSkill(new Yumah);
 
@@ -2187,10 +2184,11 @@ QHSPackage::QHSPackage()
     xujih->addSkill(new Weicongh);
 
     related_skills.insertMulti("zhongzhenh", "#zhongzhenh");
-    /*
+
     General *ganfurenh = new General(this, "ganfurenh", "shu", 3, false);
     ganfurenh->addSkill(new Shushenh);
     ganfurenh->addSkill(new Xiurenh);
+    /*
 
     General *wangyih = new General(this, "wangyih", "wei", 3, false);
     wangyih->addSkill(new Mingjih);

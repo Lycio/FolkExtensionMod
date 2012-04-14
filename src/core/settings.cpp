@@ -16,6 +16,10 @@ Settings Config;
 static const qreal ViewWidth = 1280 * 0.8;
 static const qreal ViewHeight = 800 * 0.8;
 
+//consts
+const int Settings::S_CHOOSE_GENERAL_TIMEOUT = 15;
+const int Settings::S_GUANXING_TIMEOUT = 20;
+
 Settings::Settings()
 
 #ifdef Q_OS_WIN32
@@ -51,7 +55,7 @@ void Settings::init(){
         TextEditColor = QColor(value("TextEditColor", "white").toString());
     }
 
-    CountDownSeconds = value("CountDownSeconds", 3).toInt();
+    CountDownSeconds = value("CountDownSeconds", 1).toInt();
     GameMode = value("GameMode", "02p").toString();
 
 
@@ -135,7 +139,8 @@ void Settings::init(){
             hegemony_ban << general;
     }
 
-    pairs_ban << "shencaocao" << "dongzhuo" << "zuoci" << "zhoutai" << "liaohua" << "+luboyan"
+    pairs_ban << "shencaocao" << "dongzhuo" << "zuoci" << "zhoutai" << "liaohua" << "sp_pangtong"
+              << "+luboyan"
               << "caocao+caochong" << "xushu+zhugeliang" << "simayi+caizhaoji" << "wisjiangwei+zhanggongqi"
                 << "zhenji+zhangjiao" << "zhenji+simayi" << "huanggai+yuanshao"
                 << "huanggai+wuguotai" << "dengshizai+caoren" << "dengshizai+shenlubu" << "dengshizai+bgm_diaochan"
@@ -195,6 +200,6 @@ void Settings::init(){
     setValue("Banlist/Pairs", banlist);
 
     QStringList forbid_packages;
-    forbid_packages << "Special3v3" << "hide";
+    forbid_packages << "Special3v3" << "hide" << "ChangbanSlope";
     setValue("ForbidPackages", forbid_packages.join("+"));
 }

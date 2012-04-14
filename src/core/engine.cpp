@@ -72,6 +72,7 @@ Engine::Engine()
                   << "Ghost"
                   << "QHS"
                   << "YJ1st"
+                  << "YJ3rd"
                   << "TBdiy"
                   << "Yan"
                   << "ChangbanSlope"
@@ -94,11 +95,6 @@ Engine::Engine()
 
     foreach(QString name, scene_names)
         addScenario(name);
-
-    foreach(const Skill *skill, skills.values()){
-        Skill *mutable_skill = const_cast<Skill *>(skill);
-        mutable_skill->initMediaSource();
-    }
 
     // available game modes
     modes["02p"] = tr("2 players");
@@ -133,6 +129,11 @@ Engine::Engine()
 
     foreach(QString ban, getBanPackages()){
         addBanPackage(ban);
+    }
+
+    foreach(const Skill *skill, skills.values()){
+        Skill *mutable_skill = const_cast<Skill *>(skill);
+        mutable_skill->initMediaSource();
     }
 }
 

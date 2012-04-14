@@ -343,3 +343,88 @@ sgs.ai_skill_cardask["@guiling-slash"] = function(self, data, pattern, target)
 	end
 	return "."
 end
+
+sgs.ai_skill_playerchosen.yanbaiming = function(self, targets)
+	local tos = {}
+	for _, player in sgs.qlist(targets) do
+		if self:isEnemy(player) then table.insert(tos, player) end
+	end
+	if #tos ~= 0 then
+		self:sort(tos, "hp")
+		return tos[1]
+	else
+		self:sort(targets, "hp")
+		return targets[#targets]
+	end
+end
+
+local yanjunling_skill = {}
+yanjunling_skill.name = "yanjunling"
+table.insert(sgs.ai_skills, yanjunling_skill)
+yanjunling_skill.getTurnUseCard = function(self)
+	if self.player:hasUsed("YanJunlingCard") then return end
+	local card_str = "@YanJunlingCard=."
+	local card = sgs.Card_Parse(card_str)
+	assert(card)
+
+	return card
+end
+
+sgs.ai_skill_use_func.YanJunlingCard = function(card, use, self)
+	local index1, index2 = nil, nil
+	local players = self.room:getAllPlayers()
+	if players:length() == 2 then
+		index1 = self.room:getOtherPlayers(self.player):first()
+		index2 = self.player
+	elseif players:length() > 2 then
+		local enemies = self.enemies
+		if #enemies == 1 then
+			for _, player in sgs.qlist(self.room:getOtherPlayers(enemies[1])) do
+				local slash_num = 0
+				for _, cd in sgs.qlist(player:getCards("h")) do
+					if cd:inherits("Slash") then slash_num = slash_num + 1 end
+				end
+				if player:canSlash(enemies[1]) and slash_num > 0 then
+					index1 = player
+					index2 = enemies[1]
+					break
+				end
+			end
+			if index1 == nil then
+				index1 = enemies[1]
+				local friends = self.friends_noself
+				self:sort(friends, "defense")
+				index2 = friends[#friends]
+			end
+		elseif #enemies > 1 then
+			self:sort(self.enemies, "chaofeng")
+			for _, enemy in ipairs(enemies) do
+				for _, to in ipairs(enemies) do
+					if to:objectName() ~= enemy:objectName() and enemy:canSlash(to) then
+						index1 = enemy
+						index2 = to
+						break
+					end
+				end
+			end
+			if index1 == nil then
+				for _, friend in ipairs(self.friends_noself) do
+					for _, enemy in ipairs(enemies) do
+						if friend:canSlash(enemies) then
+							index1 = friend
+							index2 = enemy
+							break
+						end
+					end
+				end
+			end
+		end
+	end	
+	if index1 and index2 and index1:objectName() ~= index2:objectName() then
+		use.card = card
+		if use.to then
+			use.to:append(index1)
+			use.to:append(index2)
+		end
+	end
+end

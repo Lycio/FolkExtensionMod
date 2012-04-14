@@ -65,6 +65,7 @@ SOURCES += src/main.cpp \
 	src/package/special3v3-package.cpp \
         src/package/qhs-package.cpp \
         src/package/YJ1st-package.cpp \
+        src/package/YJ3rd-package.cpp \
         src/package/TBdiy-package.cpp \
         src/package/dishacardpackage.cpp \
         src/package/ghost.cpp \
@@ -191,6 +192,7 @@ HEADERS += src/client/aux-skills.h \
 	src/package/special3v3-package.h \
         src/package/qhs-package.h \
         src/package/YJ1st-package.h \
+        src/package/YJ3rd-package.h \
         src/package/TBdiy-package.h \
         src/package/dishacardpackage.h \
         src/package/ghost.h \

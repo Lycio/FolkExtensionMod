@@ -234,3 +234,19 @@ sgs.ai_skill_invoke.weicongh = function(self, data)
 		return false
 	end
 end
+
+sgs.ai_skill_invoke.xiurenh = function(self, data)
+	local damage = data:toDamage()
+	local players = self.enemies
+	if self:isEnemy(damage.to) and #players > 1 and not self:isWeak(damage.to) then
+		return true
+	else
+		return false
+	end
+end
+
+sgs.ai_skill_choice.xiurenh = function(self, choices)
+	if not self.player:isWounded() then return "dra2cd" 
+	elseif self.player:hasSkill("jijiu") then return "dra2cd"
+	else return "rec1hp" end	
+end

@@ -145,7 +145,7 @@ public:
             ServerPlayer *yangxiu = room->findPlayerBySkillName(objectName());
             if(!yangxiu || use.to.length() <= 1 ||
                     !use.to.contains(yangxiu) ||
-                    (!use.card->inherits("TrickCard") || use.card->inherits("Collateral")) ||
+                    !use.card->inherits("TrickCard") || use.card->inherits("Collateral") || use.card->inherits("AmazingGrace") ||
                     !room->askForSkillInvoke(yangxiu, objectName(), data))
                 return false;
 

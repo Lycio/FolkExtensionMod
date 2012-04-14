@@ -129,15 +129,16 @@ public:
 
         CardStar card = room->askForCard(weaponOwner, "@yitian_jian", "@yitian_jian:" + damage.to->objectName(), data);
         if(card){
-            QList<int> card_ids = card->getSubcards();
-            foreach(int card_id, card_ids){
-                LogMessage log;
-                log.type = "$DiscardCard";
-                log.from = weaponOwner;
-                log.card_str = QString::number(card_id);
-
-                room->sendLog(log);
+            QStringList list_str;
+            foreach(int id, card->getSubcards()){
+                list_str << QString::number(id) ;
             }
+            LogMessage log;
+            log.type = "$DiscardCard";
+            log.from = weaponOwner;
+            log.card_str = list_str.join("+");
+            room->sendLog(log);
+
             room->setTag("YitianjianTarget", QVariant::fromValue(damage.to));
             if(room->askForChoice(weaponOwner, objectName(), "todamage+torecover") == "torecover"){
                 RecoverStruct recover;

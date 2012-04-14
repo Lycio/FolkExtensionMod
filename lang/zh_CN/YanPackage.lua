@@ -173,6 +173,18 @@ return {
 	["#YanGuilingLog"] = "%from 的锁定技【%arg】被触发",
 	["@guiling-slash"] = "你可以再使用一张【杀】发动青龙偃月刀的追杀效果",
 	
+	["yanzhangxiu"] = "张绣",
+	["#yanzhangxiu"] = "北地枪王",
+	["cv:yanzhangxiu"] = "",
+	["designer:yanzhangxiu"] = "洛神工作室",
+	["illustrator:yanzhangxiu"] = "DOG",
+	["yanbaiming"] = "百鸣",
+	[":yanbaiming"] = "<b>锁定技，</b>当你使用的【杀】即将对目标造成伤害时，你须将该伤害转移给目标攻击范围内的另一名角色\
+	★若范围内无目标，则不会触发百鸣；若已触发百鸣，则转移的伤害不能再次转移",
+	["yanjunling"] = "军令",
+	[":yanjunling"] = "<b>主公技，</b>出牌阶段，你可以指定任意一名角色对其攻击范围内的另一名角色使用一张【杀】，若该角色不如此做，你获得其一张手牌，每阶段限一次",
+	["@yanjunling"] = "你要对%src使用一张【杀】来响应主公的【军令】技能吗？",
+	
 	["shenluxun"] = "神陆逊",
 	["#shenluxun"] = "夷陵之火",
 	["cv:shenluxun"] = " ",

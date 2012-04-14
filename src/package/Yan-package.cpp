@@ -1456,6 +1456,88 @@ void YanQiyingDialog::popup(){
     show();
 }
 
+class YanBaiming:public TriggerSkill{
+public:
+    YanBaiming():TriggerSkill("yanbaiming"){
+        events << Predamage << DamageDone;
+        frequency = Compulsory;
+    }
+
+    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+        Room *room = player->getRoom();
+        DamageStruct ds = data.value<DamageStruct>();
+        if(event == Predamage){
+            if(player->tag.value("BaimingInvoke", false).toBool())
+                return false;
+            QList<ServerPlayer *> tos;
+            foreach(ServerPlayer *p, room->getOtherPlayers(ds.to)){
+                if(ds.to->canSlash(p))
+                    tos << p;
+            }
+            ServerPlayer *to = room->askForPlayerChosen(ds.from, tos, objectName());
+            player->tag["BaimingInvoke"] = true;
+            DamageStruct damage;
+            damage.card = ds.card;
+            damage.from = ds.from;
+            damage.to = to;
+            damage.nature = ds.nature;
+            room->damage(damage);
+            return true;
+        }
+        else
+            player->tag.remove("BaimingInvoke");
+        return false;
+    }
+};
+
+YanJunlingCard::YanJunlingCard(){
+
+}
+
+bool YanJunlingCard::targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const{
+    if(targets.length() == 0)
+        return to_select != Self;
+    else if(targets.length() == 1)
+        return targets.first()->canSlash(to_select);
+    else if(targets.length() >= 2)
+        return false;
+    return false;
+}
+
+bool YanJunlingCard::targetsFeasible(const QList<const Player *> &targets, const Player *Self) const{
+    return targets.length() == 2;
+}
+
+void YanJunlingCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const{
+    ServerPlayer *from = targets.first();
+    ServerPlayer *to = targets.last();
+    const Card *slash = room->askForCard(from, "slash", "@yanjunling:" + to->objectName(), QVariant::fromValue(to));
+    if(slash){
+        room->cardEffect(slash, from, to);
+    }
+    else{
+        if(!from->isKongcheng()){
+            int card_id = room->askForCardChosen(source, from, "h", "yanjunling");
+            room->moveCardTo(Sanguosha->getCard(card_id), source, Player::Hand, false);
+        }
+    }
+}
+
+class YanJunling: public ZeroCardViewAsSkill{
+public:
+    YanJunling():ZeroCardViewAsSkill("yanjunling$"){
+
+    }
+
+    virtual bool isEnabledAtPlay(const Player *player) const{
+        return ! player->hasUsed("YanJunlingCard");
+    }
+
+    virtual const Card *viewAs() const{
+        return new YanJunlingCard;
+    }
+};
+
 YanPackage::YanPackage()
     :Package("Yan")
 {
@@ -1500,6 +1582,10 @@ YanPackage::YanPackage()
 
     related_skills.insertMulti("yanhuixuan", "#yanhuixuan-skip");
 
+    General *yanzhangxiu = new General(this, "yanzhangxiu$", "qun", 4);
+    yanzhangxiu->addSkill(new YanBaiming);
+    yanzhangxiu->addSkill(new YanJunling);
+
     General *yanmifuren = new General(this, "yanmifuren", "shu", 3, false, true);
     yanmifuren->addSkill(new YanJiuzi);
     yanmifuren->addSkill(new YanTuogu);
@@ -1529,6 +1615,7 @@ YanPackage::YanPackage()
     addMetaObject<YanJiuseCard>();
     addMetaObject<YanCangshanCard>();
     addMetaObject<YanTuoguCard>();
+    addMetaObject<YanJunlingCard>();
 
     skills << new YanHuixuanBuff << new YanGuilingBuff;
 

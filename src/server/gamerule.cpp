@@ -10,7 +10,10 @@
 GameRule::GameRule(QObject *parent)
     :TriggerSkill("game_rule")
 {
-    setParent(parent);
+    //@todo: this setParent is illegitimate in QT and is equivalent to calling
+    // setParent(NULL). So taking it off at the moment until we figure out
+    // a way to do it.
+    //setParent(parent);
 
     events << GameStart << TurnStart << PhaseChange << CardUsed << CardFinished
             << CardEffected << HpRecover << HpLost << AskForPeachesDone
@@ -131,6 +134,7 @@ void GameRule::onPhaseChange(ServerPlayer *player) const{
             }
 
             player->clearFlags();
+            player->clearHistory();
 
             return;
         }
@@ -214,10 +218,10 @@ bool GameRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
         }
 
     case CardFinished: {
-                CardUseStruct use = data.value<CardUseStruct>();
-                use.card->setFlags(".");
+            CardUseStruct use = data.value<CardUseStruct>();
+            use.card->setFlags(".");
 
-                break;
+            break;
         }
 
     case HpRecover:{

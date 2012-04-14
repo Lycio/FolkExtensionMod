@@ -131,6 +131,17 @@ Card::Color Card::getColor() const{
     }
 }
 
+QString Card::getColorString() const{
+    switch(suit){
+    case Spade:
+    case Club: return "black";
+    case Heart:
+    case Diamond: return "red";
+    default:
+        return "colorless";
+    }
+}
+
 bool Card::isEquipped() const{
     return Self->hasEquip(this);
 }
@@ -394,7 +405,7 @@ bool Card::targetFixed() const{
     return target_fixed;
 }
 
-bool Card::targetsFeasible(const QList<const Player *> &targets, const Player *Self) const{
+bool Card::targetsFeasible(const QList<const Player *> &targets, const Player *) const{
     if(target_fixed)
         return true;
     else
