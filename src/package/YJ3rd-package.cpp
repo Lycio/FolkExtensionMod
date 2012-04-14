@@ -138,41 +138,52 @@ public:
 class YjYoujin: public TriggerSkill{
 public:
     YjYoujin():TriggerSkill("yjyoujin"){
-        events << PhaseChange << CardUsed ;
+        events << PhaseChange ;
         view_as_skill = new YjYoujinViewAsSkill;
     }
 
-    virtual bool triggerable(const ServerPlayer *) const{
-        return true;
-    }
-
-    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+    virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &) const{
         Room *room = player->getRoom();
-        ServerPlayer *yjguohuai = room->findPlayerBySkillName(objectName());
         PlayerStar target = room->getTag("YjYoujinTarget").value<PlayerStar>();
-        if(!yjguohuai || !target)
+        if(!target)
             return false;
-        if(event == PhaseChange && yjguohuai->getPhase() == Player::Finish){
+        if(player->getPhase() == Player::Finish){
             room->removeTag("YjYoujinTarget");
             LogMessage log;
             log.type = "#YjYoujin";
             log.from = target;
             room->sendLog(log);
+
+            room->setPlayerMark(target, objectName(), 1);
             QList<Player::Phase> play_phase ;
             play_phase << Player::Play ;
-            room->setPlayerFlag(target, "yjyoujin");
             target->play(play_phase);
-            if(!target->hasFlag("youjin_trigger")){
+
+            if(target->getMark(objectName()) == 1)
                 target->turnOver();
-            }
-            room->setPlayerFlag(target, "-youjin_trigger");
-            room->setPlayerFlag(target, "-yjyoujin");
+
+            room->setPlayerMark(target, objectName(), 0);
         }
-        else if(event == CardUsed && player->hasFlag("yjyoujin")){
-            CardUseStruct cus = data.value<CardUseStruct>();
-            if(cus.card->inherits("BasicCard"))
-                room->setPlayerFlag(target, "youjin_trigger");
-        }
+
+        return false;
+    }
+};
+
+class YjYoujinPlay: public TriggerSkill{
+public:
+    YjYoujinPlay():TriggerSkill("#yjyoujin"){
+        events << CardUsed ;
+    }
+
+    virtual bool triggerable(const ServerPlayer *target) const{
+        return ! target->hasSkill("yjyoujin");
+    }
+
+    virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
+        CardUseStruct use = data.value<CardUseStruct>();
+        if(use.card->inherits("BasicCard") && player->getMark("yjyoujin") == 1 && player->getPhase() == Player::Play)
+            player->getRoom()->setPlayerMark(player, "yjyoujin", 0);
+
         return false;
     }
 };
@@ -476,8 +487,9 @@ YJ3rdPackage::YJ3rdPackage()
     yjmaliang->addSkill(new YjYinjian);
     addMetaObject<YjYinjianCard>();
 
-    skills << new YjYoujin;
+    skills << new YjYoujin << new YjYoujinPlay;
 
+    related_skills.insertMulti("yjyoujin", "#yjyoujin");
 }
 
 ADD_PACKAGE(YJ3rd)

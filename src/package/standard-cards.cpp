@@ -411,18 +411,19 @@ Halberd::Halberd(Suit suit, int number)
 class KylinBowSkill: public WeaponSkill{
 public:
     KylinBowSkill():WeaponSkill("kylin_bow"){
-        events << SlashHit;
+        events << DamageProceed;;
     }
 
     virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
-        SlashEffectStruct effect = data.value<SlashEffectStruct>();
+        DamageStruct damage = data.value<DamageStruct>();
 
         QStringList horses;
-        if(effect.to->getDefensiveHorse())
-            horses << "dhorse";
-        if(effect.to->getOffensiveHorse())
-            horses << "ohorse";
-
+        if(damage.card && damage.card->inherits("Slash")){
+            if(damage.to->getDefensiveHorse())
+                horses << "dhorse";
+            if(damage.to->getOffensiveHorse())
+                horses << "ohorse";
+        }
         if(horses.isEmpty())
             return false;
 
@@ -437,9 +438,9 @@ public:
             horse_type = horses.first();
 
         if(horse_type == "dhorse")
-            room->throwCard(effect.to->getDefensiveHorse());
+            room->throwCard(damage.to->getDefensiveHorse());
         else if(horse_type == "ohorse")
-            room->throwCard(effect.to->getOffensiveHorse());
+            room->throwCard(damage.to->getOffensiveHorse());
 
         return false;
     }
@@ -976,20 +977,20 @@ void Lightning::takeEffect(ServerPlayer *target) const{
 class IceSwordSkill: public WeaponSkill{
 public:
     IceSwordSkill():WeaponSkill("ice_sword"){
-        events << SlashHit;
+        events << DamageProceed;;
     }
 
     virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
-        SlashEffectStruct effect = data.value<SlashEffectStruct>();
+        DamageStruct damage = data.value<DamageStruct>();
 
         Room *room = player->getRoom();
 
-        if(!effect.to->isNude() && player->askForSkillInvoke("ice_sword", data)){
-            int card_id = room->askForCardChosen(player, effect.to, "he", "ice_sword");
+        if(damage.card && damage.card->inherits("Slash") && !damage.to->isNude() && player->askForSkillInvoke("ice_sword", data)){
+            int card_id = room->askForCardChosen(player, damage.to, "he", "ice_sword");
             room->throwCard(card_id);
 
-            if(!effect.to->isNude()){
-                card_id = room->askForCardChosen(player, effect.to, "he", "ice_sword");
+            if(!damage.to->isNude()){
+                card_id = room->askForCardChosen(player, damage.to, "he", "ice_sword");
                 room->throwCard(card_id);
             }
 

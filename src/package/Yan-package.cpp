@@ -1475,6 +1475,15 @@ public:
                     tos << p;
             }
             ServerPlayer *to = room->askForPlayerChosen(ds.from, tos, objectName());
+
+            LogMessage log;
+            log.type = "#YanBaiming";
+            log.from = player;
+            log.to << to;
+            log.arg = ds.card->objectName();
+            log.arg2 = objectName();
+            room->sendLog(log);
+
             player->tag["BaimingInvoke"] = true;
             DamageStruct damage;
             damage.card = ds.card;
