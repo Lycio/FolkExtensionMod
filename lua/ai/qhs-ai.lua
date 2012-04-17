@@ -152,48 +152,43 @@ guijih_skill.getTurnUseCard = function(self)
 end
 
 sgs.ai_skill_use_func.GuijihCard = function(card,use,self)
-	if not self.player:hasUsed("GuijihCard") then
-		self:sort(self.enemies,"threat")
-
-		for _, friend in ipairs(self.friends_noself) do
-			if self:hasSkills(sgs.lose_equip_skill, friend) then
-
-				for _, enemy in ipairs(self.enemies) do
-					use.card = card
-					
-					if use.to then use.to:append(friend) end
-					if use.to then use.to:append(enemy) end
-					return
+	local index1, index2 = nil, nil
+	local players = self.room:getAllPlayers()
+	if players:length() == 2 and self.player:hasSkill("leiji") and self:getCardsNum("Jink") > 0 then
+		index1 = self.room:getOtherPlayers(self.player):first()
+		index2 = self.player
+	elseif players:length() > 2 then
+		local enemies = self.enemies
+		if #enemies == 1 then
+			for _, player in ipairs (self.friends_noself) do
+				local slash_num = 0
+				for _, cd in sgs.qlist(player:getCards("h")) do
+					if cd:inherits("Slash") then slash_num = slash_num + 1 end
+				end
+				if slash_num > 0 then
+					index1 = player
+					index2 = enemies[1]
+					break
+				end
+			end
+		elseif #enemies > 1 then
+			self:sort(self.enemies, "chaofeng")
+			for _, enemy in ipairs(enemies) do
+				for _, to in ipairs(enemies) do
+					if to:objectName() ~= enemy:objectName() then
+						index1 = enemy
+						index2 = to
+						break
+					end
 				end
 			end
 		end
-
-		local n = nil
-		local final_enemy = nil
-		for _, enemy in ipairs(self.enemies) do
-			if not self.room:isProhibited(self.player, enemy, card)
-				and self:hasTrickEffective(card, enemy)
-				and not self:hasSkill(sgs.lose_equip_skill, enemy)
-				and not enemy:hasSkill("weimu") then
-
-				for _, enemy2 in ipairs(self.enemies) do
-					if enemy:getHandcardNum() == 0 then
-						use.card = card
-						if use.to then use.to:append(enemy) end
-						if use.to then use.to:append(enemy2) end
-						return
-					else
-						n = 1;
-						final_enemy = enemy2
-					end
-				end
-				if n then use.card = card end
-				if use.to then use.to:append(enemy) end
-				if use.to then use.to:append(final_enemy) end
-				return
-
-			end
-			n = nil
+	end	
+	if index1 and index2 and index1:objectName() ~= index2:objectName() then
+		use.card = card
+		if use.to then
+			use.to:append(index1)
+			use.to:append(index2)
 		end
 	end
 end

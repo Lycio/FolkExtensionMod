@@ -278,7 +278,7 @@ public:
 
     virtual void onDamaged(ServerPlayer *player, const DamageStruct &damage) const{
         Room *room = player->getRoom();
-        if(player->isKongcheng() || !room->askForSkillInvoke(player, objectName()))
+        if(!damage.from || !room->askForSkillInvoke(player, objectName()))
             return;
 
         JudgeStruct judge;
@@ -289,13 +289,30 @@ public:
 
         QString color = judge.card->getColorString();
         QString suit = judge.card->getSuitString();
-        const Card *card = room->askForCard(player, ".|.|.|hand|" + color, QString("@yjmingmin:::%1:%2").arg(suit).arg(color), QVariant::fromValue(judge.card));
+        room->setTag("MingminJudge", QVariant(color + "+" + suit));
+        const Card *card = room->askForCard(player, ".|.|.|hand|" + color, QString("@yjmingmin:::%1:%2").arg(suit).arg(color), QVariant::fromValue(damage));
         if(card){
+            LogMessage log;
+            log.type = "$ResponseCard";
+            log.from = player;
+            log.card_str = card->toString();
+            room->sendLog(log);
+
             if(card->getColorString() == color)
                 player->drawCards(1);
-            if(card->getSuitString() == suit)
-                room->askForDiscard(damage.from, objectName(), 1, false, true);
+            if(card->getSuitString() == suit && !damage.from->isNude()){
+                int id = room->askForCardChosen(player, damage.from, "he", objectName());
+                room->throwCard(id);
+
+                LogMessage log;
+                log.type = "$ToDiscardCard";
+                log.from = player;
+                log.to << damage.from;
+                log.card_str = Sanguosha->getCard(id)->toString();
+                room->sendLog(log);
+            }
         }
+        room->removeTag("MingminJudge");
     }
 };
 
@@ -313,7 +330,9 @@ public:
     virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &) const{
         Room *room = player->getRoom();
         ServerPlayer *owner = room->findPlayerBySkillName(objectName());
-        if(!owner || player->getPhase() != Player::Judge || player->getJudgingArea().isEmpty())
+        if(!owner || player->getPhase() != Player::Judge ||
+                player->getJudgingArea().isEmpty() ||
+                !owner->askForSkillInvoke(objectName()))
             return false;
         ServerPlayer *to = room->askForPlayerChosen(owner, room->getOtherPlayers(player), objectName());
         to->drawCards(1);
@@ -375,7 +394,7 @@ public:
             if(use.card->inherits("SavageAssault"))
                 room->removeTag("SavageAssaultProceed");
         }else if(event == CardResponsed){
-            if(room->getTag("SavageAssaultProceed").isNull())
+            if(!room->getTag("SavageAssaultProceed").toBool())
                 return false;
             CardStar card = data.value<CardStar>();
             if(owner->askForSkillInvoke("yjnaman"))
@@ -383,18 +402,11 @@ public:
         }else if(event == PhaseChange && owner->getPhase() == Player::Draw){
             if(owner->isWounded() && owner->askForSkillInvoke("yjnaman")){
                 int i;
-                for(i=0; i<owner->getLostHp(); i++){
+                for(i=0; i<qMin(owner->getLostHp(), 5 - savages.length()); i++){
                     const Card *cd = Sanguosha->getCard(room->drawCard());
                     room->moveCardTo(cd, NULL, Player::Special, true);
-                    if(cd->inherits("SavageAssault")){
-                        RecoverStruct rec;
-                        rec.card = cd;
-                        room->recover(owner, rec, true);
-                    }
                     owner->addToPile("savage", cd, true);
                     room->getThread()->delay();
-                    if(savages.length() >= 5)
-                        break;
                 }
             }
         }
@@ -406,8 +418,11 @@ YjYinjianCard::YjYinjianCard(){
 
 }
 
-bool YjYinjianCard::targetFilter(const QList<const Player *> &targets, const Player *, const Player *) const{
-    return targets.isEmpty();
+bool YjYinjianCard::targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *player) const{
+    if(!Self->hasFlag("out_range"))
+        return targets.isEmpty();
+    else
+        return Self->inMyAttackRange(to_select) && targets.isEmpty();
 }
 
 void YjYinjianCard::onEffect(const CardEffectStruct &effect) const{
@@ -421,10 +436,15 @@ void YjYinjianCard::onEffect(const CardEffectStruct &effect) const{
     if(effect.from->inMyAttackRange(effect.to))
         effect.to->drawCards(1);
     else{
+        room->setPlayerFlag(effect.from, "out_range");
         Slash *slash = new Slash(Card::NoSuit, 0);
         slash->setSkillName("yjyinjian");
         slash->addSubcard(savage);
+        if(effect.to->getArmor() && effect.to->getArmor()->inherits("Vine"))
+            effect.to->addMark("qinggang");
         room->cardEffect(slash, effect.from, effect.to);
+        if(effect.to->getMark("qinggang") > 0)
+            effect.to->removeMark("qinggang");
     }
 }
 
@@ -439,27 +459,18 @@ public:
 
 protected:
     virtual bool isEnabledAtPlay(const Player *player) const{
-        return ! player->hasUsed("YjYinjianCard") && ! player->getPile("savage").isEmpty();
+        return ! player->getPile("savage").isEmpty();
     }
 };
 
-class YjQishen: public ProhibitSkill{
+class YjZhiman: public ProhibitSkill{
 public:
-    YjQishen():ProhibitSkill("yjqishen"){
+    YjZhiman():ProhibitSkill("yjzhiman"){
 
     }
 
     virtual bool isProhibited(const Player *, const Player *, const Card *card) const{
-        bool can_trigger = true;
-        foreach(const Player *p, Self->getSiblings()){
-            if(p->getHp() < Self->getHp())
-                can_trigger = false;
-        }
-
-        if(card->inherits("Slash") || card->inherits("Duel"))
-            return can_trigger;
-        else
-            return false;
+        return card->inherits("SavageAssault");
     }
 };
 
@@ -484,6 +495,7 @@ YJ3rdPackage::YJ3rdPackage()
 
     General *yjmaliang = new General(this, "yjmaliang", "shu", 3);
     yjmaliang->addSkill(new YjNaman);
+    yjmaliang->addSkill(new YjZhiman);
     yjmaliang->addSkill(new YjYinjian);
     addMetaObject<YjYinjianCard>();
 

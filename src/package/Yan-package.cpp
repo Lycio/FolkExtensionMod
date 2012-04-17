@@ -1236,7 +1236,7 @@ public:
     virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
         Room *room = player->getRoom();
         DamageStar ds = data.value<DamageStar>();
-        if(!ds->from || ds->from->isDead())
+        if(!ds || !ds->from || ds->from->isDead())
             return false;
         LogMessage log;
         log.type = "#YanGuilingLog";

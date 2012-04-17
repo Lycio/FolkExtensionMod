@@ -970,7 +970,9 @@ void Room::setPlayerProperty(ServerPlayer *player, const char *property_name, co
     broadcastProperty(player, property_name);
 
     if(strcmp(property_name, "hp") == 0){
-        thread->trigger(HpChanged, player);
+        int delta = value.toInt() - player->getHp();
+        QVariant data = delta;
+        thread->trigger(HpChanged, player, data);
     }
 }
 
@@ -2155,6 +2157,11 @@ void Room::applyDamage(ServerPlayer *victim, const DamageStruct &damage){
     int new_hp = victim->getHp() - damage.damage;
 
     setPlayerProperty(victim, "hp", new_hp);
+
+    int delta = damage.damage;
+    QVariant data = delta;
+    thread->trigger(HpChanged, victim, data);
+
     QString change_str = QString("%1:%2").arg(victim->objectName()).arg(-damage.damage);
     switch(damage.nature){
     case DamageStruct::Fire: change_str.append("F"); break;
@@ -2223,8 +2230,10 @@ void Room::damage(const DamageStruct &damage_data){
         return;
 
     // DamageProceed
-    if(thread->trigger(DamageProceed, damage_data.from, data))
-        return;
+    if(damage_data.from){
+        if(thread->trigger(DamageProceed, damage_data.from, data))
+            return;
+    }
 
     // predamaged
     bool broken = thread->trigger(Predamaged, damage_data.to, data);
@@ -2584,6 +2593,7 @@ void Room::moveCardTo(const Card *card, ServerPlayer *to, Player::Place place, b
     move.open = open;
 
     ServerPlayer *from = NULL;
+    QVariant data;
 
     if(card->isVirtualCard()){
         QList<int> subcards = card->getSubcards();
@@ -2591,6 +2601,12 @@ void Room::moveCardTo(const Card *card, ServerPlayer *to, Player::Place place, b
             move.card_id = subcard;
             move.from = getCardOwner(subcard);
             move.from_place = getCardPlace(subcard);
+
+            if(to){
+                data = QVariant::fromValue(move);
+                thread->trigger(CardMoving, move.to, data);
+            }
+
             doMove(move, scope);
 
             if(move.from)
@@ -2600,6 +2616,12 @@ void Room::moveCardTo(const Card *card, ServerPlayer *to, Player::Place place, b
         move.card_id = card->getId();
         move.from = getCardOwner(move.card_id);
         move.from_place = getCardPlace(move.card_id);
+
+        if(to){
+            data = QVariant::fromValue(move);
+            thread->trigger(CardMoving, move.to, data);
+        }
+
         doMove(move, scope);
 
         if(move.from)

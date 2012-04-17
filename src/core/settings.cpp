@@ -139,7 +139,7 @@ void Settings::init(){
             hegemony_ban << general;
     }
 
-    pairs_ban << "shencaocao" << "dongzhuo" << "zuoci" << "zhoutai" << "liaohua" << "sp_pangtong"
+    pairs_ban << "shencaocao" << "dongzhuo" << "zuoci" << "zhoutai" << "liaohua" << "bgm_pangtong"
               << "+luboyan"
               << "caocao+caochong" << "xushu+zhugeliang" << "simayi+caizhaoji" << "wisjiangwei+zhanggongqi"
                 << "zhenji+zhangjiao" << "zhenji+simayi" << "huanggai+yuanshao"

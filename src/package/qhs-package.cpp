@@ -525,7 +525,7 @@ GuijihCard::GuijihCard(){
 }
 
 bool GuijihCard::targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const{
-    return true;
+    return targets.length() < 1;
 }
 
 bool GuijihCard::targetsFeasible(const QList<const Player *> &targets, const Player *Self) const{
@@ -538,7 +538,7 @@ void GuijihCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer 
     target1->obtainCard(this);
 
     const Card *slash1 = NULL;
-    slash1 = room->askForCard(target1, "slash", "@guijih-slash");
+    slash1 = room->askForCard(target1, "slash", QString("@guijih-slash:%1:%2:%3").arg(source->objectName()).arg(target2->objectName()).arg("guijih"));
     if(slash1 == NULL){
         DamageStruct damage;
         damage.from = source;
@@ -553,7 +553,7 @@ void GuijihCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer 
         room->useCard(use);
 
         const Card *slash2 = NULL;
-        slash2 = room->askForCard(target2, "slash", "@guijih-slash");
+        slash2 = room->askForCard(target2, "slash", QString("@guijih-slash:%1:%2:%3").arg(source->objectName()).arg(target1->objectName()).arg("guijih"));
         if(slash2 != NULL){
             CardUseStruct use;
             use.from = target2;

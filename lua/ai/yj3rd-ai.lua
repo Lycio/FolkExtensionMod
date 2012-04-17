@@ -101,33 +101,53 @@ sgs.ai_skill_invoke.yjcibian = true
 sgs.ai_skill_invoke.yjmingmin = true
 
 sgs.ai_skill_cardask["@yjmingmin"] = function(self, data, pattern, target)
-	local card = data:toCard()
-	local cards = self.player:getCards("he")
-	if card:getSuit() == sgs.Card_Club and self.player:getArmor() and self.player:getArmor():objectName() == "silver_lion" and self.player:isWounded() then return "$"..self.player:getArmor():getEffectiveId() end
-	local id = -1
+	local damage = data:toDamage()
+	local judge = self.room:getTag("MingminJudge"):toString()
+	local color = judge:split("+")[1]
+	local suit = judge:split("+")[2]	
+	local cards = self.player:getCards("h")
 	for _, cd in sgs.qlist(cards) do
-		if cd:getColor() == card:getColor() and cd:getSuit() == card:getSuit() then id = cd:getEffectiveId() end
+		if cd:objectName() == "peach" or cd:objectName() == "ex_nihilo" then 
+			cards:removeOne(cd)
+		end
 	end
-	if id == -1 then
+	local id = -1	
+	if self:isEnemy(damage.from) then
 		for _, cd in sgs.qlist(cards) do
-			if cd:objectName() ~= "peach" then 
-				if cd:getSuit() == card:getSuit() or cd:getColor() == card:getColor() then				
+			if cd:getColorString() == color and cd:getSuitString() == suit then id = cd:getEffectiveId() end
+		end
+		if id == -1 then
+			for _, cd in sgs.qlist(cards) do
+				if cd:getColorString() == color or cd:getSuitString() == suit then				
 					id = cd:getEffectiveId()
 					break
 				end
 			end
 		end
+	elseif self:isFriend(damage.from) then
+		if damage.from:getJudgingArea():isEmpty() then
+			for _, cd in sgs.qlist(cards) do
+				if cd:getColorString() == color then id = cd:getEffectiveId() end
+			end
+		else
+			for _, cd in sgs.qlist(cards) do
+				if cd:getColorString() == color and cd:getSuitString() == suit then id = cd:getEffectiveId() end
+			end
+		end
 	end
-	
+	self.room:writeToConsole(id)
 	if id == -1 then return "."
 	else return "$"..id
 	end
 end
 
 sgs.ai_skill_playerchosen.yjpianquan = function(self, targets)
-	local friends = self.friends_noself 
-	self:sort(friends, "handcard")
-	return friends[1]
+	local target 
+	targets = sgs.QList2Table(targets)
+	self:sort(targets, "handcard")
+	for _, player in ipairs(targets) do
+		if self:isFriend(player) then return player end
+	end
 end
 
 sgs.ai_skill_invoke.yjrenxin = function(self, data)
@@ -147,7 +167,7 @@ local yjyinjian_skill = {}
 yjyinjian_skill.name = "yjyinjian"
 table.insert(sgs.ai_skills, yjyinjian_skill)
 yjyinjian_skill.getTurnUseCard = function(self)
-	if self.player:hasUsed("YjYinjianCard") or self.player:getPile("savage"):isEmpty() then return end
+	if self.player:getPile("savage"):isEmpty() then return end
 	local card_str = "@YjYinjianCard=."
 	local card = sgs.Card_Parse(card_str)
 	assert(card)
@@ -163,9 +183,11 @@ sgs.ai_skill_use_func.YjYinjianCard = function(card, use, self)
 		else table.insert(outRange, p) end
 	end	
 	self:sort(outRange, "chaofeng")
-	for _, p in ipairs(outRange) do
-		if self:isEnemy(p) then 
-			if use.to then use.to:append(p) return end
+	if not self.player:hasFlag("out_range") then
+		for _, p in ipairs(outRange) do
+			if self:isEnemy(p) then 
+				if use.to then use.to:append(p) return end
+			end
 		end
 	end
 	self:sort(inRange, "handcard")

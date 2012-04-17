@@ -85,30 +85,7 @@ void Analeptic::onEffect(const CardEffectStruct &effect) const{
         room->setPlayerFlag(effect.to, "drank");
     }
 }
-/*
-class FanSkill: public WeaponSkill{
-public:
-    FanSkill():WeaponSkill("fan"){
-        events << SlashEffect;
-    }
 
-    virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
-        SlashEffectStruct effect = data.value<SlashEffectStruct>();
-        if(!effect.slash->getSkillName().isEmpty() && effect.slash->getSubcards().length() > 0)
-            return false;
-
-        if(effect.nature == DamageStruct::Normal){
-            if(player->getRoom()->askForSkillInvoke(player, objectName(), data)){
-                effect.nature = DamageStruct::Fire;
-
-                data = QVariant::fromValue(effect);
-            }
-        }
-
-        return false;
-    }
-};
-*/
 class FanSkill: public OneCardViewAsSkill{
 public:
     FanSkill():OneCardViewAsSkill("fan"){

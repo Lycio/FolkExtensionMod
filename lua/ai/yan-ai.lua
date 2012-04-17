@@ -379,7 +379,7 @@ sgs.ai_skill_use_func.YanJunlingCard = function(card, use, self)
 	elseif players:length() > 2 then
 		local enemies = self.enemies
 		if #enemies == 1 then
-			for _, player in sgs.qlist(self.room:getOtherPlayers(enemies[1])) do
+			for _, player in sgs.qlist(self.friends_noself) do
 				local slash_num = 0
 				for _, cd in sgs.qlist(player:getCards("h")) do
 					if cd:inherits("Slash") then slash_num = slash_num + 1 end

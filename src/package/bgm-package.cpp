@@ -72,7 +72,7 @@ void LihunCard::onEffect(const CardEffectStruct &effect) const{
     Room *room = effect.from->getRoom();
     room->throwCard(this);
     effect.from->turnOver();    
-    room->setTag("LihunTarget", QVariant::fromValue(effect.to));
+    effect.to->setFlags("LihunTarget");
 
     if(effect.to->isKongcheng())
         return;
@@ -124,7 +124,15 @@ public:
         Room *room = diaochan->getRoom();
 
         if(event == PhaseChange && diaochan->getPhase() == Player::Discard){
-            ServerPlayer *target = room->getTag("LihunTarget").value<PlayerStar>();
+            ServerPlayer *target = NULL;
+            foreach(ServerPlayer *other, room->getOtherPlayers(diaochan)){
+                if(other->hasFlag("LihunTarget")){
+                    other->setFlags("-LihunTarget");
+                    target = other;
+                    break;
+                }
+            }
+
             if(!target || target->isDead())
                 return false;
 

@@ -84,27 +84,27 @@ bool Slash::targetFilter(const QList<const Player *> &targets, const Player *to_
         slash_targets ++;
 
     if(Self->hasSkill("shenji") && Self->getWeapon() == NULL)
-        slash_targets = 3;
-
-    if(targets.length() >= slash_targets)
-        return false;
+        slash_targets = 3;    
 
     if(inherits("WushenSlash")){
         distance_limit = false;
     }
 
-    if(Self->hasSkill("huxiao") && isRed()){
-        slash_targets ++;
+    if(Self->hasSkill("huxiao") && this->isRed()){
+        slash_targets = 2;
     }
 
-    if(Self->hasSkill("longyin") && isBlack()){
+    if(Self->hasSkill("longyin") && this->isBlack()){
         distance_limit = false;
     }
 
     if(Self->hasSkill("juelu") && Self->isLastHandCard(this)){
         distance_limit = false;
-        slash_targets =2;
+        slash_targets = 2;
     }
+
+    if(targets.length() >= slash_targets)
+        return false;
 
     return Self->canSlash(to_select, distance_limit);
 }
@@ -418,7 +418,7 @@ public:
         DamageStruct damage = data.value<DamageStruct>();
 
         QStringList horses;
-        if(damage.card && damage.card->inherits("Slash")){
+        if(damage.card && damage.card->inherits("Slash") && !damage.chain){
             if(damage.to->getDefensiveHorse())
                 horses << "dhorse";
             if(damage.to->getOffensiveHorse())
@@ -526,18 +526,28 @@ void AmazingGrace::use(Room *room, ServerPlayer *source, const QList<ServerPlaye
     room->setTag("AmazingGrace", ag_list);
 
     foreach(ServerPlayer *yangxiu, players){
-        if(yangxiu->hasSkill("danlao") && yangxiu->askForSkillInvoke("danlao")){
-            yangxiu->tag["Danlao"] = this->getEffectiveId();
+        if(yangxiu->hasSkill("danlao")){
+            bool invoke = false;
+            AI *ai = yangxiu->getAI();
+            if(ai)
+                invoke = true;
+            else
+                if(yangxiu->askForSkillInvoke("danlao"))
+                    invoke = true;
 
-            room->playSkillEffect(objectName());
-            LogMessage log;
-            log.type = "#DanlaoAvoid";
-            log.from = yangxiu;
-            log.arg = this->objectName();
-            log.arg2 = "danlao";
-            room->sendLog(log);
+            if(invoke){
+                yangxiu->tag["Danlao"] = this->getEffectiveId();
 
-            yangxiu->drawCards(1);
+                room->playSkillEffect(objectName());
+                LogMessage log;
+                log.type = "#DanlaoAvoid";
+                log.from = yangxiu;
+                log.arg = this->objectName();
+                log.arg2 = "danlao";
+                room->sendLog(log);
+
+                yangxiu->drawCards(1);
+            }
         }
     }
 
@@ -985,7 +995,8 @@ public:
 
         Room *room = player->getRoom();
 
-        if(damage.card && damage.card->inherits("Slash") && !damage.to->isNude() && player->askForSkillInvoke("ice_sword", data)){
+        if(damage.card && damage.card->inherits("Slash") && !damage.to->isNude()
+                && !damage.chain && player->askForSkillInvoke("ice_sword", data)){
             int card_id = room->askForCardChosen(player, damage.to, "he", "ice_sword");
             room->throwCard(card_id);
 
