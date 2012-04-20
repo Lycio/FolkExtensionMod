@@ -362,7 +362,7 @@ local yanjunling_skill = {}
 yanjunling_skill.name = "yanjunling"
 table.insert(sgs.ai_skills, yanjunling_skill)
 yanjunling_skill.getTurnUseCard = function(self)
-	if self.player:hasUsed("YanJunlingCard") then return end
+	if self.player:hasUsed("YanJunlingCard") or not self.player:isLord() then return end
 	local card_str = "@YanJunlingCard=."
 	local card = sgs.Card_Parse(card_str)
 	assert(card)
@@ -379,7 +379,7 @@ sgs.ai_skill_use_func.YanJunlingCard = function(card, use, self)
 	elseif players:length() > 2 then
 		local enemies = self.enemies
 		if #enemies == 1 then
-			for _, player in sgs.qlist(self.friends_noself) do
+			for _, player in sgs.qlist(self.room:getOtherPlayers(enemies[1])) do
 				local slash_num = 0
 				for _, cd in sgs.qlist(player:getCards("h")) do
 					if cd:inherits("Slash") then slash_num = slash_num + 1 end

@@ -36,7 +36,7 @@ bool QiaobianCard::targetFilter(const QList<const Player *> &targets, const Play
 }
 
 void QiaobianCard::use(Room *room, ServerPlayer *zhanghe, const QList<ServerPlayer *> &targets) const{
-    room->throwCard(this);
+    room->throwCard(this, zhanghe);
 
     if(zhanghe->getPhase() == Player::Draw){
         room->playSkillEffect("qiaobian", 2);
@@ -615,7 +615,7 @@ void TiaoxinCard::onEffect(const CardEffectStruct &effect) const{
         use.from = effect.to;
         room->useCard(use);
     }else if(!effect.to->isNude()){
-        room->throwCard(room->askForCardChosen(effect.from, effect.to, "he", "tiaoxin"));
+        room->throwCard(room->askForCardChosen(effect.from, effect.to, "he", "tiaoxin"), effect.to);
     }
 }
 

@@ -381,7 +381,7 @@ public:
 
         room->fillAG(equip_ids, zhangmancheng);
         int card_id = room->askForAG(zhangmancheng, equip_ids, false, objectName());
-        room->throwCard(card_id);
+        room->throwCard(card_id, zhangmancheng);
 
         LogMessage log;
         log.type = "#WeichengDiscard";

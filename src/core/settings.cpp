@@ -162,7 +162,10 @@ void Settings::init(){
                 << "bgm_diaochan+caizhaoji" << "caozhi+shenlubu" << "caoren+caozhi"
                 << "guanxingzhangbao+luxun" << "guanxingzhangbao+sunce" << "bgm_caoren+caoren"
                 << "bgm_caoren+caozhi" << "bgm_caoren+shenlubu" << "bgm_caoren+bgm_diaochan"
-                << "bgm_caoren+dengshizai" << "bgm_caoren+caizhaoji" ;
+                << "bgm_caoren+dengshizai" << "bgm_caoren+caizhaoji"
+
+                // for Diy
+                << "yjguohuai+sunshangxiang" << "yjguohuai+sp_sunshangxiang" ;
 
     QStringList banlist = value("Banlist/Roles").toStringList();
     foreach(QString ban_general, roles_ban){

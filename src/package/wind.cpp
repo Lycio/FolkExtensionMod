@@ -261,7 +261,7 @@ bool ShensuCard::targetFilter(const QList<const Player *> &targets, const Player
 }
 
 void ShensuCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const{
-    room->throwCard(this);
+    room->throwCard(this, source);
 
     Slash *slash = new Slash(Card::NoSuit, 0);
     slash->setSkillName("shensu");
@@ -603,6 +603,7 @@ public:
 
 TianxiangCard::TianxiangCard()
 {
+    owner_discarded = true;
 }
 
 void TianxiangCard::onEffect(const CardEffectStruct &effect) const{

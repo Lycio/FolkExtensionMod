@@ -4,6 +4,7 @@ package.path = package.path .. ";./lua/lib/?.lua"
 package.cpath = package.cpath .. ";./lua/clib/?.dll"
 
 dofile "lua/sgs_ex.lua"
+dofile "lua/config.lua"
 
 function load_translation(file)
 	local t = dofile(file)
@@ -15,8 +16,8 @@ function load_translation(file)
 end
 
 function load_translations()
-	local lang = sgs.GetConfig("Language", "zh_CN")
-	local lang_dir = "lang/" .. lang
+	local lang = sgs.GetConfig("EffectEdition", "qsanguosha/")
+	local lang_dir = "lang/" .. lang.."zh_CN"
 
 	local lang_files = sgs.GetFileNames(lang_dir)
 	for _, file in ipairs(lang_files) do	

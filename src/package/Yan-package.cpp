@@ -415,7 +415,7 @@ public:
                     while(!manwulist.isEmpty()){
                         int id = manwulist.takeFirst();
                         if(room->getCardPlace(id) == Player::Hand)
-                            room->throwCard(id);
+                            room->throwCard(id, shendiaochan);
                     }
                 }else{
                     if(player->hasFlag("manwu"))
@@ -1246,7 +1246,7 @@ public:
         room->acquireSkill(ds->from, "yanguiling-buff");
         ds->from->gainMark("@guiling", 1);
         if(ds->from->getWeapon())
-            room->throwCard(ds->from->getWeapon());
+            room->throwCard(ds->from->getWeapon(), ds->from);
 
         return false;
     }
@@ -1465,9 +1465,9 @@ public:
 
     virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
         Room *room = player->getRoom();
-        DamageStruct ds = data.value<DamageStruct>();
+        DamageStruct ds = data.value<DamageStruct>();        
         if(event == Predamage){
-            if(player->tag.value("BaimingInvoke", false).toBool())
+            if(player->tag.value("BaimingInvoke", false).toBool() || !ds.card->inherits("Slash"))
                 return false;
             QList<ServerPlayer *> tos;
             foreach(ServerPlayer *p, room->getOtherPlayers(ds.to)){
@@ -1539,7 +1539,7 @@ public:
     }
 
     virtual bool isEnabledAtPlay(const Player *player) const{
-        return ! player->hasUsed("YanJunlingCard");
+        return ! player->hasUsed("YanJunlingCard") && player->isLord();
     }
 
     virtual const Card *viewAs() const{

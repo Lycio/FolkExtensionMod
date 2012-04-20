@@ -77,11 +77,8 @@ void ServerPlayer::throwAllEquips(){
     DummyCard *card = new DummyCard;
     foreach(const Card *equip, equips)
         card->addSubcard(equip);
-    room->throwCard(card);
+    room->throwCard(card, this);
 
-    CardStar card_star = card;
-    QVariant data = QVariant::fromValue(card_star);
-    room->getThread()->trigger(CardDiscarded, this, data);
     card->deleteLater();
 }
 
@@ -90,10 +87,7 @@ void ServerPlayer::throwAllHandCards(){
     if(card == NULL)
         return;
 
-    room->throwCard(card);
-    CardStar card_star = card;
-    QVariant data = QVariant::fromValue(card_star);
-    room->getThread()->trigger(CardDiscarded, this, data);
+    room->throwCard(card, this);
     card->deleteLater();
 }
 

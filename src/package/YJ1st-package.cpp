@@ -444,7 +444,7 @@ public:
                 return false;
             QString prompt = QString("@yjzhaxiang:%1::%2").arg(use.from->getGeneralName()).arg(getColor(use.card));
             if(room->askForCard(YJzhoufang, QString(".|.|.|hand|%1").arg(getColor(use.card)), prompt, data)){
-                room->throwCard(use.card);
+                room->throwCard(use.card, YJzhoufang);
                 foreach(ServerPlayer *p, use.to){
                     if(p->isNude())
                         continue;
@@ -606,7 +606,7 @@ public:
             if(samecolor){
                 if(!YJcaiyong->askForSkillInvoke(objectName(), data))
                     return false;
-                room->throwCard(samecolor);
+                room->throwCard(samecolor, YJcaiyong);
                 room->setEmotion(effect.from, "bad");
                 return true;
             }else

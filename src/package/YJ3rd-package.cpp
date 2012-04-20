@@ -289,8 +289,8 @@ public:
 
         QString color = judge.card->getColorString();
         QString suit = judge.card->getSuitString();
-        room->setTag("MingminJudge", QVariant(color + "+" + suit));
-        const Card *card = room->askForCard(player, ".|.|.|hand|" + color, QString("@yjmingmin:::%1:%2").arg(suit).arg(color), QVariant::fromValue(damage));
+        room->setTag("MingminTarget", QVariant::fromValue(damage.from));
+        const Card *card = room->askForCard(player, ".|.|.|hand|" + color, QString("@yjmingmin:::%1:%2").arg(suit).arg(color), QVariant::fromValue(judge.card));
         if(card){
             LogMessage log;
             log.type = "$ResponseCard";
@@ -302,7 +302,7 @@ public:
                 player->drawCards(1);
             if(card->getSuitString() == suit && !damage.from->isNude()){
                 int id = room->askForCardChosen(player, damage.from, "he", objectName());
-                room->throwCard(id);
+                room->throwCard(id, damage.from);
 
                 LogMessage log;
                 log.type = "$ToDiscardCard";
@@ -312,7 +312,7 @@ public:
                 room->sendLog(log);
             }
         }
-        room->removeTag("MingminJudge");
+        room->removeTag("MingminTarget");
     }
 };
 
@@ -353,7 +353,7 @@ public:
     virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
         Room *room = player->getRoom();
         ServerPlayer *owner = room->findPlayerBySkillName(objectName());
-        if(!owner || player->getKingdom() != "wei" || player->isDead() || !player->askForSkillInvoke(objectName()))
+        if(!owner || !owner->isLord() || player->getKingdom() != "wei" || player->isDead() || !player->askForSkillInvoke(objectName()))
             return false;
         room->setTag("RenxinTarget", QVariant::fromValue(player));
         if(room->askForChoice(owner, objectName(), "draw+getacard") == "getacard"){
@@ -387,18 +387,27 @@ public:
             return false;
         if(event == CardUsed){
             CardUseStruct use = data.value<CardUseStruct>();
-            if(use.card->inherits("SavageAssault"))
-                room->setTag("SavageAssaultProceed", QVariant(true));
+            if(use.card->inherits("SavageAssault")){
+                QStringList use_tos ;
+                foreach(ServerPlayer *p, use.to){
+                    use_tos << p->objectName();
+                }
+
+                room->setTag("SavageAssaultProceed", QVariant::fromValue(use_tos));
+            }
         }else if(event == CardFinished){
             CardUseStruct use = data.value<CardUseStruct>();
             if(use.card->inherits("SavageAssault"))
                 room->removeTag("SavageAssaultProceed");
         }else if(event == CardResponsed){
-            if(!room->getTag("SavageAssaultProceed").toBool())
+            QStringList whos = room->getTag("SavageAssaultProceed").toStringList();
+            if(whos.isEmpty())
                 return false;
-            CardStar card = data.value<CardStar>();
-            if(owner->askForSkillInvoke("yjnaman"))
-                owner->addToPile("savage", card, true);
+            if(whos.contains(player->objectName())){
+                CardStar card = data.value<CardStar>();
+                if(card->inherits("Slash") && owner->askForSkillInvoke("yjnaman"))
+                    owner->addToPile("savage", card, true);
+            }
         }else if(event == PhaseChange && owner->getPhase() == Player::Draw){
             if(owner->isWounded() && owner->askForSkillInvoke("yjnaman")){
                 int i;

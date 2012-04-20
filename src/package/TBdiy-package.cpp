@@ -71,7 +71,7 @@ void DiyShenZhiCard::onEffect(const CardEffectStruct &effect) const{
         room->loseHp(effect.to, 1);
         room->playSkillEffect("diyshenzhi", 1);
     }else{
-        room->throwCard(this);
+        room->throwCard(this, effect.from);
         int card_id = room->askForCardChosen(effect.from, effect.to, "he", "diyshenzhi");
         const Card *card = Sanguosha->getCard(card_id);
         bool is_public = room->getCardPlace(card_id) != Player::Hand;
@@ -247,7 +247,7 @@ void DiyKuangXiCard::onEffect(const CardEffectStruct &effect) const{
     room->showCard(effect.to, id);
     const Card *card = Sanguosha->getCard(id);
     if(card->inherits("Slash") || card->inherits("Jink")){
-        room->throwCard(card);
+        room->throwCard(card, effect.to);
         if(effect.to->isKongcheng() && effect.to->hasSkill("kongcheng"))
             return;
         else{
