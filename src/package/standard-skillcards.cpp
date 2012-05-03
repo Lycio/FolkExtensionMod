@@ -20,7 +20,6 @@ void ZhihengCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer
 
 RendeCard::RendeCard(){
     will_throw = false;
-    owner_discarded = true;
 }
 
 void RendeCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const{
@@ -52,6 +51,7 @@ void RendeCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *
 JieyinCard::JieyinCard(){
     once = true;
     mute = true;
+    owner_discarded = true;
 }
 
 bool JieyinCard::targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const{
@@ -179,7 +179,6 @@ void LijianCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer 
     ServerPlayer *from = targets.at(1);
 
     Duel *duel = new Duel(Card::NoSuit, 0);
-    duel->setSkillName("lijian");
     duel->setCancelable(false);
 
     CardUseStruct use;
@@ -284,27 +283,6 @@ void JijiangCard::use(Room *room, ServerPlayer *liubei, const QList<ServerPlayer
             room->useCard(card_use);
             return;
         }
-    }
-}
-
-CheatCard::CheatCard(){
-    target_fixed = true;
-    will_throw = false;
-}
-
-void CheatCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const{
-    if(Config.FreeChoose)
-        room->obtainCard(source, subcards.first());
-}
-
-ChangeCard::ChangeCard(){
-    target_fixed = true;
-}
-
-void ChangeCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const{
-    if(Config.FreeChoose){
-        QString name = Self->tag["GeneralName"].toString();
-        room->transfigure(source, name, false, true);
     }
 }
 

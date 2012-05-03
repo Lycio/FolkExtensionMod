@@ -60,9 +60,42 @@ return {
 	["yjzhiman"] = "治蛮",
 	[":yjzhiman"] = "<b>锁定技，</b>你不能成为【南蛮入侵】的目标",
 	["yjyinjian"] = "引荐",
-	[":yjyinjian"] = "出牌阶段，你可以弃掉一张“蛮”，然后执行下列两项中的一项：1.令攻击范围内的一名角色摸一张牌；2.视为对攻击范围外的一名角色使用了一张【杀】（第二项每阶段限用一次）",
+	[":yjyinjian"] = "出牌阶段，你可以弃掉一张“蛮”，然后执行下列两项中的一项：1.令攻击范围内的一名角色摸一张牌；2.视为对攻击范围外的一名角色使用了一张【杀】，每阶段限用一次",
 	["savage"] = "蛮",
 	
+	["yjkanze"] = "阚泽",
+	["#yjkanze"] = "儒林一时",
+	["cv:yjkanze"] = " ",
+	["designer:yjkanze"] = "qiushanliao",
+	["illustrator:yjkanze"] = " ",
+	
+	["yjzhuji"] = "助计",
+	[":yjzhuji"] = "任意角色的出牌阶段，若其失去的手牌达到三张时，你可以立即执行以下两项中的一项：弃置其一张手牌；令其摸一张牌（每阶段限一次）",
+	["yjzhuji:to_discard"] = "弃掉其一张手牌",
+	["yjzhuji:to_draw"] = "令其摸一张牌",
+	["yjguzong"] = "故纵",
+	[":yjguzong"] = "出牌阶段，你可以展示一张手牌后指定其他一名角色，该角色须执行以下两项中的一项：\
+	1.获得此牌，若在其回合内弃牌阶段弃牌前，此牌未进入弃牌堆，你对此牌拥有者造成1点伤害；\
+	2.弃置一张与此牌相同的牌，令你流失1点体力并摸一张牌。\
+	（每阶段限一次）\
+	★“相同的牌”指牌面、花色、点数均一致",
+	["accept_to_gain"] = "获得此牌",
+	["refuse_to_gain"] = "放弃此牌",
+	["#YjGuzongSelect"] = "%from 选择了 %arg",
+	["#YjGuzongTrigger"] = "%from 的技能【%arg2】被触发，将对 %to 造成 %arg 点伤害",
+	
+	["yjzhoucang"] = "周仓",
+	["#yjzhoucang"] = "一生侍侯",
+	["cv:yjzhoucang"] = " ",
+	["designer:yjzhoucang"] = "sands",
+	["illustrator:yjzhoucang"] = " ",
+	
+	["yjshiwu"] = "侍武",
+	[":yjshiwu"] = "其他角色的杀被闪避时，你可弃掉一张非基本牌令杀的来源再使用一张杀（不能指定本阶段内已成为杀的目标的角色），若其不如此做，你弃置杀的来源2张牌（不足2张则失去1点体力），每阶段限一次",
+	["@yjshiwu"] = "你要发动技能【%arg】吗？",
+	["@yjshiwu-slash"] = "%src要求你使用一张【杀】",
+	
+	["$ShowACard"] = "%from 展示了 %card ",
 	["$ResponseCard"] = "%from 打出了 %card ",
 	["$ToDiscardCard"] = "%from 弃置了 %to 的 %card ",
 }

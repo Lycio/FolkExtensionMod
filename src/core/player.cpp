@@ -214,7 +214,7 @@ QString Player::getGeneralName() const{
     if(general)
         return general->objectName();
     else
-        return "";
+        return QString();
 }
 
 void Player::setGeneral2Name(const QString &general_name){
@@ -743,10 +743,13 @@ bool Player::canSlashWithoutCrossbow() const{
         return true;
 
     int slash_count = getSlashCount();
-    if(hasFlag("tianyi_success") || hasFlag("jiangchi_invoke"))
-        return slash_count < 2;
-    else
-        return slash_count < 1;
+    int valid_slash_count = 1;
+    if(hasFlag("tianyi_success"))
+        return valid_slash_count++;
+    else if(hasFlag("jiangchi_invoke"))
+        return valid_slash_count++;
+
+    return slash_count < valid_slash_count;
 }
 
 void Player::jilei(const QString &type){
@@ -834,7 +837,7 @@ void Player::setStatistics(StatisticsStruct *statistics){
 
 bool Player::isCaoCao() const{
     QString general_name = getGeneralName();
-    return general_name == "caocao" || general_name == "shencaocao" || general_name == "shencc";
+    return general_name == "caocao" || general_name == "shencaocao" || general_name == "weiwudi";
 }
 
 void Player::copyFrom(Player* p)

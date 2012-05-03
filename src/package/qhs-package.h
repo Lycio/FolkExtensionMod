@@ -114,6 +114,24 @@ public:
 };
 */
 
+class DuoquanhCard: public SkillCard{
+    Q_OBJECT
+
+public:
+    Q_INVOKABLE DuoquanhCard();
+
+    virtual void use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const;
+};
+
+class GongmouhCard: public SkillCard{
+    Q_OBJECT
+
+public:
+    Q_INVOKABLE GongmouhCard();
+
+    virtual void use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const;
+};
+
 class QHSEquipPackage: public Package{
     Q_OBJECT
 

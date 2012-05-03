@@ -11,6 +11,7 @@ class GameRule;
 #include "player.h"
 
 #include <QVariant>
+#include <json/json.h>
 
 struct DamageStruct{
     DamageStruct();
@@ -58,6 +59,7 @@ struct CardUseStruct{
     CardUseStruct();
     bool isValid() const;
     void parse(const QString &str, Room *room);
+    bool tryParse(const Json::Value&, Room *room);
 
     const Card *card;
     ServerPlayer *from;
@@ -125,7 +127,15 @@ struct JudgeStruct{
     bool time_consuming;
 };
 
+struct PhaseChangeStruct{
+    PhaseChangeStruct();
+    Player::Phase from;
+    Player::Phase to;
+};
+
 enum TriggerEvent{
+    NonTrigger,
+
     GameStart,
     TurnStart,
     PhaseChange,
@@ -133,6 +143,7 @@ enum TriggerEvent{
     HpRecover,
     HpLost,
     HpChanged,
+    MaxHpChanged,
 
     StartJudge,
     AskForRetrial,
@@ -161,6 +172,8 @@ enum TriggerEvent{
     SlashProceed,
     SlashHit,
     SlashMissed,
+
+    JinkUsed,
 
     CardAsked,
     CardUsed,
@@ -203,6 +216,6 @@ Q_DECLARE_METATYPE(RecoverStruct)
 Q_DECLARE_METATYPE(JudgeStar)
 Q_DECLARE_METATYPE(DamageStar)
 Q_DECLARE_METATYPE(PindianStar)
-Q_DECLARE_METATYPE(QList<int>)
+Q_DECLARE_METATYPE(PhaseChangeStruct)
 
 #endif // STRUCTS_H

@@ -217,11 +217,12 @@ end
 
 function SmartAI:askForSinglePeach(dying)
 	local card_str
-
+	local forbid = sgs.Sanguosha:cloneCard("peach", sgs.Card_NoSuit, 0)
+	if self.player:isLocked(forbid) or dying:isLocked(forbid) then return "." end
+	
 	if (dying:hasSkill("yinshih") and not dying:canSlash(self.player)) or (self.player:hasSkill("yinshih") and not dying:canSlash(self.player)) then return "." end
 	
-	if self:isFriend(dying) then	
-		if (self.player:getWeapon() and self.player:getWeapon():objectName() == "jiasuo" and (self.player:objectName() ~= dying:objectName())) then return "." end
+	if self:isFriend(dying) then
 		if self:needDeath(dying) then return "." end
 		local buqu = dying:getPile("buqu")
 		local weaklord = false
@@ -238,24 +239,10 @@ function SmartAI:askForSinglePeach(dying)
 			if not same then return "." end
 		end
 		if (self.player:objectName() == dying:objectName()) then
-			local cardstmp = self:getCards("Peach")
-			local peach_str
-			for _, cardtmp in ipairs(cardstmp) do
-				if not sgs.Card_Parse(cardtmp:getEffectiveId()):inherits("PoisonPeach") then
-					peach_str = cardtmp:toString()
-				end
-			end
-			card_str = self:getCardId("Analeptic") or peach_str
+			card_str = self:getCardId("Analeptic") or self:getCardId("Peach")
 		elseif dying:isLord() then
 			card_str = self:getCardId("Peach")
 		else
-			local cardstmp = self:getCards("Peach")
-			local peach_str
-			for _, cardtmp in ipairs(cardstmp) do
-				if not sgs.Card_Parse(cardtmp:getEffectiveId()):inherits("PoisonPeach") then
-					peach_str = cardtmp:toString()
-				end
-			end
 			for _, friend in ipairs(self.friends_noself) do
 				if friend:getHp() == 1 and friend:isLord() and not friend:hasSkill("buqu") then  weaklord = true end
 			end
@@ -263,13 +250,12 @@ function SmartAI:askForSinglePeach(dying)
 				if enemy:getHp() == 1 and enemy:isLord() and not enemy:hasSkill("buqu") and self.player:getRole() == "renegade" then weaklord = true end
 			end
 			if not weaklord or self:getAllPeachNum() > 1 then
-				card_str = peach_str
+				card_str = self:getCardId("Peach") 
 			end
 		end
 	elseif not self:isFriend(dying) and self:objectiveLevel(dying) > 3 and 1 - dying:getHp() <= 1 then
 		card_str = self:getCardId("PoisonPeach")
 	end
-	
 	return card_str or "."
 end
 

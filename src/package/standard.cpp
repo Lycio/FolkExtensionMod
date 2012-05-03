@@ -369,11 +369,16 @@ StandardPackage::StandardPackage()
     patterns["..H"] = new ExpPattern(".|heart");
     patterns["..D"] = new ExpPattern(".|diamond");
 
+    patterns[".Basic"] = new ExpPattern("BasicCard");
+    patterns[".Trick"] = new ExpPattern("TrickCard");
+    patterns[".Equip"] = new ExpPattern("EquipCard");
+    patterns[".NoBasic"] = new ExpPattern("TrickCard,EquipCard");
+
     patterns["slash"] = new ExpPattern("Slash");
     patterns["jink"] = new ExpPattern("Jink");
-    patterns["peach"] = new  ExpPattern("Peach");
+    patterns["peach"] = new  ExpPattern("Peach,PoisonPeach");
     patterns["nullification"] = new ExpPattern("Nullification");
-    patterns["peach+analeptic"] = new ExpPattern("Peach,Analeptic");
+    patterns["peach+analeptic"] = new ExpPattern("Peach,Analeptic,PoisonPeach");
 }
 
 ADD_PACKAGE(Standard)

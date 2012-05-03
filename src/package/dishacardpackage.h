@@ -20,13 +20,14 @@ public:
     Q_INVOKABLE BloodSlash(Card::Suit suit, int number);
 };
 
-class PoisonPeach: public Peach{
+class PoisonPeach: public BasicCard{
     Q_OBJECT
 
 public:
     Q_INVOKABLE PoisonPeach(Card::Suit suit, int number);
     virtual QString getSubtype() const;
     virtual QString getEffectPath(bool is_male) const;
+    virtual void use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const;
     virtual void onEffect(const CardEffectStruct &effect) const;
     virtual bool isAvailable(const Player *player) const;
 };

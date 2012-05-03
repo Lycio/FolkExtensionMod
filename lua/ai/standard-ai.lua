@@ -66,8 +66,9 @@ sgs.ai_skill_cardask["@guicai-card"]=function(self, data)
 	if self:needRetrial(judge) then
 		local cards = sgs.QList2Table(self.player:getHandcards())
 		local card_id = self:getRetrialCardId(cards, judge)
+		local card = sgs.Sanguosha:getCard(card_id)
 		if card_id ~= -1 then
-			return "@GuicaiCard=" .. card_id
+			return "@GuicaiCard[" .. card:getSuitString() .. ":" .. card:getNumberString() .. "]=" .. card_id
 		end
 	end
 
@@ -117,7 +118,6 @@ sgs.ai_skill_discard.ganglie = function(self, discard_num, optional, include_equ
 end
 
 function sgs.ai_slash_prohibit.ganglie(self, to)
-	if self:isWeak() or self:isFriend(to) then return true end
 	return self.player:getHandcardNum()+self.player:getHp() < 5
 end
 
@@ -700,8 +700,9 @@ end
 sgs.ai_skill_use_func.FanjianCard=function(card,use,self)
 	self:sort(self.enemies, "hp")
 			
-	for _, enemy in ipairs(self.enemies) do								
-		if (not enemy:hasSkill("qingnang")) or (enemy:getHp() == 1 and enemy:getHandcardNum() == 0 and not enemy:getEquips()) then
+	for _, enemy in ipairs(self.enemies) do		
+		if self:objectiveLevel(enemy) <= 3 or self:cantbeHurt(enemy) or enemy:getMark("@fog") > 0 then						
+		elseif (not enemy:hasSkill("qingnang")) or (enemy:getHp() == 1 and enemy:getHandcardNum() == 0 and not enemy:getEquips()) then
 			use.card = card
 			if use.to then use.to:append(enemy) end
 			return
@@ -936,6 +937,11 @@ end
 
 sgs.ai_skill_use_func.QingnangCard=function(card,use,self)
 	self:sort(self.friends, "defense")
+	if self.player:isWounded() and self:getOverflow()>1 then 
+		use.card=card
+		if use.to then use.to:append(self.player) end
+		return
+	end
 	local lord = self.room:getLord()
 	if self:isFriend(lord) and not sgs.isLordHealthy()  and lord:isWounded() then
 		use.card=card
@@ -985,7 +991,7 @@ sgs.ai_skill_cardask["@wushuang-jink-1"] = function(self, data, pattern, target)
 	if self:getCardsNum("Jink") < 2 and not (self.player:getHandcardNum() == 1 and self:hasSkills(sgs.need_kongcheng)) then return "." end	
 end
 
-sgs.ai_chaofeng.lubu = 1
+sgs.ai_chaofeng.lvbu = 1
 
 local lijian_skill={}
 lijian_skill.name="lijian"

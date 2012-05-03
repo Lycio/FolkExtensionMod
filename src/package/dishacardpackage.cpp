@@ -30,7 +30,7 @@ BloodSlash::BloodSlash(Card::Suit suit, int number)
 }
 
 PoisonPeach::PoisonPeach(Suit suit, int number)
-    :Peach(suit, number)
+    :BasicCard(suit, number)
 {
     setObjectName("poison_peach");
     target_fixed = true;
@@ -45,6 +45,16 @@ QString PoisonPeach::getEffectPath(bool is_male) const{
         return "audio/card/male/poison_peach.ogg";
     else
         return "audio/card/female/poison_peach.ogg";
+}
+
+void PoisonPeach::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const{
+    room->throwCard(this);
+
+    if(targets.isEmpty())
+        room->cardEffect(this, source, source);
+    else
+        foreach(ServerPlayer *tmp, targets)
+            room->cardEffect(this, source, tmp);
 }
 
 void PoisonPeach::onEffect(const CardEffectStruct &effect) const{
@@ -127,7 +137,7 @@ public:
         if(weaponOwner == NULL || !damage.to->isAlive() || !weaponOwner->inMyAttackRange(damage.to))
             return false;
 
-        CardStar card = room->askForCard(weaponOwner, "@yitian_jian", "@yitian_jian:" + damage.to->objectName(), data);
+        CardStar card = room->askForCard(weaponOwner, "@yitian_jian", "@yitian_jian:" + damage.to->objectName(), data, CardDiscarded);
         if(card){
             QStringList list_str;
             foreach(int id, card->getSubcards()){
@@ -292,13 +302,13 @@ public:
         events << SlashEffected << CardAsked << PhaseChange;
     }
 
-    const Card *askForDoubleJink(ServerPlayer *player, const QString &reason) const{
+    const Card *askForDoubleJink(ServerPlayer *player, const QString &reason, TriggerEvent event) const{
         Room *room = player->getRoom();
 
         const Card *first_jink = NULL, *second_jink = NULL;
-        first_jink = room->askForCard(player, "Jink", QString("@%1-jink-1").arg(reason));
+        first_jink = room->askForCard(player, "Jink", QString("@%1-jink-1").arg(reason), QVariant(), event);
         if(first_jink)
-            second_jink = room->askForCard(player, "Jink", QString("@%1-jink-2").arg(reason));
+            second_jink = room->askForCard(player, "Jink", QString("@%1-jink-2").arg(reason), QVariant(), event);
 
         Card *jink = NULL;
         if(first_jink && second_jink){
@@ -315,12 +325,12 @@ public:
         Room *room = player->getRoom();
         if(event == SlashEffected){
             SlashEffectStruct effect = data.value<SlashEffectStruct>();
-            room->slashResult(effect, askForDoubleJink(player, objectName()));
+            room->slashResult(effect, askForDoubleJink(player, objectName(), JinkUsed));
             return true;
         }else if(event == CardAsked){
             QString asked = data.toString();
             if(asked == "jink"){
-                const Card *doublejink = askForDoubleJink(player, objectName());
+                const Card *doublejink = askForDoubleJink(player, objectName(), CardResponsed);
                 if(doublejink){
                     Jink *jink = new Jink(Card::NoSuit, 0);
                     //room->setEmotion(player, "jink");
@@ -524,6 +534,18 @@ void Plague::takeEffect(ServerPlayer *target) const{
 //------------------------------------------------------------------------
 
 
+/* EX Card
+ChangeDirection::ChangeDirection(Suit suit, int number)
+    :SingleTargetTrick(suit, number, false)
+{
+    setObjectName("change_direction");
+    target_fixed = true;
+}
+
+void ChangeDirection::onEffect(const CardEffectStruct &effect) const{
+    effect.to->drawCards(2);
+}
+*/
 DishaCardPackage::DishaCardPackage()
     :Package("DishaCard")
 {

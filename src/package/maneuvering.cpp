@@ -105,13 +105,11 @@ public:
     }
 
     virtual const Card *viewAs(CardItem *card_item) const{
-        const Card *slash = card_item->getFilteredCard();
-
-        FireSlash *fslash = new FireSlash(slash->getSuit(), slash->getNumber());
-        fslash->setSkillName(objectName());
-        fslash->addSubcard(slash);
-
-        return fslash;
+        const Card *card = card_item->getCard();
+        Card *acard = new FireSlash(card->getSuit(), card->getNumber());
+        acard->addSubcard(card->getId());
+        acard->setSkillName(objectName());
+        return acard;
     }
 };
 
@@ -276,7 +274,7 @@ void FireAttack::onEffect(const CardEffectStruct &effect) const{
     QString suit_str = card->getSuitString();
     QString pattern = QString(".%1").arg(suit_str.at(0).toUpper());
     QString prompt = QString("@fire-attack:%1::%2").arg(effect.to->getGeneralName()).arg(suit_str);
-    if(room->askForCard(effect.from, pattern, prompt)){
+    if(room->askForCard(effect.from, pattern, prompt, QVariant(), CardDiscarded)){
         DamageStruct damage;
         damage.card = this;
         damage.from = effect.from;

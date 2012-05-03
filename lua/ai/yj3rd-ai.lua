@@ -206,3 +206,146 @@ sgs.ai_skill_invoke.yjyinjian = function(self, data)
 		return false
 	end
 end
+
+sgs.ai_skill_invoke.yjzhuji = function(self, data)
+	local target = data:toPlayer()
+	if self:isFriend(target) then 
+		return true
+	else
+		return not target:isKongcheng()
+	end	
+end
+
+sgs.ai_skill_choice.yjzhuji = function(self, choices)
+	local target = self.room:getTag("yjzhuji"):toPlayer()
+	if self:isFriend(target) then
+		return "to_draw" 
+	else
+		return "to_discard" 
+	end
+end
+
+local yjguzong_skill = {}
+yjguzong_skill.name = "yjguzong"
+table.insert(sgs.ai_skills, yjguzong_skill)
+yjguzong_skill.getTurnUseCard = function(self)
+	if self.player:hasUsed("YjGuzongCard") then return end
+	local card_str = "@YjGuzongCard=."
+	
+	local card = sgs.Card_Parse(card_str)
+	assert(card)
+	return card
+end
+
+sgs.ai_skill_use_func.YjGuzongCard = function(card,use,self)
+	local card, target = nil, nil
+	local cards = sgs.QList2Table(self.player:getHandcards())
+	self:sortByUseValue(cards,true)
+	if self:getOverflow() then card = cards[1] end
+	if card then
+		local cd = sgs.Sanguosha:getCard(card:getEffectiveId())
+		if cd:inherits("BasicCard") then
+			if cd:inherits("Peach") then
+				self:sort(self.friends_noself, "hp")
+				target = sgs.friends_noself[1]
+			else
+				self:sort(self.enemies, "handcard")
+				target = self.enemies[#self.enemies]
+			end
+		elseif cd:inherits("TrickCard") then
+			if cd:inherits("DelayedTrick") then
+				self:sort(self.enemies, "hp")
+				target = self.enemies[1]
+			else
+				self:sort(self.friends_noself, "hp")
+				target = self.friends_noself[#self.friends_noself]
+			end
+		elseif cd:inherits("EquipCard") then
+			local to_select = sgs.SPlayerList()
+			for _, enemy in ipairs(self.enemies) do
+				if (cd:inherits("Weapon") and not enemy:getWeapon()) or 
+				(cd:inherits("Armor") and not enemy:getArmor()) or
+				(cd:inherits("OffensiveHorse") and not enemy:getOffensiveHorse()) or
+				(cd:inherits("DefensiveHorse") and not enemy:getDefensiveHorse()) then
+					to_select:append(enenmy)
+				end
+			end
+			target = to_select[1]
+		end
+	end
+	if card and target then
+		use.card = sgs.Card_Parse("@YjGuzongCard=" .. card:getId())
+		if use.to then use.to:append(target) end
+		return
+	end		
+end
+
+sgs.ai_skill_playerchosen.yjguzong = function(self, targets)
+	local card = self.room:getTag("yjguzong"):toCard()
+	if card:inherits("Peach") or card:inherits("Analeptic") then
+		self:sort(self.friends_noself, "hp")
+		self:sort(self.enemies, "hp")
+		if self.friends.noself[1]:isWounded() then
+			return self.friends_noself[1]
+		else
+			return self.enemies[#self.enemies]
+		end
+	elseif card:inherits("Slash") or card:isNDTrick() then
+		self:sort(self.friends_noself, "chaofeng")
+		return self.friends_noself[1]
+	else
+		self:sort(self.enemies, "hp")
+		return self.enemies[1]
+	end
+end
+
+sgs.ai_skill_choice.yjguzong = function(self, choices)
+	local card = self.room:getTag("yjguzong"):toCard()
+	local can_refuse = false
+	for _, cd in sgs.qlist(self.player:getHandcards()) do
+		if cd:objectName() == card:objectName() and cd:getSuit() == card:getSuit() and cd:getNumber() == card:getNumber() then
+			can_refuse = true
+		end
+	end
+	
+	if can_refuse then
+		local current = self.room:getCurrent()
+		if self:isEnemy(current) then 
+			return "refuse_to_gain" 
+		else
+			return "accept_to_gain"
+		end
+	end
+	return "accept_to_gain"	
+end
+
+sgs.ai_skill_cardask["@yjshiwu"] = function(self, data)
+	local target = data:toSlashEffect().from
+	local has_slash = false
+	for _, cd in sgs.qlist(target:getHandcards()) do
+		if cd:inherits("Slash") then has_slash = true end
+	end
+	local has_enemy, has_friend = false, false
+	for _,p in sgs.qlist(room:getOtherPlayers(target)) do
+		if target:canSlash(p) then 
+			if self:isEnemy(p, target) then 
+				has_enemy = true
+			elseif self:isFriend(p, target) then
+				has_friend = true
+			end
+		end
+	end
+	if self:isFriend(target) then
+		if has_slash and has_enemy then return self:getCardId("TrickCard") or self:getCardId("EquipCard") or "." end
+	else
+		if not has_slash then 
+			return self:getCardId("TrickCard") or self:getCardId("EquipCard") or "."
+		else
+			if has_friend and not has_enemy then
+				return self:getCardId("TrickCard") or self:getCardId("EquipCard") or "."
+			elseif has_enemy then
+				return "."
+			end
+		end
+	end				
+end

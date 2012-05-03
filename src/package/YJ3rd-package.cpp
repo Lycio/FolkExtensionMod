@@ -292,12 +292,6 @@ public:
         room->setTag("MingminTarget", QVariant::fromValue(damage.from));
         const Card *card = room->askForCard(player, ".|.|.|hand|" + color, QString("@yjmingmin:::%1:%2").arg(suit).arg(color), QVariant::fromValue(judge.card));
         if(card){
-            LogMessage log;
-            log.type = "$ResponseCard";
-            log.from = player;
-            log.card_str = card->toString();
-            room->sendLog(log);
-
             if(card->getColorString() == color)
                 player->drawCards(1);
             if(card->getSuitString() == suit && !damage.from->isNude()){
@@ -483,6 +477,232 @@ public:
     }
 };
 
+class YjZhuji: public TriggerSkill{
+public:
+    YjZhuji():TriggerSkill("yjzhuji"){
+        events << CardLost << CardLostDone << PhaseChange;
+    }
+
+    virtual bool triggerable(const ServerPlayer *) const{
+        return true;
+    }
+
+    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+        Room *room = player->getRoom();
+        ServerPlayer *yjkanze = room->findPlayerBySkillName(objectName());
+        if(!yjkanze)
+            return false;
+        if(event == CardLost && player->getPhase() == Player::Play){
+            CardMoveStar move = data.value<CardMoveStar>();
+            if(move->from_place == Player::Hand)
+                player->addMark(objectName());
+        }
+        else if(event == CardLostDone && player->getMark(objectName()) >= 3 && player->getPhase() == Player::Play){
+            if(player->isDead() || player->hasFlag(objectName()) ||
+                    !yjkanze->askForSkillInvoke(objectName(), QVariant::fromValue(player))){
+                room->setPlayerFlag(player, objectName());
+                return false;
+            }
+            room->setTag(objectName(), QVariant::fromValue(player));
+            room->setPlayerFlag(player, objectName());
+            QString choice = "to_draw";
+
+            if(!player->isKongcheng())
+                choice = room->askForChoice(yjkanze, objectName(), "to_discard+to_draw");
+
+            if(choice == "to_draw")
+                player->drawCards(1);
+            else{
+                int to_discard = room->askForCardChosen(yjkanze, player, "h", objectName());
+                room->throwCard(to_discard, player);
+            }
+            room->removeTag(objectName());
+        }
+        else if(event == PhaseChange && player->getPhase() == Player::NotActive){
+            room->setPlayerMark(player, objectName(), 0);
+            if(player->hasFlag(objectName()))
+                room->setPlayerFlag(player, "-" + objectName());
+        }
+        return false;
+    }
+};
+
+YjGuzongCard::YjGuzongCard(){
+
+}
+
+bool YjGuzongCard::targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *player) const{
+    return targets.isEmpty() && to_select != player;
+}
+
+void YjGuzongCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const{
+    QString reason = "yjguzong";
+    const Card *to_show = Sanguosha->getCard(this->subcards.first());
+    room->showCard(source, this->subcards.first());
+    room->setTag(reason, QVariant::fromValue(to_show));
+
+    ServerPlayer *target = targets.first();
+    QStringList to_choice ;
+    to_choice << "accept_to_gain" ;
+
+    const Card *to_discard = NULL;
+    foreach(const Card *cd, target->getHandcards())
+        if(cd->objectName() == to_show->objectName() &&
+                cd->getSuit() == to_show->getSuit() &&
+                cd->getNumber() == to_show->getNumber()){
+            to_choice << "refuse_to_gain" ;
+            to_discard = cd;
+        }
+
+    QString choice = to_choice.first();
+    if(to_choice.length() > 1)
+        choice = room->askForChoice(target, reason, to_choice.join("+"));
+
+    LogMessage log;
+    log.type = "#YjGuzongSelect" ;
+    log.from = target;
+    log.card_str.clear();
+    log.arg = choice;
+    room->sendLog(log);
+
+    if(choice == "refuse_to_gain"){
+        room->removeTag(reason);
+        room->throwCard(to_discard, target);
+        room->loseHp(source);
+        source->drawCards(1);
+    }
+    else{
+        target->obtainCard(to_show);
+        target->tag[reason] = true;
+        room->setTag(reason, QVariant::fromValue(to_show->getEffectiveId()));
+    }
+}
+
+class YjGuzongViewAsSkill: public OneCardViewAsSkill{
+public:
+    YjGuzongViewAsSkill():OneCardViewAsSkill("yjguzong"){
+    }
+
+    virtual bool isEnabledAtPlay(const Player *player) const{
+        return ! player->hasUsed("YjGuzongCard");
+    }
+
+    virtual bool viewFilter(const CardItem *to_select) const{
+        return !to_select->isEquipped();
+    }
+
+    virtual const Card *viewAs(CardItem *card_item) const{
+        YjGuzongCard *card = new YjGuzongCard;
+        card->addSubcard(card_item->getFilteredCard());
+        card->setSkillName(objectName());
+
+        return card;
+    }
+};
+
+class YjGuzong: public TriggerSkill{
+public:
+    YjGuzong():TriggerSkill("yjguzong"){
+        events << PhaseChange ;
+        view_as_skill = new YjGuzongViewAsSkill;
+    }
+
+    virtual bool triggerable(const ServerPlayer *) const{
+        return true;
+    }
+
+    virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &) const{
+        Room *room = player->getRoom();
+        ServerPlayer *yjkanze = room->findPlayerBySkillName(objectName());
+        if(!yjkanze)
+            return false;
+        if(player->getPhase() == Player::Discard){
+            if(!player->tag.value(objectName(), false).toBool())
+                return false;
+            player->tag.remove(objectName());
+            int card_id = room->getTag(objectName()).toInt();
+            room->removeTag(objectName());
+            if(room->getCardPlace(card_id) != Player::DiscardedPile){
+                ServerPlayer *to_damage = room->getCardOwner(card_id);
+                if(to_damage == NULL)
+                    return false;
+
+                DamageStruct damage;
+                damage.from = yjkanze;
+                damage.to = to_damage;
+                damage.damage = 1;
+
+                LogMessage log;
+                log.type = "#YjGuzongTrigger";
+                log.from = yjkanze;
+                log.to << to_damage;
+                log.arg = QString::number(damage.damage);
+                log.arg2 = objectName();
+                room->sendLog(log);
+
+                room->damage(damage);
+            }
+        }
+        return false;
+    }
+};
+
+class YjShiwu: public TriggerSkill{
+public:
+    YjShiwu():TriggerSkill("yjshiwu"){
+        events << SlashMissed << PhaseChange;
+        frequency = Frequent;
+    }
+
+    virtual bool triggerable(const ServerPlayer *player) const{
+        return !player->hasSkill(objectName());
+    }
+
+    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+        Room *room = player->getRoom();
+        ServerPlayer *yjzhoucang = room->findPlayerBySkillName(objectName());
+        if(!yjzhoucang)
+            return false;
+        if(event == SlashMissed && !yjzhoucang->hasFlag("yjshiwu_used")){
+            SlashEffectStruct effect = data.value<SlashEffectStruct>();
+            if(!yjzhoucang->askForSkillInvoke(objectName(), data))
+                return false;
+            const Card *card = room->askForCard(yjzhoucang, "TrickCard,EquipCard", "@yjshiwu:::" + objectName(), data, NonTrigger);
+            if(card){
+                room->throwCard(card, yjzhoucang);
+                room->setPlayerFlag(effect.to, objectName());
+                QList<ServerPlayer *> can_slash;
+                foreach(ServerPlayer *p, room->getAllPlayers())
+                    if(!p->hasFlag(objectName()) && player->canSlash(p))
+                        can_slash << p;
+
+                if(can_slash.isEmpty() || !room->askForUseCard(player, "slash", "@yjshiwu-slash:" + yjzhoucang->objectName())){
+                    int n = player->getCards("he").length();
+                    if(n < 2){
+                        room->loseHp(player);
+                    }
+                    else if(n == 2)
+                        player->throwAllCards();
+
+                    else if(n > 2){
+                        for(int i=0; i<2; i++){
+                            int id = room->askForCardChosen(yjzhoucang, player, "he", objectName());
+                            room->throwCard(id, player);
+                        }
+                    }
+                }
+            }
+        }
+        else if(event == PhaseChange){
+            foreach(ServerPlayer *p, room->getAllPlayers())
+                if(p->hasFlag(objectName()))
+                    room->setPlayerFlag(p, "-" + objectName());
+            room->setPlayerFlag(yjzhoucang, "-yjshiwu_used");
+        }
+        return false;
+    }
+};
+
 YJ3rdPackage::YJ3rdPackage()
     :Package("YJ3rd")
 {
@@ -508,8 +728,15 @@ YJ3rdPackage::YJ3rdPackage()
     yjmaliang->addSkill(new YjYinjian);
     addMetaObject<YjYinjianCard>();
 
-    skills << new YjYoujin << new YjYoujinPlay;
+    General *yjzhoucang = new General(this, "yjzhoucang", "shu");
+    yjzhoucang->addSkill(new YjShiwu);
 
+    General *yjkanze = new General(this, "yjkanze", "wu", 3);
+    yjkanze->addSkill(new YjZhuji);
+    yjkanze->addSkill(new YjGuzong);
+    addMetaObject<YjGuzongCard>();
+
+    skills << new YjYoujin << new YjYoujinPlay;
     related_skills.insertMulti("yjyoujin", "#yjyoujin");
 }
 

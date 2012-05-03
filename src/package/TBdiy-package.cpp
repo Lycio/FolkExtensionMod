@@ -38,7 +38,7 @@ public:
         if(!skillowner->askForSkillInvoke(objectName(), data))
             return false;
         SlashEffectStruct effect = data.value<SlashEffectStruct>();
-        if(!room->askForCard(skillowner, "Horse|.|.|.|.", "@diyxuelu-horse:"+effect.to->getGeneralName(), data)){
+        if(!room->askForCard(skillowner, "Horse|.|.|.|.", "@diyxuelu-horse:"+effect.to->getGeneralName(), data, CardDiscarded)){
             room->loseHp(skillowner, 1);
             room->playSkillEffect("diyxuelu", 1);
             room->moveCardTo(effect.slash, skillowner, Player::Hand, true);
@@ -160,7 +160,7 @@ void DiyDouDanCard::use(Room *room, ServerPlayer *source, const QList<ServerPlay
     }else{
         source->invoke("clearAG");
         room->playSkillEffect("diydoudan", qrand() %2 + 2);
-        room->doGuanxing(source, cards, true);
+        room->askForGuanxing(source, cards, true);
     }
  }
 

@@ -28,6 +28,9 @@ SOURCES += src/main.cpp \
 	src/core/settings.cpp \
 	src/core/skill.cpp \
         src/core/statistics.cpp \
+        src/core/protocol.cpp \
+        src/core/jsonutils.cpp \
+        src/core/util.cpp \
 	src/dialog/cardeditor.cpp \
 	src/dialog/cardoverview.cpp \
 	src/dialog/choosegeneraldialog.cpp \
@@ -139,8 +142,14 @@ SOURCES += src/main.cpp \
 	src/lua/lcode.c \
 	src/lua/lbaselib.c \
 	src/lua/lauxlib.c \
-	src/lua/lapi.c \
-	swig/sanguosha_wrap.cxx
+        src/lua/lapi.c \
+        src/jsoncpp/src/json_writer.cpp \
+        src/jsoncpp/src/json_valueiterator.inl \
+        src/jsoncpp/src/json_value.cpp \
+        src/jsoncpp/src/json_reader.cpp \
+        src/jsoncpp/src/json_internalmap.inl \
+        src/jsoncpp/src/json_internalarray.inl \
+        swig/sanguosha_wrap.cxx
 
 HEADERS += src/client/aux-skills.h \
 	src/client/client.h \
@@ -156,6 +165,9 @@ HEADERS += src/client/aux-skills.h \
 	src/core/settings.h \
 	src/core/skill.h \
         src/core/statistics.h \
+        src/core/protocol.h \
+        src/core/jsonutils.h \
+        src/core/util.h \
 	src/dialog/cardeditor.h \
 	src/dialog/cardoverview.h \
 	src/dialog/choosegeneraldialog.h \
@@ -262,7 +274,18 @@ HEADERS += src/client/aux-skills.h \
 	src/lua/ldebug.h \
 	src/lua/lcode.h \
 	src/lua/lauxlib.h \
-	src/lua/lapi.h
+        src/lua/lapi.h \
+        src/jsoncpp/src/json_tool.h \
+        src/jsoncpp/src/json_batchallocator.h \
+        src/jsoncpp/include/json/writer.h \
+        src/jsoncpp/include/json/value.h \
+        src/jsoncpp/include/json/reader.h \
+        src/jsoncpp/include/json/json.h \
+        src/jsoncpp/include/json/forwards.h \
+        src/jsoncpp/include/json/features.h \
+        src/jsoncpp/include/json/config.h \
+        src/jsoncpp/include/json/autolink.h \
+        src/jsoncpp/include/json/assertions.h
 	
 FORMS += src/dialog/cardoverview.ui \
 	src/dialog/configdialog.ui \
@@ -280,6 +303,7 @@ INCLUDEPATH += src/server
 INCLUDEPATH += src/ui
 INCLUDEPATH += src/util
 INCLUDEPATH += src/lua
+INCLUDEPATH += src/jsoncpp/include
 
 win32{
 	RC_FILE += resource/icon.rc

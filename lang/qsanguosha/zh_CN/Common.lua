@@ -5,6 +5,7 @@ return {
 	["club"] = "梅花",
 	["heart"] = "红桃",
 	["diamond"] = "方块",
+	["no_suit"] = "无色",
 	["basic"] = "基本牌",
 	["trick"] = "锦囊牌",
 	["equip"] = "装备牌",
@@ -114,6 +115,7 @@ return {
 	["#LoseMark"] = "%from 失去了 %arg2 枚 %arg 标记",
 	["@askforslash"] = "你可以对你攻击范围内的一名角色使用一张【杀】",
 	["@askforretrial"] = "请使用【%dest】技能来修改 %src 的 %arg 判定",
+	["$CheatCard"] = "%from 使用了作弊，获得了 %card",
 
 	["3v3:cw"] = "顺时针",
 	["3v3:ccw"] = "逆时针",

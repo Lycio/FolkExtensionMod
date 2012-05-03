@@ -8,11 +8,14 @@
 #include "banpair.h"
 #include "lua-wrapper.h"
 
-const int ServerPlayer::S_NUM_SEMAPHORES = 4;
+using namespace QSanProtocol;
+
+const int ServerPlayer::S_NUM_SEMAPHORES = 6;
 
 ServerPlayer::ServerPlayer(Room *room)
-    : Player(room), socket(NULL), room(room),
-    ai(NULL), trust_ai(new TrustAI(this)), recorder(NULL), next(NULL)
+    : Player(room), m_isClientResponseReady(false), m_isWaitingReply(false),
+      socket(NULL), room(room),
+      ai(NULL), trust_ai(new TrustAI(this)), recorder(NULL), next(NULL), _m_clientResponse(Json::nullValue)
 {
     semas = new QSemaphore*[S_NUM_SEMAPHORES];
     for(int i=0; i< S_NUM_SEMAPHORES; i++){
@@ -126,6 +129,8 @@ void ServerPlayer::bury(){
     throwAllCards();
     throwAllMarks();
     clearPrivatePiles();
+
+    room->clearPlayerCardLock(this);
 }
 
 void ServerPlayer::throwAllCards(){
@@ -299,6 +304,10 @@ void ServerPlayer::castMessage(const QString &message){
     }
 }
 
+void ServerPlayer::invoke(const QSanPacket* packet)
+{
+    unicast(QString(packet->toString().c_str()));
+}
 void ServerPlayer::invoke(const char *method, const QString &arg){
     unicast(QString("%1 %2").arg(method).arg(arg));
 }
@@ -322,38 +331,38 @@ void ServerPlayer::sendProperty(const char *property_name, const Player *player)
 void ServerPlayer::removeCard(const Card *card, Place place){
     switch(place){
     case Hand: {
-            handcards.removeOne(card);
-            break;
-        }
+        handcards.removeOne(card);
+        break;
+    }
 
     case Equip: {
-            const EquipCard *equip = qobject_cast<const EquipCard *>(card);
-            removeEquip(equip);
+        const EquipCard *equip = qobject_cast<const EquipCard *>(card);
+        removeEquip(equip);
 
-            LogMessage log;
-            log.type = "$Uninstall";
-            log.card_str = card->toString();
-            log.from = this;
-            room->sendLog(log);
+        LogMessage log;
+        log.type = "$Uninstall";
+        log.card_str = card->toString();
+        log.from = this;
+        room->sendLog(log);
 
-            equip->onUninstall(this);
-            break;
-        }
+        equip->onUninstall(this);
+        break;
+    }
 
     case Judging:{
-            removeDelayedTrick(card);
-            break;
-        }
+        removeDelayedTrick(card);
+        break;
+    }
 
     case Special:{
-            int card_id = card->getEffectiveId();
-            QString pile_name = getPileName(card_id);
-            //@todo: sanity check required
-            if (!pile_name.isEmpty())
-                piles[pile_name].removeOne(card_id);
+        int card_id = card->getEffectiveId();
+        QString pile_name = getPileName(card_id);
+        //@todo: sanity check required
+        if (!pile_name.isEmpty())
+            piles[pile_name].removeOne(card_id);
 
-            break;
-        }
+        break;
+    }
 
     default:
         // FIXME
@@ -364,21 +373,21 @@ void ServerPlayer::removeCard(const Card *card, Place place){
 void ServerPlayer::addCard(const Card *card, Place place){
     switch(place){
     case Hand: {
-            handcards << card;
-            break;
-        }
+        handcards << card;
+        break;
+    }
 
     case Equip: {
-            const EquipCard *equip = qobject_cast<const EquipCard *>(card);
-            setEquip(equip);
-            equip->onInstall(this);
-            break;
-        }
+        const EquipCard *equip = qobject_cast<const EquipCard *>(card);
+        setEquip(equip);
+        equip->onInstall(this);
+        break;
+    }
 
     case Judging:{
-            addDelayedTrick(card);
-            break;
-        }
+        addDelayedTrick(card);
+        break;
+    }
 
     default:
         // FIXME
@@ -577,14 +586,21 @@ void ServerPlayer::play(QList<Player::Phase> set_phases){
     }
     else
         set_phases << RoundStart << Start << Judge << Draw << Play
-                << Discard << Finish << NotActive;
+                   << Discard << Finish << NotActive;
 
     phases = set_phases;
     while(!phases.isEmpty()){
+        PhaseChangeStruct phase_change;
+
         Phase phase = phases.takeFirst();
+        phase_change.from = this->getPhase();
+        phase_change.to = phase;
+
         setPhase(phase);
         room->broadcastProperty(this, "phase");
-        room->getThread()->trigger(PhaseChange, this);
+
+        QVariant data = QVariant::fromValue(phase_change);
+        room->getThread()->trigger(PhaseChange, this, data);
 
         if(isDead() && phase != NotActive){
             phases.clear();
@@ -603,7 +619,7 @@ void ServerPlayer::skip(Player::Phase phase){
     static QStringList phase_strings;
     if(phase_strings.isEmpty()){
         phase_strings << "round_start" << "start" << "judge" << "draw"
-                << "play" << "discard" << "finish" << "not_active";
+                      << "play" << "discard" << "finish" << "not_active";
     }
 
     int index = static_cast<int>(phase);
@@ -657,6 +673,10 @@ void ServerPlayer::loseAllMarks(const QString &mark_name){
     if(n > 0){
         loseMark(mark_name, n);
     }
+}
+
+bool ServerPlayer::isOnline() const {
+    return getState() == "online";
 }
 
 void ServerPlayer::setAI(AI *ai) {
@@ -749,9 +769,9 @@ void ServerPlayer::introduceTo(ServerPlayer *player){
     QString avatar = property("avatar").toString();
 
     QString introduce_str = QString("%1:%2:%3")
-                            .arg(objectName())
-                            .arg(QString(screen_name.toUtf8().toBase64()))
-                            .arg(avatar);
+            .arg(objectName())
+            .arg(QString(screen_name.toUtf8().toBase64()))
+            .arg(avatar);
 
     if(player)
         player->invoke("addPlayer", introduce_str);
@@ -801,7 +821,6 @@ void ServerPlayer::marshal(ServerPlayer *player) const{
         }
     }
 
-
     foreach(const Card *equip, getEquips()){
         player->invoke("moveCard",
                        QString("%1:_@=->%2@equip")
@@ -821,9 +840,9 @@ void ServerPlayer::marshal(ServerPlayer *player) const{
             int value = getMark(mark_name);
             if(value != 0){
                 QString mark_str = QString("%1.%2=%3")
-                                   .arg(objectName())
-                                   .arg(mark_name)
-                                   .arg(value);
+                        .arg(objectName())
+                        .arg(mark_name)
+                        .arg(value);
 
                 player->invoke("setMark", mark_str);
             }
@@ -870,9 +889,10 @@ void ServerPlayer::gainAnExtraTurn(ServerPlayer *clearflag){
     room->removeTag("Zhichi");
     if(clearflag)
         clearflag->clearFlags();
+    room->getThread()->trigger(TurnStart, this);
     if(clearflag)
         clearflag->clearHistory();
-    room->getThread()->trigger(TurnStart, this);
+
     room->setCurrent(current);
 }
 

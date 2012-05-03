@@ -10,11 +10,10 @@
 // setParent(NULL). Find another way to do it if we really need a parent.
 RoomThread1v1::RoomThread1v1(Room *room)
     :room(room)
-{
-
-}
+{}
 
 void RoomThread1v1::run(){
+
     // initialize the random seed for this thread
     qsrand(QTime(0,0,0).secsTo(QTime::currentTime()));
 
@@ -33,7 +32,7 @@ void RoomThread1v1::run(){
 
     room->broadcastInvoke("fillGenerals", known_list.join("+") + unknown_str);
 
-    ServerPlayer *first = room->players.at(0), *next = room->players.at(1);
+    ServerPlayer *first = room->m_players.at(0), *next = room->m_players.at(1);
     askForTakeGeneral(first);
 
     while(general_names.length() > 1){

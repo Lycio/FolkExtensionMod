@@ -52,7 +52,7 @@ end
 --jieliang
 sgs.ai_skill_invoke.jieliang = function(self, data)
 	local effect = data:toSlashEffect()
-	return self:isEnemy(damage.to) and not damage.to:isWeak()
+	return self:isEnemy(effect.to) and not effect.to:isWeak()
 end
 
 --leichui

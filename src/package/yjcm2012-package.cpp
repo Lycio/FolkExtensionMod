@@ -447,8 +447,8 @@ public:
         Room *room = liubiao->getRoom();
         if(room->askForSkillInvoke(liubiao, objectName())){
             room->playSkillEffect(objectName());
-            liubiao->skip(Player::Play);
             liubiao->clearHistory();
+            liubiao->skip(Player::Play);
             return n + liubiao->getLostHp();
         }else
             return n;
@@ -520,7 +520,7 @@ public:
 class Jiefan : public TriggerSkill{
 public:
     Jiefan():TriggerSkill("jiefan"){
-        events << Dying << DamageProceed << SlashMissed << CardFinished;
+        events << Dying << DamageProceed << CardFinished;
     }
 
     virtual bool triggerable(const ServerPlayer *target) const{
@@ -534,27 +534,27 @@ public:
 
         if(event == Dying){
             DyingStruct dying = data.value<DyingStruct>();
-            if(!handang || !dying.savers.contains(handang) || dying.who->getHp() > 0 ||
-                    handang->isNude() || !room->askForSkillInvoke(handang, objectName(), data))
+            if(!handang || !dying.savers.contains(handang) || dying.who->getHp() > 0 || handang->isNude() ||
+               room->getCurrent()->isDead() || !room->askForSkillInvoke(handang, objectName(), data))
                 return false;
 
-            const Card *slash = room->askForCard(handang, "slash", "jiefan-slash:" + room->getCurrent()->objectName(), data);
-
+            const Card *slash = room->askForCard(handang, "slash", "jiefan-slash:" + dying.who->objectName(), data, NonTrigger);
+           
             if(slash){
-                slash->setFlags("jiefan-slash");
+                room->setCardFlag(slash, "jiefan-slash");
                 room->setTag("JiefanTarget", data);
                 CardUseStruct use;
                 use.card = slash;
                 use.from = handang;
                 use.to << room->getCurrent();
                 room->useCard(use);
-            }
+            }            
         }
         else if(event == DamageProceed){
             DamageStruct damage = data.value<DamageStruct>();
             if(player->hasSkill(objectName()) && damage.card && damage.card->inherits("Slash")
                     && !room->getTag("JiefanTarget").isNull()){
-
+					
                 DyingStruct dying = room->getTag("JiefanTarget").value<DyingStruct>();
                 ServerPlayer *target = dying.who;
                 room->removeTag("JiefanTarget");
@@ -568,12 +568,10 @@ public:
 
                 return true;
             }
+            return false;
         }
-        else if(event == SlashMissed)
+        else if(!room->getTag("JiefanTarget").isNull())
             room->removeTag("JiefanTarget");
-        else
-            if(!room->getTag("JiefanTarget").isNull())
-                room->removeTag("JiefanTarget");
 
         return false;
     }
@@ -728,11 +726,11 @@ public:
         return false;
     }
 
-    virtual bool isEnabledAtResponse(const Player *player, const QString &pattern) const{
+    virtual bool isEnabledAtResponse(const Player *, const QString &pattern) const{
         return pattern == "@@chunlao";
     }
 
-    virtual bool viewFilter(const QList<CardItem *> &selected, const CardItem *to_select) const{
+    virtual bool viewFilter(const QList<CardItem *> &, const CardItem *to_select) const{
         return to_select->getFilteredCard()->inherits("Slash");
     }
 
@@ -754,7 +752,7 @@ public:
         view_as_skill = new ChunlaoViewAsSkill;
     }
 
-    virtual bool triggerable(const ServerPlayer *target) const{
+    virtual bool triggerable(const ServerPlayer *) const{
         return true;
     }
 

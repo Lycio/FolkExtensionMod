@@ -606,7 +606,7 @@ void TiaoxinCard::onEffect(const CardEffectStruct &effect) const{
     else
         room->playSkillEffect("tiaoxin", qrand() % 2 + 1);
 
-    const Card *slash = room->askForCard(effect.to, "slash", "@tiaoxin-slash:" + effect.from->objectName());
+    const Card *slash = room->askForCard(effect.to, "slash", "@tiaoxin-slash:" + effect.from->objectName(), QVariant(), NonTrigger);
 
     if(slash){
         CardUseStruct use;
@@ -826,7 +826,7 @@ public:
             log.arg = objectName();
             room->sendLog(log);
 
-            if(!room->askForCard(effect.from, "BasicCard", "@xiangle-discard", data))
+            if(!room->askForCard(effect.from, ".Basic", "@xiangle-discard", data, CardDiscarded))
                 room->setPlayerFlag(liushan, "xiangle_invoke");
         }
         else if(event == CardFinished)
@@ -999,8 +999,8 @@ public:
 
         static QSet<QString> banned;
         if(banned.isEmpty()){
-            banned << "zuoci" << "zuocif" << "guzhielai" << "dengshizai"
-                   << "caochong" << "jiangboyue" << "zhugejin" << "huaxiong";
+            banned << "zuoci" << "zuocif" << "guzhielai" << "dengshizai" << "caochong"
+                   << "jiangboyue" << "shenzhugeliang" << "shenlvbu" << "huaxiong" << "zhugejin";
         }
 
         return (all - banned - huashen_set - room_set).toList();

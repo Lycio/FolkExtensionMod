@@ -128,7 +128,7 @@ public:
                 condition_list << player->objectName() << suit << reason;
                 room->setTag("Shuijingh", QVariant(condition_list.join("+")));
 
-                const Card *card = room->askForCard(simahuih, QString(".|%1|.|hand|.").arg(suit), "@shuijingh");
+                const Card *card = room->askForCard(simahuih, QString(".|%1|.|hand|.").arg(suit), "@shuijingh:::" + suit);
                 room->playSkillEffect(objectName());
                 if(card){
                     if(event == HpRecover){
@@ -199,11 +199,6 @@ void FenbeihCard::onEffect(const CardEffectStruct &effect) const{
         room->moveCardTo(card, effect.from, Player::Hand, false);
     }
     room->setEmotion(effect.to, "bad");
-
-    LogMessage log;
-    log.type = "#fenbeih";
-    log.from = effect.from;
-    room->sendLog(log);
 }
 
 class FenbeihViewAsSkill: public ZeroCardViewAsSkill{
@@ -538,7 +533,7 @@ void GuijihCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer 
     target1->obtainCard(this);
 
     const Card *slash1 = NULL;
-    slash1 = room->askForCard(target1, "slash", QString("@guijih-slash:%1:%2:%3").arg(source->objectName()).arg(target2->objectName()).arg("guijih"));
+    slash1 = room->askForCard(target1, "slash", QString("@guijih-slash:%1:%2:%3").arg(source->objectName()).arg(target2->objectName()).arg("guijih"), QVariant(), NonTrigger);
     if(slash1 == NULL){
         DamageStruct damage;
         damage.from = source;
@@ -553,7 +548,7 @@ void GuijihCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer 
         room->useCard(use);
 
         const Card *slash2 = NULL;
-        slash2 = room->askForCard(target2, "slash", QString("@guijih-slash:%1:%2:%3").arg(source->objectName()).arg(target1->objectName()).arg("guijih"));
+        slash2 = room->askForCard(target2, "slash", QString("@guijih-slash:%1:%2:%3").arg(source->objectName()).arg(target1->objectName()).arg("guijih"), QVariant(), NonTrigger);
         if(slash2 != NULL){
             CardUseStruct use;
             use.from = target2;
@@ -598,7 +593,7 @@ public:
         return !target->hasSkill(objectName());
     }
 
-    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+    virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
         Room *room = player->getRoom();
         SlashEffectStruct effect = data.value<SlashEffectStruct>();
         ServerPlayer *wangyunh = room->findPlayerBySkillName(objectName());
@@ -612,7 +607,12 @@ public:
         log.arg = objectName();
         room->sendLog(log);
 
-        return !room->askForCard(effect.from, ".|.|.|hand|.", "@ziaoh-discard", data);
+        return !room->askForCard(effect.from, ".|.|.|hand|.", QString("@ziaoh-discard:%1::%2:%3")
+                                 .arg(effect.to->objectName())
+                                 .arg(effect.slash->objectName())
+                                 .arg(objectName()),
+                                 data,
+                                 CardDiscarded);
     }
 };
 
@@ -2150,10 +2150,235 @@ public:
     }
 };
 
+DuoquanhCard::DuoquanhCard(){
+    target_fixed = true;
+}
+
+void DuoquanhCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &) const{
+    QList<int> powers = source->getPile("power");
+    if(powers.isEmpty())
+        return;
+
+    room->fillAG(powers, source);
+
+    int ai_delay = Config.AIDelay;
+    Config.AIDelay = 0;
+
+    int n = 0;
+    while(!powers.isEmpty()){
+        int card_id = room->askForAG(source, powers, true, "duoquanh");
+        if(card_id == -1)
+            break;
+
+        powers.removeOne(card_id);
+        ++ n;
+
+        room->moveCardTo(Sanguosha->getCard(card_id), source, Player::Hand, false);
+    }
+
+    Config.AIDelay = ai_delay;
+
+    source->invoke("clearAG");
+
+    if(n == 0)
+        return;
+
+    const Card *exchange_card = room->askForExchange(source, "duoquanh", n);
+
+    foreach(int card_id, exchange_card->getSubcards())
+        source->addToPile("power", card_id, false);
+
+    LogMessage log;
+    log.type = "#DuoquanhExchange";
+    log.from = source;
+    log.arg = QString::number(n);
+    log.arg2 = "duoquanh";
+    room->sendLog(log);
+
+    delete exchange_card;
+}
+
+class DuoquanhViewAsSkill: public ZeroCardViewAsSkill{
+public:
+    DuoquanhViewAsSkill():ZeroCardViewAsSkill("duoquan"){
+
+    }
+
+    virtual bool isEnabledAtPlay(const Player *player) const{
+        return !player->getPile("power").isEmpty() && !player->isKongcheng();
+    }
+
+    virtual const Card *viewAs() const{
+        return new DuoquanhCard;
+    }
+
+};
+
+class Duoquanh:public TriggerSkill{
+public:
+    Duoquanh():TriggerSkill("duoquanh"){
+        events << Damage << Damaged ;
+        view_as_skill = new DuoquanhViewAsSkill;
+    }
+
+    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+        Room *room = player->getRoom();
+        if(!player->askForSkillInvoke(objectName()))
+            return false;
+        DamageStruct damage = data.value<DamageStruct>();
+        int i;
+        for(i=0; i<damage.damage; i++){
+            int id = room->drawCard();
+            player->addToPile("power", id, true);
+        }
+        return false;
+    }
+};
+
+class Cefanh: public PhaseChangeSkill{
+public:
+    Cefanh():PhaseChangeSkill("cefanh"){
+        frequency = Wake;
+    }
+
+    virtual bool triggerable(const ServerPlayer *target) const{
+        return PhaseChangeSkill::triggerable(target)
+                && target->getPhase() == Player::Start
+                && target->getMark("cefanh") == 0
+                && target->getPile("power").length() >= 4;
+    }
+
+    virtual bool onPhaseChange(ServerPlayer *player) const{
+        Room *room = player->getRoom();
+
+        room->setPlayerMark(player, "cefanh", 1);
+        room->loseMaxHp(player);
+
+        LogMessage log;
+        log.type = "#CefanhWake";
+        log.from = player;
+        log.arg = QString::number(player->getPile("power").length());
+        log.arg2 = objectName();
+        room->sendLog(log);
+
+        //room->playSkillEffect("cefanh");
+        //room->broadcastInvoke("animate", "lightbox:$cefanh:4000");
+        //room->getThread()->delay(4000);
+
+        room->acquireSkill(player, "gongmouh");
+
+        return false;
+    }
+};
+
+GongmouhCard::GongmouhCard(){
+    target_fixed = true;
+}
+
+void GongmouhCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const{
+    QString reason = "gongmouh";
+    QList<int> powers = source->getPile("power");
+    room->fillAG(powers, source);
+    int id = room->askForAG(source, powers, true, reason);
+    source->invoke("clearAG");
+    if(id == -1)
+        return;
+
+    const Card *power = Sanguosha->getCard(id);
+    ServerPlayer *target = room->askForPlayerChosen(source, room->getAllPlayers(), reason);
+    QStringList places ;
+    places << "hand_area" ;
+
+    if(power->inherits("EquipCard")){
+        const EquipCard *equip = qobject_cast<const EquipCard *>(power);
+        int equip_index = static_cast<int>(equip->location());
+        if(target->getEquip(equip_index) == NULL)
+            places << "equip_area";
+    }
+    else if(power->inherits("DelayedTrick")){
+        const DelayedTrick *delayed_trick = qobject_cast<const DelayedTrick *>(power);
+        if(!source->isProhibited(target, delayed_trick) && !target->containsTrick(delayed_trick->objectName()))
+            places << "judging_area";
+    }
+    else if(!target->getPileNames().isEmpty()){
+        places << "special_area";
+    }
+
+    QMap<QString, Player::Place> place;
+    place["hand_area"] = Player::Hand;
+    place["equip_area"] = Player::Equip;
+    place["judging_area"] = Player::Judging;
+    place["special_area"] = Player::Special;
+    QString choice = places.first();
+
+    if(places.length() > 1)
+            choice = room->askForChoice(source, reason, places.join("+"));
+
+    QString name = "";
+    if(choice != "special_area")
+        room->moveCardTo(power, target, place[choice], true);
+    else{
+        QStringList names = target->getPileNames();
+        if(names.length() == 1)
+            name = names.first();
+        else
+            name = room->askForChoice(source, reason, names.join("+"));
+
+        target->addToPile(name, power, true);
+    }
+
+    LogMessage log;
+    log.type = "#Gongmouh";
+    log.from = source;
+    log.to << target;
+    log.arg = "power";
+    log.arg2 = choice == "special_area" ? name : choice;
+    room->sendLog(log);
+
+    if(target->objectName() != source->objectName())
+        source->drawCards(1);
+}
+
+class GongmouhViewAsSkill: public ZeroCardViewAsSkill{
+public:
+    GongmouhViewAsSkill():ZeroCardViewAsSkill("gongmouh"){
+
+    }
+
+    virtual bool isEnabledAtPlay(const Player *player) const{
+        return false;
+    }
+
+    virtual bool isEnabledAtResponse(const Player *, const QString &pattern) const{
+        return pattern == "@@gongmouh";
+    }
+
+    virtual const Card *viewAs() const{
+        return new GongmouhCard;
+    }
+
+};
+
+class Gongmouh:public TriggerSkill{
+public:
+    Gongmouh():TriggerSkill("gongmouh"){
+        events << PhaseChange ;
+        view_as_skill = new GongmouhViewAsSkill;
+    }
+
+    virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &) const{
+        Room *room = player->getRoom();
+        if(player->getPhase() == Player::Finish &&
+                !player->getPile("power").isEmpty()){
+            room->askForUseCard(player, "@@gongmouh", "@gongmouh");
+        }
+        return false;
+    }
+};
+
 QHSPackage::QHSPackage()
     :Package("QHS")
 {
-
     General *simahuih = new General(this, "simahuih", "qun", 3);
     simahuih->addSkill(new Yinshih);
     simahuih->addSkill(new YinshihBuff);
@@ -2260,12 +2485,20 @@ QHSPackage::QHSPackage()
     General *maomaoh = new General(this, "maomaoh", "yan", 4);
     maomaoh->addSkill(new Duboh);
 
+    General *zhonghuih = new General(this, "zhonghuih", "wei", 4);
+    zhonghuih->addSkill(new Duoquanh);
+    zhonghuih->addSkill(new Cefanh);
+    zhonghuih->addRelateSkill("gongmouh");
+
     addMetaObject<DubohCard>();
     addMetaObject<FenbeihCard>();
     addMetaObject<FangshuhCard>();
     addMetaObject<GuijihCard>();
 
-    skills << new Fangshuhbuff;
+    addMetaObject<DuoquanhCard>();
+    addMetaObject<GongmouhCard>();
+
+    skills << new Fangshuhbuff << new Gongmouh;
 }
 
 ADD_PACKAGE(QHS)

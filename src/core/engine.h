@@ -6,6 +6,8 @@
 #include "skill.h"
 #include "package.h"
 #include "exppattern.h"
+#include "protocol.h"
+#include "util.h"
 
 #include <QHash>
 #include <QStringList>
@@ -27,7 +29,6 @@ public:
     void addTranslationEntry(const char *key, const char *value);
     QString translate(const QString &to_translate) const;
 
-    lua_State *createLuaState(bool load_ai, QString &error_msg);
     lua_State *getLuaState() const;
 
     void addPackage(Package *package);
@@ -112,14 +113,5 @@ private:
 };
 
 extern Engine *Sanguosha;
-
-template<typename T>
-void qShuffle(QList<T> &list){
-    int i, n = list.length();
-    for(i=0; i<n; i++){
-        int r = qrand() % (n - i) + i;
-        list.swap(i, r);
-    }
-}
 
 #endif // ENGINE_H

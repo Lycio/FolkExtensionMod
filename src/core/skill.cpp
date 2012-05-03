@@ -76,7 +76,6 @@ void Skill::initMediaSource(){
         if(QFile::exists(effect_file))
             sources << effect_file;
     }
-
 }
 
 Skill::Location Skill::getLocation() const{
@@ -223,7 +222,7 @@ int ScenarioRule::getPriority() const{
     return 3;
 }
 
-bool ScenarioRule::triggerable(const ServerPlayer *target) const{
+bool ScenarioRule::triggerable(const ServerPlayer *) const{
     return true;
 }
 
@@ -266,7 +265,7 @@ DrawCardsSkill::DrawCardsSkill(const QString &name)
     events << DrawNCards;
 }
 
-bool DrawCardsSkill::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+bool DrawCardsSkill::trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
     int n = data.toInt();
     data = getDrawNum(player, n);
     return false;

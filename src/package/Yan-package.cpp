@@ -475,22 +475,22 @@ public:
 
     virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
         Room *room = player->getRoom();
-        ServerPlayer *shenlubu = NULL;
+        ServerPlayer *shenlvbu = NULL;
         foreach(ServerPlayer *p, room->getAllPlayers()){
-            if(p->hasSkill("kuangbao") && p->getGeneralName() == "shenlubu")
-                shenlubu = p;
+            if(p->hasSkill("kuangbao") && p->getGeneralName() == "shenlvbu")
+                shenlvbu = p;
         }
 
-        if(shenlubu == NULL)
+        if(shenlvbu == NULL)
             return false;
 
         DamageStruct damage = data.value<DamageStruct>();
         if(event == Damage){
-            if(shenlubu->getMark("@wrath") <= 0)
+            if(shenlvbu->getMark("@wrath") <= 0)
                 return false;
-            shenlubu->loseMark("@wrath", qMin(shenlubu->getMark("@wrath"), damage.damage));
+            shenlvbu->loseMark("@wrath", qMin(shenlvbu->getMark("@wrath"), damage.damage));
         }else if(event == Damaged){
-            shenlubu->gainMark("@wrath", damage.damage);
+            shenlvbu->gainMark("@wrath", damage.damage);
         }
         return false;
     }
@@ -784,7 +784,7 @@ public:
 
         CardEffectStruct effect = data.value<CardEffectStruct>();
         if(effect.multiple && effect.card->inherits("TrickCard") && !shenxiaoqiao->isKongcheng()){
-            CardStar card = room->askForCard(shenxiaoqiao, "@yanhuimou", QString("@yanhuimou:%1").arg(player->getGeneralName()));
+            CardStar card = room->askForCard(shenxiaoqiao, "@yanhuimou", QString("@yanhuimou:%1").arg(player->getGeneralName()), QVariant(), CardDiscarded);
             if(card){
                 QList<int> card_ids = card->getSubcards();
                 foreach(int card_id, card_ids){
@@ -968,7 +968,8 @@ public:
             return false;
         if(effect.to->getArmor() && effect.to->getArmor()->objectName() == "adou_mark"){
             const Card *card = room->askForCard(mifuren, ".|.|.|.|red",
-                                                QString("@yanlongtai:%1::%2").arg(effect.to->getGeneralName()).arg(effect.card->objectName()), data);
+                                                QString("@yanlongtai:%1::%2").arg(effect.to->getGeneralName()).arg(effect.card->objectName()),
+                                                data);
             if(card){
                 LogMessage log;
                 log.type = "#YanLongtaiLog";
@@ -1269,7 +1270,7 @@ public:
             if((effect.to->hasSkill("kongcheng") && effect.to->isKongcheng()))
                 return false;
 
-            const Card *card = room->askForCard(player, "slash", "@guiling-slash:" + effect.to->objectName());
+            const Card *card = room->askForCard(player, "slash", "@guiling-slash:" + effect.to->objectName(), QVariant(), NonTrigger);
             if(card){
                 if(player->hasFlag("drank"))
                     room->setPlayerFlag(player, "-drank");
@@ -1459,7 +1460,7 @@ void YanQiyingDialog::popup(){
 class YanBaiming:public TriggerSkill{
 public:
     YanBaiming():TriggerSkill("yanbaiming"){
-        events << Predamage << DamageDone;
+        events << Predamage << Damage;
         frequency = Compulsory;
     }
 
@@ -1467,7 +1468,7 @@ public:
         Room *room = player->getRoom();
         DamageStruct ds = data.value<DamageStruct>();        
         if(event == Predamage){
-            if(player->tag.value("BaimingInvoke", false).toBool() || !ds.card->inherits("Slash"))
+            if(player->hasFlag(objectName()) || !ds.card->inherits("Slash"))
                 return false;
             QList<ServerPlayer *> tos;
             foreach(ServerPlayer *p, room->getOtherPlayers(ds.to)){
@@ -1484,7 +1485,7 @@ public:
             log.arg2 = objectName();
             room->sendLog(log);
 
-            player->tag["BaimingInvoke"] = true;
+            room->setPlayerFlag(player, objectName());
             DamageStruct damage;
             damage.card = ds.card;
             damage.from = ds.from;
@@ -1493,8 +1494,9 @@ public:
             room->damage(damage);
             return true;
         }
-        else
-            player->tag.remove("BaimingInvoke");
+        else if(event == Damage)
+            if(player->hasFlag(objectName()))
+                room->setPlayerFlag(player, "-"+objectName());
         return false;
     }
 };

@@ -34,7 +34,7 @@ public:
             judge.reason = objectName();
             judge.who = YJmateng;
             room->judge(judge);
-            const Card *jink = room->askForCard(effect.to, "jink", "@yjxijun-jink:"+YJmateng->objectName());
+            const Card *jink = room->askForCard(effect.to, "jink", "@yjxijun-jink:"+YJmateng->objectName(), QVariant::fromValue(effect), JinkUsed);
             if((jink) && (!judge.card->sameColorWith(jink))){
                 room->slashResult(effect, jink);
                 return true;
@@ -819,7 +819,7 @@ public:
                 if(!YJyuwenze->askForSkillInvoke(objectName(), data))
                     return false;
                 ServerPlayer *to = room->askForPlayerChosen(YJyuwenze, tos, objectName());
-                const Card *card = room->askForCard(YJyuwenze, ".|.|.|hand|.", "@yjzhengshang:"+to->getGeneralName());
+                const Card *card = room->askForCard(YJyuwenze, ".|.|.|hand|.", "@yjzhengshang:"+to->getGeneralName(), QVariant(), NonTrigger);
                 to->addToPile("ZhengShangPile", card->getEffectiveId(), true);
             }
             return false;

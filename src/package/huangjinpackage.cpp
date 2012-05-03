@@ -102,7 +102,7 @@ public:
 
         if(zhangyan->inMyAttackRange(effect.from))
             if(zhangyan->askForSkillInvoke(objectName(), data)){
-                const Card *slash = room->askForCard(zhangyan, "slash", "@feiyan-slash:" + effect.from->objectName());
+                const Card *slash = room->askForCard(zhangyan, "slash", "@feiyan-slash:" + effect.from->objectName(), QVariant(), NonTrigger);
                 if(slash){
                     room->playSkillEffect(objectName());
                     zhangyan->drawCards(1);
@@ -597,7 +597,7 @@ public:
             if(effect.to->hasSkill("kongcheng") && effect.to->isKongcheng())
                 return false;
 
-            const Card *card = room->askForCard(player, "slash", "@pengdao-slash");
+            const Card *card = room->askForCard(player, "slash", "@pengdao-slash", QVariant(), NonTrigger);
             if(card){
                 player->addMark("pengdaoslash");
                 if(player->hasFlag("drank"))
